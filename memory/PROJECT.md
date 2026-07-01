@@ -193,3 +193,20 @@ Total:     180 ч  (~4.5 недели full-time)
 Не начато:
 - frontend: кнопка «Откликнуться» в MasterHome → POST /orders/:id/bids
 - CI sanity check: npm install, tsc --noEmit, vite build
+--- STATE — 2026-07-01 05:00 ---
+
+Завершено (commit e88ed8c):
+- pi/src/routes/bids.ts — POST /orders/:orderId/bids, GET /orders/:orderId/bids, POST /orders/:orderId/accept-bid/:bidId
+- pi/src/services/notifications.ts — stub sendBidNotification
+- pi/src/types/bids.ts
+- idsRouter подключен в server.ts под /orders
+- **web Sprint 2-3:**
+  - CreateOrderSheet — создание заказа через POST /orders
+  - MasterHome — лента nearby + bid-sheet (AnimatePresence) + POST /orders/:id/bids
+  - App.tsx — табы Клиенту/Мастеру
+
+Не начато:
+- Real уведомления: wired telegraf bot вместо stub
+- Спринт 4: accept-bid → диалог, reviews, баланс
+- CI sanity check
+- Railway deploy
