@@ -4,7 +4,7 @@ import { env } from './config/env.js';
 import { createApp } from './lib/app.js';
 import { logger } from './lib/logger.js';
 import { authRouter } from './routes/auth.js';
-import { createBot } from './bot/index.js';
+import { createBot, initNotificationService } from './bot/index.js';
 import { initNotificationService } from './services/notifications.js';
 
 import { ordersRouter } from './routes/orders.js';
