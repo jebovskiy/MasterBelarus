@@ -220,3 +220,18 @@ Total:     180 ч  (~4.5 недели full-time)
 - Sprint 4: accept-bid → диалог, reviews, finish order
 - CI sanity check
 - Railway deploy
+--- STATE — 2026-07-01 05:15 ---
+Завершено (commit 7e3e92d):
+- pi/src/routes/masters.ts — GET /masters/:masterId/profile (агрегаты)
+- pi/src/server.ts — регистрация /masters, initNotificationService в bootstrap
+- pi/src/services/notifications.ts — real telegraf sendBidNotification + sendMasterAcceptedNotification
+- pi/src/bot/index.ts — createBot c wired notifications
+
+По бэклогу Sprint 4 закрыт (кроме POST /orders/:id/review, остался TODO).
+
+Не начато:
+- Frontend: OrderDetail + AcceptBid review flow
+- POST /orders/:id/review endpoint
+- npm install + sanity check
+- Railway deploy
+
