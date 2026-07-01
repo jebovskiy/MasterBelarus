@@ -210,3 +210,13 @@ Total:     180 ч  (~4.5 недели full-time)
 - Спринт 4: accept-bid → диалог, reviews, баланс
 - CI sanity check
 - Railway deploy
+--- STATE — 2026-07-01 05:05 ---
+
+Завершено (commit pending):
+- pi/src/services/notifications.ts — real telegraf notifications (wired via initNotificationService)
+- pi/src/server.ts — bot instance passed into notifier after webhook setup
+
+Не начато:
+- Sprint 4: accept-bid → диалог, reviews, finish order
+- CI sanity check
+- Railway deploy
