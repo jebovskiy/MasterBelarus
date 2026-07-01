@@ -8,12 +8,14 @@ import { createBot, initNotificationService } from './bot/index.js';
 import { ordersRouter } from './routes/orders.js';
 import { bidsRouter } from './routes/bids.js';
 import { mastersRouter } from './routes/masters.js';
+import { reviewsRouter } from './routes/reviews.js';
 
 async function bootstrap() {
   const app = createApp();
   app.use('/auth', authRouter);
   app.use('/orders', ordersRouter);
   app.use('/orders', bidsRouter);
+  app.use('/orders', reviewsRouter);
   app.use('/masters', mastersRouter);
 
   app.use((req, res) => {
