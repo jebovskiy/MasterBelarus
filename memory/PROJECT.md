@@ -235,3 +235,15 @@ Total:     180 ч  (~4.5 недели full-time)
 - npm install + sanity check
 - Railway deploy
 
+--- STATE — 2026-07-01 05:30 ---
+
+Завершено (commit 8ac18f2):
+- pi/src/routes/reviews.ts — POST /orders/:id/review + complete order
+- pi/src/server.ts — mounted reviewsRouter
+- **web:** OrderDetail.tsx — full cycle: order info, bids list, accept-bid, review form
+- **web:** App.tsx — wired OrderDetail into tab-based shell
+
+По бэклогу Sprint 4 закрыт полностью.
+
+Сейчас: фронтенд cycle замкнут, но не тестировался (ждём npm install + sanity check).
+
