@@ -64,14 +64,14 @@ PostGIS-функции:
 
 ## График MVP
 ```
-Sprint 0:  15ч  инфра + CI/CD + VPS
-Sprint 1:  37ч  БД + auth + telegraf старт (Week 1)
-Sprint 2:  36ч  заказы + гео + PostGIS (Week 2)
-Sprint 3:  46ч  отклики + уведомления + баланс (Week 3)
-Sprint 4:  46ч  завершение сделок + отзывы + запуск (Week 4)
-Sprint 5:  26ч  cold start marketing (parallel Week 4+)
-────────────────────────────
-Total:    180ч  (~4.5 недели full-time)
+Sprint 0:   15 ч  инфра + CI/CD + VPS
+Sprint 1:   37 ч  БД + auth + telegraf старт (Week 1)
+Sprint 2:   36 ч  заказы + гео + PostGIS (Week 2)
+Sprint 3:   46 ч  отклики + уведомления + баланс (Week 3)
+Sprint 4:   46 ч  завершение сделок + отзывы + запуск (Week 4)
+Sprint 5:   26 ч  cold start marketing (parallel Week 4+)
+───────────────────────────────────────
+Total:     180 ч  (~4.5 недели full-time)
 ```
 
 Критические метрики:
@@ -104,72 +104,73 @@ Total:    180ч  (~4.5 недели full-time)
 - Оффлайн: локальные строительные магазины и кофейни → QR-коды
 
 ---
-## STATE — 2026-07-01 04:30
+## STATE — 2026-07-01 04:42
 
-### Завершено (закоммичено, GitHub `jebovskiy/MasterBelarus/master`)
-- monorepo root `package.json` (workspaces: api, web)
-- `.gitignore` monorepo-wide + per-service
-- `README.md` + `docs/visual-spec.md` + `memory/PROJECT.md`
-- `Dockerfile.api` (multi-stage Node 20 alpine for Railway)
-- **api/** полный Sprint 1:
-  - Express + telegraf + Supabase + BullMQ + zod + pino
-  - `POST /auth/telegram` (rate-limit, HMAC-валидация initData, upsert profiles)
-  - telegraf bot: `/start` + deep-link + inline keyboard «Открыть МастерБай»
-  - `src/server.ts` — webhook на `/telegraf/<TOKEN>`
-  - `tests/telegram.test.ts` — 5 unit-кейсов
-- **supabase/migrations/** 8 идемпотентных миграций:
-  - 001 enums, 002 profiles+RLS, 003 orders+PostGIS+RLS, 004 bids+RLS,
-  - 005 master_categories+RLS, 006 master_balances+`deduct_response()`+trigger,
-  - 007 reviews+avg_rating trigger, 008 notifications_log+`find_orders_nearby()` RPC+storage bucket
-- **web/** Sprint 1 каркас:
-  - React 18 + Vite + TypeScript + Tailwind CSS (дизайн-токены из visual-spec.md)
-  - `@telegram-apps/sdk` init + `window.Telegram` типы
-  - Zustand auth-store (`useAuthStore`)
-  - `useTelegramAuth` хук — auto-auth при монтировании
-  - `useHaptic` хук — impact + notification feedback
-  - `SplashScreen` + `AuthGuard` (при ошибке — «Откройте внутри Telegram»)
-  - `ClientHome` — Hero Bento + 6 категорий Bento Grid + CTA «Создать заявку»
-- Railway: проект создан (id `8b43a314-0610-4411-a8c5-f8f914dc0a08`), сервисы отложены
+### Завершено (закоммичено)
+- Root: `package.json` (workspaces api + web), `.gitignore`, `README.md`, `Dockerfile.api`
+- **API Sprint 1:** Express + telegraf + Supabase + zod + pino.
+  - `POST /auth/telegram` — HMAC-валидация initData, upsert profiles.
+  - Telegraf `/start`, deep-link `?startapp=ref_*`, inline-keyboard.
+  - Webhook на `/telegraf/<TOKEN>`.
+  - Unit-тесты: `tests/telegram.test.ts`.
+- **8 идемпотентных Supabase миграций:**
+  - `001_create_enums`, `002_profiles+RLS`, `003_orders+PostGIS+RLS`,
+  - `004_bids+RLS`, `005_master_categories+RLS`,
+  - `006_master_balances+deduct_response()+trigger`,
+  - `007_reviews+avg_rating trigger`,
+  - `008_notifications_log+find_orders_nearby()+storage bucket`.
+- **Web Sprint 1:** React 18 + Vite + Tailwind (palette из visual-spec).
+  - `@telegram-apps/sdk` init, `window.Telegram` типы.
+  - Zustand auth-store, `useTelegramAuth`, `useHaptic`.
+  - `SplashScreen + AuthGuard`, `ClientHome` (Hero Bento + 6 категорий).
+- **Sprint 2 backend (частично):**
+  - `api/src/routes/orders.ts` — POST/GET/:id/GET/nearby/PATCH/:id/status.
+  - Подключен в `server.ts`.
+- Railway проект создан (`8b43a314-...`), сервисы отложены.
+- GitHub: `jebovskiy/MasterBelarus`, 4 commits pushed.
 
-### Не начато (по бэклогу)
-- Seed data: `supabase/seed.sql` — 6 категорий, 5 районов Минска
-- CI: `.github/workflows/ci.yml`
-- `npm install` + sanity check (`tsc --noEmit` api, `vite build` web)
-- Sprint 2: orders API, PostGIS nearby, Realtime/websocket, CreateOrderSheet
+### В процессе
+- Web: `CreateOrderSheet`, `MasterHome`, лента заказов, socket.io realtime.
 
----
-## TODO — 2026-07-01 04:30
-
-1. **npm install** в root + sanity check (`tsc --noEmit` api, `vite build` web)
-2. **Seed data**: `supabase/seed.sql` — 6 категорий, 5 районов Минска
-3. **CI**: `.github/workflows/ci.yml` — lint + typecheck + tests
-4. **Sprint 2** — orders API (POST/GET/nearby), Realtime, CreateOrderSheet (web)
-5. **Railway** — поднять api + web сервисы после sanity check
+### Не начато
+- Seed data (`supabase/seed.sql`)
+- CI (`.github/workflows/ci.yml`)
+- `npm install` + sanity check
+- Sprint 3: bids API, notifications, баланс
 
 ---
-## RECENT FILES — 2026-07-01 04:35
+## TODO — 2026-07-01 04:42
+
+1. **Web Sprint 2:** `CreateOrderSheet` + геолокация + `POST /orders`.
+2. **Web Sprint 2:** `MasterHome` + лента `GET /orders/nearby` (Realtime).
+3. **Seed data:** `supabase/seed.sql` — 6 категорий, 5 районов Минска.
+4. **CI:** `.github/workflows/ci.yml`.
+5. **npm install** + sanity check перед Railway deploy.
+
+---
+## RECENT FILES — 2026-07-01 04:42
 
 ### root
-- `package.json` (workspaces: api, web)
+- `package.json`, `.gitignore`, `Dockerfile.api`
 
-### api/
+### api/ (Sprint 1-2)
 - `package.json`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.yml`
 - `.env.example`, `.dockerignore`
 - `src/config/env.ts`, `src/lib/logger.ts`, `src/lib/supabase.ts`, `src/lib/app.ts`
 - `src/middleware/auth.ts`, `src/services/telegram.ts`
-- `src/routes/auth.ts`, `src/bot/index.ts`, `src/server.ts`
+- `src/routes/auth.ts`, `src/routes/orders.ts`, `src/bot/index.ts`, `src/server.ts`
+- `src/types/orders.ts`
 - `tests/telegram.test.ts`
 
-### web/
+### web/ (Sprint 1-2 в процессе)
 - `package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.ts`
 - `index.html`, `.gitignore`, `vite-env.d.ts`
-- `src/main.tsx`, `src/App.tsx`
-- `src/index.css` (design tokens + base)
+- `src/main.tsx`, `src/App.tsx`, `src/index.css`
 - `src/lib/telegram.ts`, `src/lib/api.ts`
 - `src/stores/auth.ts`
 - `src/hooks/useTelegramAuth.ts`, `src/hooks/useHaptic.ts`
-- `src/components/screens/SplashScreen.tsx` (splash + AuthGuard)
-- `src/pages/ClientHome.tsx` (Hero Bento + 6 категорий Bento Grid)
+- `src/components/screens/SplashScreen.tsx`
+- `src/pages/ClientHome.tsx`
 
 ### supabase/migrations/
 - `20260701000001_create_enums.sql`
@@ -180,5 +181,3 @@ Total:    180ч  (~4.5 недели full-time)
 - `20260701000006_master_balances.sql`
 - `20260701000007_reviews.sql`
 - `20260701000008_notifications_and_rpc.sql`
-
-### web/  (пустой — следующий шаг)

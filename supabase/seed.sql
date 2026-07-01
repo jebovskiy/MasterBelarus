@@ -1,0 +1,29 @@
+-- Seed data: справочно для ручного наполнения / тестов
+--
+-- Категории (используются в orders.category + master_categories.category):
+--   'plumber', 'electrician', 'mover', 'handyman', 'tutor', 'cleaning'
+--
+-- Пример районов для find_orders_nearby:
+--   'Минск-Мир'        ~ 53.9188, 27.6104
+--   'Новая Боровая'     ~ 53.8825, 27.4845
+--   'Лебяжий'           ~ 53.8998, 27.5255
+--   'Уручье'            ~ 53.9131, 27.6980
+--   'Каменная Горка'    ~ 53.9334, 27.4164
+--
+-- Для наполнения в Supabase Studio можно выполнить:
+--
+--   INSERT INTO public.profiles (telegram_id, role, is_npd, full_name)
+--   VALUES
+--     (100000001, 'master', true, 'Иван Петров'),
+--     (100000002, 'master', true, 'Алексей Сидоров'),
+--     (100000003, 'client', false, 'Мария Коваль');
+--
+--   INSERT INTO public.master_categories (master_id, category)
+--   SELECT id, c FROM public.profiles p
+--     CROSS JOIN (VALUES ('electrician'), ('handyman')) c
+--     WHERE p.telegram_id = 100000001;
+--
+--   INSERT INTO public.master_balances (master_id, response_credits)
+--   SELECT id, 20 FROM public.profiles
+--   WHERE telegram_id IN (100000001, 100000002)
+--   ON CONFLICT (master_id) DO NOTHING;
