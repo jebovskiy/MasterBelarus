@@ -1,0 +1,23 @@
+{
+  "name": "masterbelarus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MasterBY — Telegram Mini App marketplace for household services in Belarus",
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "build:api": "npm run build -w api",
+    "build:web": "npm run build -w web",
+    "lint": "npm run lint -w api && npm run lint -w web",
+    "typecheck": "npm run typecheck -w api && npm run typecheck -w web",
+    "test": "npm run test -w api && npm run test -w web"
+  },
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  }
+}
