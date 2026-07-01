@@ -1,0 +1,26 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+.cache/
+coverage/
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Docker
+*.pid
+data/
