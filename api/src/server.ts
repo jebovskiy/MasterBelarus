@@ -7,11 +7,13 @@ import { authRouter } from './routes/auth.js';
 import { createBot } from './bot/index.js';
 
 import { ordersRouter } from './routes/orders.js';
+import { bidsRouter } from './routes/bids.js';
 
 async function bootstrap() {
   const app = createApp();
   app.use('/auth', authRouter);
   app.use('/orders', ordersRouter);
+  app.use('/orders', bidsRouter);
 
   // 404
   app.use((req, res) => {
