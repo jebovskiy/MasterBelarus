@@ -1,5 +1,5 @@
--- 006: master_balances (response credits)
-CREATE TABLE public.master_balances (
+-- 006: master_balances (idempotent)
+CREATE TABLE IF NOT EXISTS public.master_balances (
   master_id      uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
   response_credits int NOT NULL DEFAULT 20,
   total_purchased int NOT NULL DEFAULT 0,
@@ -7,14 +7,12 @@ CREATE TABLE public.master_balances (
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 
--- RLS
 ALTER TABLE public.master_balances ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS mb_select ON public.master_balances;
 CREATE POLICY mb_select ON public.master_balances
   FOR SELECT USING (master_id = (SELECT id FROM public.profiles WHERE telegram_id = current_setting('request.jwt.claims')::bigint));
 
--- Atomic deduction: atomically decrements response_credits if > 0
--- Returns true on success, false if insufficient credits.
 CREATE OR REPLACE FUNCTION public.deduct_response(p_master_id uuid)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -32,7 +30,6 @@ BEGIN
   updated := FOUND;
 
   IF NOT updated THEN
-    -- Auto-create row with welcome credits if missing
     INSERT INTO public.master_balances (master_id, response_credits)
     VALUES (p_master_id, 19)
     ON CONFLICT (master_id) DO NOTHING;
@@ -43,8 +40,7 @@ BEGIN
 END;
 $$;
 
--- Auto-create balance row when a profile with role='master' is inserted
-CREATE OR REPLACE FUNCTION public trg_create_master_balance()
+CREATE OR REPLACE FUNCTION public.trg_create_master_balance()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
@@ -58,6 +54,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_profiles_after_insert ON public.profiles;
 CREATE TRIGGER trg_profiles_after_insert
   AFTER INSERT ON public.profiles
   FOR EACH ROW

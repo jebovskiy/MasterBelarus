@@ -1,7 +1,7 @@
--- 003: orders table + PostGIS
+-- 003: orders table + PostGIS (idempotent)
 CREATE EXTENSION IF NOT EXISTS postgis;
 
-CREATE TABLE public.orders (
+CREATE TABLE IF NOT EXISTS public.orders (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id     uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   category      text NOT NULL,
@@ -15,22 +15,21 @@ CREATE TABLE public.orders (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_orders_client_id ON public.orders (client_id);
-CREATE INDEX idx_orders_status     ON public.orders (status);
-CREATE INDEX idx_orders_category   ON public.orders (category);
-CREATE INDEX idx_orders_geo        ON public.orders USING gist (geo_location);
+CREATE INDEX IF NOT EXISTS idx_orders_client_id ON public.orders (client_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status     ON public.orders (status);
+CREATE INDEX IF NOT EXISTS idx_orders_category   ON public.orders (category);
+CREATE INDEX IF NOT EXISTS idx_orders_geo        ON public.orders USING gist (geo_location);
 
--- RLS
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
--- Anyone can read open orders (masters need to see them)
+DROP POLICY IF EXISTS orders_select ON public.orders;
 CREATE POLICY orders_select ON public.orders
   FOR SELECT USING (true);
 
--- Only the client who created the order can update it
+DROP POLICY IF EXISTS orders_update ON public.orders;
 CREATE POLICY orders_update ON public.orders
   FOR UPDATE USING (client_id = (SELECT id FROM public.profiles WHERE telegram_id = current_setting('request.jwt.claims')::bigint));
 
--- Only authenticated clients can insert
+DROP POLICY IF EXISTS orders_insert ON public.orders;
 CREATE POLICY orders_insert ON public.orders
   FOR INSERT WITH CHECK (client_id = (SELECT id FROM public.profiles WHERE telegram_id = current_setting('request.jwt.claims')::bigint));

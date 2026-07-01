@@ -1,5 +1,5 @@
--- 007: reviews table
-CREATE TABLE public.reviews (
+-- 007: reviews table (idempotent)
+CREATE TABLE IF NOT EXISTS public.reviews (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id   uuid NOT NULL UNIQUE REFERENCES public.orders(id) ON DELETE CASCADE,
   client_id  uuid NOT NULL REFERENCES public.profiles(id),
@@ -9,32 +9,20 @@ CREATE TABLE public.reviews (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_reviews_master_id ON public.reviews (master_id);
-CREATE INDEX idx_reviews_client_id ON public.reviews (client_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_master_id ON public.reviews (master_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_client_id ON public.reviews (client_id);
 
--- RLS
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS reviews_select ON public.reviews;
 CREATE POLICY reviews_select ON public.reviews
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS reviews_insert ON public.reviews;
 CREATE POLICY reviews_insert ON public.reviews
   FOR INSERT WITH CHECK (client_id = (SELECT id FROM public.profiles WHERE telegram_id = current_setting('request.jwt.claims')::bigint));
 
--- Trigger: recalc master average rating on insert
-CREATE OR REPLACE FUNCTION public.trg_recalc_master_rating()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  UPDATE public.profiles
-  SET avatar_url = avatar_url  -- no-op update; we store rating in a separate column later
-  WHERE id = NEW.master_id;
-  RETURN NEW;
-END;
-$$;
-
--- We add a rating column to profiles for denormalized average
+-- Add denormalized rating columns to profiles (idempotent)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avg_rating numeric(2,1) DEFAULT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS review_count int DEFAULT 0;
 
@@ -60,6 +48,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_reviews_after_insert ON public.reviews;
 CREATE TRIGGER trg_reviews_after_insert
   AFTER INSERT ON public.reviews
   FOR EACH ROW
