@@ -1,0 +1,34 @@
+﻿{
+    "include":  [
+                    "src",
+                    "vite-env.d.ts"
+                ],
+    "compilerOptions":  {
+                            "skipLibCheck":  true,
+                            "allowImportingTsExtensions":  true,
+                            "noUnusedLocals":  true,
+                            "jsx":  "react-jsx",
+                            "module":  "ESNext",
+                            "noUncheckedIndexedAccess":  true,
+                            "noUnusedParameters":  true,
+                            "isolatedModules":  true,
+                            "target":  "ES2020",
+                            "baseUrl":  ".",
+                            "moduleResolution":  "bundler",
+                            "useDefineForClassFields":  true,
+                            "moduleDetection":  "force",
+                            "paths":  {
+                                          "@/*":  [
+                                                      "src/*"
+                                                  ]
+                                      },
+                            "strict":  true,
+                            "noEmit":  true,
+                            "noFallthroughCasesInSwitch":  true,
+                            "lib":  [
+                                        "ES2020",
+                                        "DOM",
+                                        "DOM.Iterable"
+                                    ]
+                        }
+}

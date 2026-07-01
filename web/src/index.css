@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-app-bg text-text-main font-sans antialiased;
+    font-feature-settings: 'tnum';
+  }
+}
