@@ -181,3 +181,15 @@ Total:     180 ч  (~4.5 недели full-time)
 - `20260701000006_master_balances.sql`
 - `20260701000007_reviews.sql`
 - `20260701000008_notifications_and_rpc.sql`
+--- STATE ---
+Создано на: 2026-07-01 04:55
+
+Завершено (commit 25b610f):
+- pi/src/routes/bids.ts — POST /orders/:id/bids, GET /orders/:id/bids, POST /orders/:id/accept-bid/:bidId
+- pi/src/services/notifications.ts — sendBidNotification stub
+- pi/src/types/bids.ts
+- server.ts подключил bidsRouter под /orders
+
+Не начато:
+- frontend: кнопка «Откликнуться» в MasterHome → POST /orders/:id/bids
+- CI sanity check: npm install, tsc --noEmit, vite build
