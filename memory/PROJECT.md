@@ -104,78 +104,72 @@ Total:    180ч  (~4.5 недели full-time)
 - Оффлайн: локальные строительные магазины и кофейни → QR-коды
 
 ---
-## STATE — 2026-07-01 04:10
+## STATE — 2026-07-01 04:30
 
-### Завершено (закоммичено в GitHub pool `master`)
+### Завершено (закоммичено, GitHub `jebovskiy/MasterBelarus/master`)
 - monorepo root `package.json` (workspaces: api, web)
 - `.gitignore` monorepo-wide + per-service
 - `README.md` + `docs/visual-spec.md` + `memory/PROJECT.md`
 - `Dockerfile.api` (multi-stage Node 20 alpine for Railway)
-- `api/package.json` (Express + telegraf + Supabase + BullMQ + zod + pino-pretty)
-- `api/tsconfig.json` (strict `NodeNext`, `noUncheckedIndexedAccess`) + `.eslintrc.yml` + `vitest.config.ts`
-- `api/.env.example` + `.dockerignore`
-- `api/src/config/env.ts` — Zod-валидация
-- `api/src/lib/logger.ts` — pino + pino-pretty dev
-- `api/src/lib/supabase.ts` — admin client + `DBProfile` type
-- `api/src/lib/app.ts` — Express factory (cors, helmet, compression, pino-http)
-- `api/src/middleware/auth.ts` — `authRequired` (HMAC-валидация X-Telegram-Init-Data)
-- `api/src/services/telegram.ts` — `validateTelegramWebAppData` + `fullNameOf`
-- `api/src/routes/auth.ts` — `POST /auth/telegram` (rate-limit 10/min, upsert profiles, session)
-- `api/src/bot/index.ts` — telegraf bot: `/start` + deep-link + inline keyboard
-- `api/src/server.ts` — bootstrap, webhook on `/telegraf/<TOKEN>`
-- `api/tests/telegram.test.ts` — 5 unit-кейсов HMAC-валидации
-- **8 Supabase миграций** (задачи 1.1.1–1.1.12):
-  - `001_create_enums` — `user_role`, `order_status`
-  - `002_profiles` — RLS + индексы
-  - `003_orders` — PostGIS `geo_location` + GiST index + RLS
-  - `004_bids` — UNIQUE(order_id, master_id) + RLS
-  - `005_master_categories` — PK(master_id, category) + RLS
-  - `006_master_balances` — `deduct_response()` RPC + триггер auto-create
-  - `007_reviews` — rating 1-5 + триггер пересчёта avg_rating в profiles
-  - `008_notifications_log` + `find_orders_nearby()` RPC + storage bucket `order-images`
-- Railway: проект создан (id `8b43a314-0610-4411-a8c5-f8f914dc0a08`), сервисы отложены до Sprint 1 close
-- GitHub: `jebovskiy/MasterBelarus`, 3 commits pushed
+- **api/** полный Sprint 1:
+  - Express + telegraf + Supabase + BullMQ + zod + pino
+  - `POST /auth/telegram` (rate-limit, HMAC-валидация initData, upsert profiles)
+  - telegraf bot: `/start` + deep-link + inline keyboard «Открыть МастерБай»
+  - `src/server.ts` — webhook на `/telegraf/<TOKEN>`
+  - `tests/telegram.test.ts` — 5 unit-кейсов
+- **supabase/migrations/** 8 идемпотентных миграций:
+  - 001 enums, 002 profiles+RLS, 003 orders+PostGIS+RLS, 004 bids+RLS,
+  - 005 master_categories+RLS, 006 master_balances+`deduct_response()`+trigger,
+  - 007 reviews+avg_rating trigger, 008 notifications_log+`find_orders_nearby()` RPC+storage bucket
+- **web/** Sprint 1 каркас:
+  - React 18 + Vite + TypeScript + Tailwind CSS (дизайн-токены из visual-spec.md)
+  - `@telegram-apps/sdk` init + `window.Telegram` типы
+  - Zustand auth-store (`useAuthStore`)
+  - `useTelegramAuth` хук — auto-auth при монтировании
+  - `useHaptic` хук — impact + notification feedback
+  - `SplashScreen` + `AuthGuard` (при ошибке — «Откройте внутри Telegram»)
+  - `ClientHome` — Hero Bento + 6 категорий Bento Grid + CTA «Создать заявку»
+- Railway: проект создан (id `8b43a314-0610-4411-a8c5-f8f914dc0a08`), сервисы отложены
 
-### В процессе
-- `web/` пустой — нет package.json, Vite, Tailwind, React-каркаса
-- `npm install` не прогонялся — нет `node_modules` и lockfile
-
-### Не начато (Sprint 1 по бэклогу)
-- Frontend: React 18 + Vite + Tailwind + `@telegram-apps/sdk` + Zustand (задачи 1.3.1–1.3.7)
-- Seed data: 3 категории, 5 районов Минска
-- CI: GitHub Actions workflow
-- `npm install` + `tsc --noEmit` sanity check
-- Railway сервисы (api + web)
+### Не начато (по бэклогу)
+- Seed data: `supabase/seed.sql` — 6 категорий, 5 районов Минска
+- CI: `.github/workflows/ci.yml`
+- `npm install` + sanity check (`tsc --noEmit` api, `vite build` web)
+- Sprint 2: orders API, PostGIS nearby, Realtime/websocket, CreateOrderSheet
 
 ---
-## TODO — 2026-07-01 04:20
+## TODO — 2026-07-01 04:30
 
-1. **web/ каркас**: `package.json`, `tsconfig`, `vite.config`, `tailwind.config` (palette из visual-spec.md), `index.html`, `src/main.tsx`, `src/App.tsx`, `src/lib/telegram.ts` (SDK init), `src/hooks/useTelegramUser.ts`, Zustand store, splash screen
-2. **npm install** в root + `tsc --noEmit` sanity check (api)
-3. **Seed data**: `supabase/seed.sql` — 6 категорий, 5 районов Минска
-4. **CI**: `.github/workflows/ci.yml` — lint + typecheck + tests
-5. **Sprint 1 close**: прогон всех тестов, проверка локального `npm run dev:api`
+1. **npm install** в root + sanity check (`tsc --noEmit` api, `vite build` web)
+2. **Seed data**: `supabase/seed.sql` — 6 категорий, 5 районов Минска
+3. **CI**: `.github/workflows/ci.yml` — lint + typecheck + tests
+4. **Sprint 2** — orders API (POST/GET/nearby), Realtime, CreateOrderSheet (web)
+5. **Railway** — поднять api + web сервисы после sanity check
 
 ---
-## RECENT FILES — 2026-07-01 04:20
+## RECENT FILES — 2026-07-01 04:35
 
 ### root
-- `package.json` (workspaces)
-- `Dockerfile.api`
-- `.gitignore`
+- `package.json` (workspaces: api, web)
 
 ### api/
-- `package.json` (deps + pino-pretty)
-- `tsconfig.json`, `vitest.config.ts`, `.eslintrc.yml`
+- `package.json`, `tsconfig.json`, `vitest.config.ts`, `.eslintrc.yml`
 - `.env.example`, `.dockerignore`
-- `src/config/env.ts`
-- `src/lib/logger.ts`, `src/lib/supabase.ts`, `src/lib/app.ts`
-- `src/middleware/auth.ts`
-- `src/services/telegram.ts`
-- `src/routes/auth.ts`
-- `src/bot/index.ts`
-- `src/server.ts`
+- `src/config/env.ts`, `src/lib/logger.ts`, `src/lib/supabase.ts`, `src/lib/app.ts`
+- `src/middleware/auth.ts`, `src/services/telegram.ts`
+- `src/routes/auth.ts`, `src/bot/index.ts`, `src/server.ts`
 - `tests/telegram.test.ts`
+
+### web/
+- `package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.ts`, `postcss.config.ts`
+- `index.html`, `.gitignore`, `vite-env.d.ts`
+- `src/main.tsx`, `src/App.tsx`
+- `src/index.css` (design tokens + base)
+- `src/lib/telegram.ts`, `src/lib/api.ts`
+- `src/stores/auth.ts`
+- `src/hooks/useTelegramAuth.ts`, `src/hooks/useHaptic.ts`
+- `src/components/screens/SplashScreen.tsx` (splash + AuthGuard)
+- `src/pages/ClientHome.tsx` (Hero Bento + 6 категорий Bento Grid)
 
 ### supabase/migrations/
 - `20260701000001_create_enums.sql`

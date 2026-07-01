@@ -6,9 +6,12 @@ import { logger } from './lib/logger.js';
 import { authRouter } from './routes/auth.js';
 import { createBot } from './bot/index.js';
 
+import { ordersRouter } from './routes/orders.js';
+
 async function bootstrap() {
   const app = createApp();
   app.use('/auth', authRouter);
+  app.use('/orders', ordersRouter);
 
   // 404
   app.use((req, res) => {
