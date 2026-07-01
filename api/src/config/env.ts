@@ -19,6 +19,8 @@ const EnvSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
   REDIS_URL: z.string().url().optional(),
+  ADMIN_TOKEN: z.string().optional(),
+  ADMIN_TELEGRAM_ID: z.coerce.number().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

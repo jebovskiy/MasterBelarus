@@ -247,3 +247,40 @@ Total:     180 ч  (~4.5 недели full-time)
 
 Сейчас: фронтенд cycle замкнут, но не тестировался (ждём npm install + sanity check).
 
+---
+## STATE — 2026-07-01 05:50
+
+### Завершено (закоммичено, commit 8ac18f2 / c64644b)
+- **Backend Sprint 4 closed:**
+  - pi/src/routes/reviews.ts — POST /orders/:id/review
+  - pi/src/routes/masters.ts — GET /masters/:masterId/profile
+  - pi/src/services/notifications.ts — real telegraf bot sendMessage wired
+  - pi/src/bot/index.ts — initNotificationService(bot) in createBot()
+  - notices:приём отклика → уведомления клиенту и мастеру
+- **Frontend Sprint 2-4 closed:**
+  - CreateOrderSheet — форма заказа, POST /orders
+  - MasterHome — лента nearby, bid sheet, POST /orders/:id/bids
+  - OrderDetail — детали, список bids, accept, review form
+  - App.tsx — табы Клиенту/Мастеру + OrderDetail интеграция
+- **Sprint 5 (частично): админ-модуль**
+  - pi/src/middleware/admin.ts
+  - pi/src/routes/admin.ts
+  - web/src/components/admin/AdminPanel.tsx
+  - pi/.env.example — дополнен ADMIN_TOKEN, ADMIN_TELEGRAM_ID
+
+### Не начато
+- Админ: детальный review moderation + жалобы
+- 
+pm install + sanity check (api + web)
+- Railway deployment (api + web сервисы)
+- Sentry / PostHog
+- Seed-скрипт с реальными пользователями
+
+---
+## TODO — 2026-07-01 05:50
+
+1. **Sprint 5:** finish admin moderation (complaints + master suspend)
+2. 
+pm install в root → sanity check перед деплоем
+3. Подключить Railway сервисы (api + web)
+4. Наполнить Supabase тестовыми данными
