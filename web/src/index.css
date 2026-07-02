@@ -8,7 +8,11 @@
   }
 
   body {
-    @apply bg-app-bg text-text-main font-sans antialiased;
+    background-color: #F8F9FA;
+    color: #111827;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'tnum';
   }
 }
