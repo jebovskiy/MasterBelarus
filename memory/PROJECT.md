@@ -413,3 +413,28 @@ pm install + sanity check (api + web)
 -- с Admin ID: long-press Profile → popover [👤 Профиль] [🛠 Админ-панель]
 -- Popover: bg-white rounded-xl shadow-lg border-slate-100, над кнопкой профиля
 -- dismiss: любой выбор или повторный tap
+
+---
+## STATE — 2026-07-02 06:40 — Premium Toast (zustand + haptic + backdrop-blur)
+
+### Создано
+- `web/src/components/shared/Toast.tsx` — полностью переписан:
+  - zustand-стора `useToastStore` с `showToast(message, type?)`
+  - типы `'info' | 'warning' | 'success' | 'error'`
+  - Telegram HapticFeedback: `impactOccurred('medium')` для info/success, `notificationOccurred` для warning/error
+  - авто-dismiss через 2.5s
+  - тёмный компонент: `bg-slate-900/95 backdrop-blur-md`, border `slate-800`, тень `12px 40px rgba(0,0,0,0.25)`
+  - иконки: 💡 info, 🛠 warning, ✅ success, ❌ error
+- `web/src/index.css` — `@keyframes fadeInUp` + класс `animate-fade-in-up` (cubic-bezier 0.16,1,0.3,1)
+
+### Изменено
+- `web/src/App.tsx` — `ToastProvider` → `<Toast />` внутри AuthGuard
+- `web/src/components/screens/Profile.tsx` — `useToast` → `useToastStore`, тексты заглушек заменены на живые сообщения
+- `web/src/components/screens/MasterHome.tsx` — `useToast` → `useToastStore`, «Пополнение» через showToast
+- `web/src/components/screens/CreateOrderSheet.tsx` — `useToast` → `useToastStore`, error/success через showToast
+- `web/src/pages/ClientHome.tsx` — удалён `showMasterPopup` (Telegram popup/alert), вместо него Toast «Профиль мастера откроется в версии 1.1»
+
+### Архитектура
+- Zustand store, не Context → `<Toast />` можно разместить в любом месте дерева
+- Haptic триггерится внутри стора, вызывающий код не заботится о вибрации
+- `animate-fade-in-up` (CSS) вместо framer-motion (Toast — единственный элемент, не требует React-анимации)
