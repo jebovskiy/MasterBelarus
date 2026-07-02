@@ -15,6 +15,7 @@ function AppShell() {
   const profile = useAuthStore((s) => s.profile);
   const [tab, setTab] = useState<TabKey>('home');
   const [orderOpen, setOrderOpen] = useState(false);
+  const [presetCategory, setPresetCategory] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
 
@@ -22,7 +23,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-app-bg pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
-      {tab === 'home' && (isMaster ? <MasterHome /> : <ClientHome onOpenCreateOrder={() => setOrderOpen(true)} />)}
+      {tab === 'home' && (isMaster ? <MasterHome /> : <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} />)}
 
       {tab === 'orders' && (
         <div className="px-4 pt-4">
@@ -40,7 +41,7 @@ function AppShell() {
 
       {!adminOpen && <BottomTabBar active={tab} onTab={setTab} onAdminChoice={() => setAdminOpen(true)} />}
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
-      <CreateOrderSheet open={orderOpen} onClose={() => setOrderOpen(false)} />
+      <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
       <AnimatePresence>
         {adminOpen && (
           <motion.div

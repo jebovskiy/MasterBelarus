@@ -46,11 +46,20 @@ const MOCK_MASTERS: RecentMaster[] = [
 ];
 
 type ClientHomeProps = {
-  onOpenCreateOrder: () => void;
+  onOpenCreateOrder: (category?: string) => void;
   onOpenOrder?: (id: string) => void;
 };
 
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
+
+function showMasterPopup(master: RecentMaster) {
+  const msg = `${master.specialty}\nРейтинг: ★ ${master.rating} (${master.reviews} отзывов)\n\nВы сможете связаться с мастером, когда создадите заказ!`;
+  if (window.Telegram?.WebApp?.showPopup) {
+    window.Telegram.WebApp.showPopup({ title: master.name, message: msg, buttons: [{ type: 'close' }] });
+  } else {
+    alert(msg);
+  }
+}
 
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -102,7 +111,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
           <h1 className="text-2xl font-extrabold text-slate-900 mt-1 leading-tight">Нужен мастер сегодня?</h1>
           <p className="text-[13px] text-slate-500 mt-1">Отклик за 5 минут</p>
           <div className="flex items-center justify-between mt-4">
-            <button onClick={onOpenCreateOrder} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-all mr-3">+ Создать заявку</button>
+            <button onClick={() => onOpenCreateOrder()} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-all mr-3">+ Создать заявку</button>
             <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">🔨</div>
           </div>
         </div>
@@ -146,7 +155,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
           <h2 className="text-lg font-bold text-slate-800 px-1 mb-2">Популярные услуги</h2>
           <div className="grid grid-cols-2 gap-3">
             {CATEGORIES.map((cat) => (
-              <button key={cat.key} onClick={() => { impact('light'); onOpenOrder?.(cat.key); }} className="bg-white p-4 rounded-2xl shadow-sm h-24 flex flex-col justify-between active:scale-[0.98] transition-transform">
+              <button key={cat.key} onClick={() => { impact('light'); onOpenCreateOrder(cat.key); }} className="bg-white p-4 rounded-2xl shadow-sm h-24 flex flex-col justify-between active:scale-[0.98] transition-transform">
                 <span className="text-2xl">{cat.icon}</span>
                 <span className="text-sm font-semibold text-slate-800">{cat.label}</span>
               </button>
@@ -170,7 +179,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
                   key={master.id}
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
-                  onClick={() => impact('light')}
+                  onClick={() => { impact('light'); showMasterPopup(master); }}
                   className="w-44 shrink-0 snap-start bg-white rounded-2xl p-4 shadow-sm text-left active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-center gap-3 mb-2">

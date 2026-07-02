@@ -45,6 +45,8 @@ declare global {
           open: () => void;
           close: () => void;
         };
+        showPopup: (params: { title?: string; message: string; buttons?: Array<{ type: string; text?: string; id?: string }> }) => void;
+        showAlert: (message: string, callback?: () => void) => void;
       };
     };
   }

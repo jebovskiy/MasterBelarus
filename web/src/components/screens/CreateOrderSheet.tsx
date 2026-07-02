@@ -4,7 +4,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
 import { useToast } from '@/components/shared/Toast';
 
-type Props = { open: boolean; onClose: () => void };
+type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
 const CATEGORIES = [
   { key: 'plumber', label: 'Сантехник', emoji: '🔧' },
@@ -23,8 +23,12 @@ const swipeVelocityThreshold = 400;
 
 const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
-export default function CreateOrderSheet({ open, onClose }: Props) {
+export default function CreateOrderSheet({ open, onClose, presetCategory }: Props) {
   const [category, setCategory] = useState<string>('');
+
+  useEffect(() => {
+    if (open && presetCategory) setCategory(presetCategory);
+  }, [open, presetCategory]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
