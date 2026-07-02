@@ -547,3 +547,21 @@ pm install + sanity check (api + web)
 
 ### Env
 - `MODERATOR_CHAT_ID` — ID чата модераторов для уведомлений о заявках
+
+---
+## STATE — 2026-07-02 09:20 — Auth fix + Profile polish
+
+### Migration
+- `current_role` закавычен (reserved word)
+
+### api.ts
+- `authHeaders()` переведён с `window.Telegram.WebApp.initData` на `getTelegramInitData()` из SDK v2 (`@telegram-apps/sdk`)
+
+### Profile.tsx
+- Переписаны функции форматирования телефона:
+  - `formatPhone()` — корректный парсинг любого оператора (29/33/44/25): `375447545631` → `+375 (44) 754-56-31`
+  - `formatPhoneInput()` — прогрессивная маска при вводе: цифры → `+375 (XX) XXX-XX-XX`
+  - `maskPhone()` — маскирует середину: `+375 (44) ***-**-31`
+- Выделен `ProfileBottomSheet` — компонент с фиксированной кнопкой внизу, скроллом контента, `maxHeight: 80dvh` (корректно на мобильных с клавиатурой)
+- Выделен `SettingsCard` — блок Настройки (Язык, Тема, Уведомления) переиспользуется в customer/master view
+- `loading` проп для кнопки Сохранить
