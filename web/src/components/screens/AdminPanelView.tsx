@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAdminStore, adminHeaders } from '@/stores/admin';
 import { useToastStore } from '@/components/shared/Toast';
+import { getTelegramInitData } from '@/lib/telegram';
 
 type Tab = 'stats' | 'orders' | 'masters' | 'moderation' | 'complaints';
 
@@ -44,9 +45,12 @@ const MOCK_COMPLAINTS: Complaint[] = [
   { id: '4', userName: 'Дмитрий В.', userRole: 'Клиент', text: 'Нарушение сроков, пропал после предоплаты', date: '1 неделя назад', status: 'pending' },
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+
 export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   const token = useAdminStore((s) => s.token);
   const setToken = useAdminStore((s) => s.setToken);
+  const setTelegramAdmin = useAdminStore((s) => s.setTelegramAdmin);
   const clearToken = useAdminStore((s) => s.clear);
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const showToast = useToastStore((s) => s.showToast);
@@ -57,17 +61,38 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   const [masters, setMasters] = useState<AdminMaster[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
+  const [checkingTg, setCheckingTg] = useState(true);
 
   const [pendingMasters, setPendingMasters] = useState<PendingMaster[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!token) return;
+    if (isAdmin) {
+      setCheckingTg(false);
+      return;
+    }
+    const initData = getTelegramInitData();
+    if (!initData) {
+      setCheckingTg(false);
+      return;
+    }
+    fetch(`${API_BASE}/admin/stats`, {
+      headers: { 'x-telegram-init-data': initData },
+    })
+      .then((res) => {
+        if (res.ok) setTelegramAdmin();
+      })
+      .catch(() => {})
+      .finally(() => setCheckingTg(false));
+  }, [isAdmin, setTelegramAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
     const fetchData = async () => {
       const h = adminHeaders(token);
       const fetchWithToken = async <T,>(path: string) => {
-        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}${path}`, { headers: { ...h } });
+        const res = await fetch(`${API_BASE}${path}`, { headers: { ...h } });
         return res.json() as T;
       };
       try {
@@ -83,14 +108,14 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
       } catch { setError('Failed to load admin data'); }
     };
     fetchData();
-  }, [token]);
+  }, [token, isAdmin]);
 
   const fetchPendingMasters = async () => {
-    if (!token) return;
+    if (!isAdmin) return;
     setLoadingPending(true);
     const h = adminHeaders(token);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/admin/masters/pending`, { headers: { ...h } });
+      const res = await fetch(`${API_BASE}/admin/masters/pending`, { headers: { ...h } });
       const data = await res.json() as PendingMaster[];
       setPendingMasters(Array.isArray(data) ? data : []);
     } catch {
@@ -101,17 +126,17 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   };
 
   useEffect(() => {
-    if (tab === 'moderation' && token) {
+    if (tab === 'moderation' && isAdmin) {
       fetchPendingMasters();
     }
-  }, [tab, token]);
+  }, [tab, isAdmin]);
 
   const handleModerate = async (tgId: number, action: 'approve' | 'reject') => {
     const key = `${tgId}_${action}`;
     setActionLoading((prev) => ({ ...prev, [key]: true }));
     try {
-      const h = adminHeaders(token!);
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/admin/masters/${action}/${tgId}`, {
+      const h = adminHeaders(token);
+      const res = await fetch(`${API_BASE}/admin/masters/${action}/${tgId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...h },
         body: '{}',
@@ -134,7 +159,14 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
     setComplaints((prev) => prev.map((c) => (c.id === id ? { ...c, status: resolution } : c)));
   };
 
-  if (!token || !isAdmin) {
+  if (!isAdmin) {
+    if (checkingTg) {
+      return (
+        <div className="min-h-screen bg-[#F4F4F6] flex items-center justify-center p-6">
+          <p className="text-sm text-slate-400">Проверка доступа...</p>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-[#F4F4F6] flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-4">

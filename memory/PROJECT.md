@@ -615,3 +615,23 @@ pm install + sanity check (api + web)
 
 ### admin.ts
 - Pending route теперь SELECTит `category`
+
+---
+## STATE — 2026-07-02 10:20 — Admin auto-auth via telegram initData
+
+### api/src/middleware/admin.ts
+- `adminRequired` теперь принимает **два** способа аутентификации:
+  1. Header `x-admin-token: <ADMIN_TOKEN>` (веб-версия)
+  2. Header `x-telegram-init-data` — валидирует подпись HMAC-SHA256, сверяет `telegram.id` с `env.ADMIN_TELEGRAM_ID`
+
+### web/src/stores/admin.ts
+- Добавлен метод `setTelegramAdmin()` — ставит `isAdmin: true` без токена (не пишет в localStorage)
+- `adminHeaders(token: string | null)` — теперь сам подмешивает `x-telegram-init-data` через `getTelegramInitData()` из SDK
+
+### web/src/components/screens/AdminPanelView.tsx
+- При открытии, если `!isAdmin`:
+  1. Показывает "Проверка доступа..."
+  2. Вызывает `GET /admin/stats` с одним лишь `x-telegram-init-data`
+  3. Если 200 → `setTelegramAdmin()` — админка открывается без токена
+  4. Если нет initData или 401 → экран ввода токена как раньше
+- Все fetch-запросы теперь используют `adminHeaders(token)` который передаёт И токен И initData (работает любой способ)
