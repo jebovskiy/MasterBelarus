@@ -280,7 +280,49 @@ pm install + sanity check (api + web)
 ## TODO — 2026-07-01 05:50
 
 1. **Sprint 5:** finish admin moderation (complaints + master suspend)
-2. 
-pm install в root → sanity check перед деплоем
-3. Подключить Railway сервисы (api + web)
+2. npm install в root → sanity check перед деплоем
+3. Подключить Railway сервисы (api + web) — DONE
 4. Наполнить Supabase тестовыми данными
+5. **CI** — `.github/workflows/ci.yml`
+6. **Sentry / PostHog** — мониторинг
+
+---
+## STATE — 2026-07-02 04:00 — Design fix + shared components
+
+### Исправлено
+- `vite.config.ts` — удалён `postcss: null` (PostCSS был выключен → Tailwind не работал → чёрный экран)
+- Создан `postcss.config.cjs` — включает tailwindcss + autoprefixer плагины
+- `tailwind.config.cjs` — добавлены все недостающие токены дизайна:
+  - цвета: `primary-hover`, `primary-tint`, `success-tint`, `error`, `text-tertiary`, `app-surface-alt`
+  - тени: `card`, `card-hover`, `modal`, `accent-glow`
+  - `duration-180`, шрифт Inter
+- `index.css` — добавлены CSS-переменные `--sat`/`--sab` для safe-area
+
+### Создано
+- `web/src/components/shared/` — система переиспользуемых компонентов:
+  - `Button.tsx` — variant(primary|secondary|ghost|danger), size(sm|md|lg), loading, hover-scale, haptic
+  - `Input.tsx` — label, prefix/suffix, error, multiline, placeholder
+  - `Badge.tsx` — variant(success|warning|error|neutral|primary)
+  - `Chip.tsx` — active|removable, hover state
+  - `Avatar.tsx` — size(32|40|48|64), src/initials+gradient fallback
+  - `BottomTabBar.tsx` — 4 таба с animated indicator, backdrop-blur, safe-area
+  - `Toast.tsx` — ToastProvider + useToast() hook, success/error/info, auto-dismiss 3s
+
+### Изменено
+- `App.tsx` — BottomTabBar вместо top-nav "Клиенту/Мастеру", ToastProvider обёртка, safe-area bottom padding
+- `main.tsx` — убран дублирующийся AuthGuard (уже в App.tsx)
+- `MasterHome.tsx` — добавлен stats row "Выполнено/В работе/Сегодня", mock-данные balance+rating
+- `ClientHome.tsx` — убран `pb-24` (parent управляет отступами)
+
+### С чем не совпадает spec (осталось)
+- ClientHome: активные заказы + карусель мастеров
+- Hover scale(1.02) на кнопках (вместо active scale(0.98))
+- LocationManager — геолокация через Telegram (сейчас хардкод lat/lng)
+- Карусель последних мастеров
+- Авторизация: AdminToken в хедере — не реализовано на фронте
+
+### Не начато
+- Seed data (supabase/seed.sql)
+- CI (`.github/workflows/ci.yml`)
+- Админ: жалобы, блокировка мастеров
+- Sentry / PostHog
