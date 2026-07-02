@@ -438,3 +438,39 @@ pm install + sanity check (api + web)
 - Zustand store, не Context → `<Toast />` можно разместить в любом месте дерева
 - Haptic триггерится внутри стора, вызывающий код не заботится о вибрации
 - `animate-fade-in-up` (CSS) вместо framer-motion (Toast — единственный элемент, не требует React-анимации)
+
+---
+## STATE — 2026-07-02 07:10 — 4 рабочих экрана (Settings, EditProfile, Wallet, OrderHistory)
+
+### Создано
+- `web/src/components/screens/SettingsScreen.tsx`:
+  - 3 toggle-свитча (уведомления: nearby/chat/promo), localStorage
+  - Язык: Русский / Беларуская / English (radio с ✓)
+  - Тема: Системная / Светлая / Тёмная (сегмент-контроллер)
+- `web/src/components/screens/EditProfileScreen.tsx`:
+  - Общие поля: имя, телефон, город
+  - Для мастера: описание (textarea), категории (grid 2×2 toggle), радиус (range 1-200 км)
+  - `PATCH /auth/profile` — сохраняет full_name + опциональные поля + master_categories
+  - Toast-уведомление об успехе/ошибке
+- `web/src/components/screens/WalletScreen.tsx`:
+  - Табло баланса, сетка быстрых сумм (10/20/50/100/200/500 BYN)
+  - Кастомный инпут, выбор способа оплаты (карта / ЕРИП)
+  - Эмуляция платежа → экран успеха + возврат
+- `web/src/components/screens/OrderHistoryScreen.tsx`:
+  - Сегмент-контроллер: Активные (N) / Архив (N)
+  - Загрузка с `GET /orders/my`, fallback пустой список
+  - Карточки: категория, описание, статус, цена, дата
+  - Клик по активному → открывает OrderDetail
+- `api/src/routes/auth.ts` — `PATCH /auth/profile` (обновление full_name, phone, city, description, radius_km, categories)
+- `api/src/routes/orders.ts` — `GET /orders/my` (список заказов текущего клиента)
+
+### Изменено
+- `web/src/App.tsx` — новый `screen` state (`'settings' | 'edit_profile' | 'wallet' | 'order_history'`), AnimatePresence overlay с key-анимацией, tab-бар скрыт пока active screen
+- `web/src/components/screens/Profile.tsx` — проп `onNavigate`, ⚙️ карточка стала кликабельной, редактирование/история ведут на новые экраны
+- `web/src/components/screens/MasterHome.tsx` — проп `onNavigate`, «Пополнить» ведёт на wallet
+
+### Архитектура навигации
+- 4 экрана рендерятся как overlay (fixed inset-0 z-30) поверх AppShell, tab-бар скрыт
+- Анимация fade+slide x-20 (как AdminPanelView)
+- Back → setScreen(null) → возврат к предыдущему табу
+- OrderHistory → клик по активному заказу → setSelectedOrderId + setScreen(null) → открывается OrderDetail
