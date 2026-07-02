@@ -565,3 +565,30 @@ pm install + sanity check (api + web)
 - Выделен `ProfileBottomSheet` — компонент с фиксированной кнопкой внизу, скроллом контента, `maxHeight: 80dvh` (корректно на мобильных с клавиатурой)
 - Выделен `SettingsCard` — блок Настройки (Язык, Тема, Уведомления) переиспользуется в customer/master view
 - `loading` проп для кнопки Сохранить
+
+---
+## STATE — 2026-07-02 09:40 — Bot deep linking + notifications service + moderation guard
+
+### bot/index.ts
+- **Deep linking**: `ctx.startPayload` парсится в `bot.start`:
+  - Пустой → `PUBLIC_WEB_URL` + текст «Добро пожаловать»
+  - `order_{id}` → `PUBLIC_WEB_URL?startapp=order_{id}` + «У вас новый отклик»
+  - `master_feed` → `PUBLIC_WEB_URL?startapp=master_feed` + «Вы в режиме мастера»
+- **Atomic guard**: approve/reject проверяют `master_status` в БД перед апдейтом (защита от повторных нажатий)
+- **Approve**: использует `notifyMasterApproved` вместо inline sendMessage
+- **Reject**: редактирует сообщение модератора (удаляет кнопки), шлёт уведомление пользователю
+
+### services/notifications.ts
+- `sendBidNotification({ telegramId, masterName, rating?, price?, orderId })`:
+  - Сообщение: имя мастера, рейтинг, цена
+  - Кнопка: [Посмотреть отклик] → `?startapp=order_{id}`
+- `notifyMasterApproved(telegramId)`:
+  - Сообщение: одобрение + стартовый баланс
+  - Кнопка: [Открыть ленту заказов] → `?startapp=master_feed`
+- `sendMasterAcceptedNotification` — URL заменён с хардкода на `env.PUBLIC_WEB_URL`
+
+### bids.ts
+- Передаёт `orderId`, `price`, `avg_rating` в `sendBidNotification`
+
+### admin.ts
+- Approve использует `notifyMasterApproved` вместо inline sendMessage
