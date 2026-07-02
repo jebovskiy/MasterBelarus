@@ -34,7 +34,8 @@ export default function EditProfileScreen({ onBack }: Props) {
 
   const save = async () => {
     setSaving(true);
-    const body: Record<string, unknown> = { full_name: fullName.trim() };
+    const body: Record<string, unknown> = {};
+    if (fullName.trim()) body.full_name = fullName.trim();
     if (phone.trim()) body.phone = phone.trim();
     if (city.trim()) body.city = city.trim();
     if (isMaster) {
@@ -49,7 +50,9 @@ export default function EditProfileScreen({ onBack }: Props) {
       return;
     }
     if ('data' in result && result.data) {
-      setProfile({ ...profile!, ...result.data as Record<string, unknown> });
+      const updated = result.data as { full_name?: string | null; phone?: string | null; city?: string | null };
+      if (updated.full_name !== undefined) profile!.full_name = updated.full_name;
+      setProfile(profile!);
     }
     showToast('✅ Профиль сохранён', 'success');
     onBack();

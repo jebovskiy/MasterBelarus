@@ -105,12 +105,12 @@ authRouter.post('/telegram', async (req, res) => {
 });
 
 const ProfileUpdate = z.object({
-  full_name: z.string().min(1).max(200).optional(),
+  full_name: z.string().max(200).optional(),
   phone: z.string().max(20).optional(),
   city: z.string().max(100).optional(),
   description: z.string().max(2000).optional(),
   radius_km: z.coerce.number().int().min(1).max(200).optional(),
-  categories: z.array(z.string()).optional(),
+  categories: z.array(z.string().min(1).max(50)).optional(),
 });
 
 /**
@@ -134,10 +134,10 @@ authRouter.patch('/profile', authRequired, async (req: AuthedRequest, res) => {
 
     const { categories, ...profileFields } = parsed.data;
     const updates: Record<string, unknown> = {};
-    if (profileFields.full_name !== undefined) updates.full_name = profileFields.full_name;
-    if (profileFields.phone !== undefined) updates.phone = profileFields.phone;
-    if (profileFields.city !== undefined) updates.city = profileFields.city;
-    if (profileFields.description !== undefined) updates.description = profileFields.description;
+    if (profileFields.full_name && profileFields.full_name.trim()) updates.full_name = profileFields.full_name.trim();
+    if (profileFields.phone && profileFields.phone.trim()) updates.phone = profileFields.phone.trim();
+    if (profileFields.city && profileFields.city.trim()) updates.city = profileFields.city.trim();
+    if (profileFields.description && profileFields.description.trim()) updates.description = profileFields.description.trim();
     if (profileFields.radius_km !== undefined) updates.radius_km = profileFields.radius_km;
 
     if (Object.keys(updates).length > 0) {
