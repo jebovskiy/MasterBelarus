@@ -1,59 +1,52 @@
-import { createContext, useCallback, useContext, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { create } from 'zustand';
 
-type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'info' | 'warning' | 'success' | 'error';
 
-type Toast = {
-  id: number;
+type ToastState = {
+  message: string | null;
   type: ToastType;
-  title: string;
-  description?: string;
+  showToast: (msg: string, type?: ToastType) => void;
 };
 
-type Ctx = { show: (type: ToastType, title: string, description?: string) => void };
+export const useToastStore = create<ToastState>((set) => ({
+  message: null,
+  type: 'info',
+  showToast: (msg, type = 'info') => {
+    set({ message: msg, type });
 
-const ToastContext = createContext<Ctx>({ show: () => {} });
+    try {
+      const haptic = window.Telegram?.WebApp?.HapticFeedback;
+      if (haptic) {
+        if (type === 'warning' || type === 'error') {
+          haptic.notificationOccurred(type === 'warning' ? 'warning' : 'error');
+        } else {
+          haptic.impactOccurred('medium');
+        }
+      }
+    } catch { /* noop */ }
 
-export function useToast() {
-  return useContext(ToastContext);
-}
+    setTimeout(() => set({ message: null }), 2500);
+  },
+}));
 
-let _id = 0;
+const icons: Record<ToastType, string> = {
+  info: '💡',
+  warning: '🛠️',
+  success: '✅',
+  error: '❌',
+};
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+export function Toast() {
+  const { message, type } = useToastStore();
 
-  const show = useCallback((type: ToastType, title: string, description?: string) => {
-    const id = ++_id;
-    setToasts((prev) => [...prev, { id, type, title, description }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  }, []);
-
-  const colors: Record<ToastType, string> = {
-    success: 'bg-success text-white',
-    error: 'bg-error text-white',
-    info: 'bg-text-main text-white',
-  };
+  if (!message) return null;
 
   return (
-    <ToastContext.Provider value={{ show }}>
-      {children}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[calc(100%-2rem)] max-w-[400px] pointer-events-none">
-        <AnimatePresence>
-          {toasts.map((t) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className={`pointer-events-auto px-4 py-3 rounded-bento shadow-modal ${colors[t.type]}`}
-            >
-              <p className="text-sm font-semibold">{t.title}</p>
-              {t.description && <p className="text-xs opacity-80 mt-0.5">{t.description}</p>}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-xs animate-fade-in-up">
+      <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs font-medium py-3.5 px-4 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.25)] border border-slate-800 flex items-center gap-3">
+        <span className="text-base flex-shrink-0">{icons[type]}</span>
+        <span className="text-slate-200 text-left leading-snug">{message}</span>
       </div>
-    </ToastContext.Provider>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ import OrderDetail from '@/components/screens/OrderDetail';
 import Profile from '@/components/screens/Profile';
 import AdminPanelView from '@/components/screens/AdminPanelView';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
-import { ToastProvider } from '@/components/shared/Toast';
+import { Toast } from '@/components/shared/Toast';
 
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
@@ -61,10 +61,9 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthGuard>
-        <AppShell />
-      </AuthGuard>
-    </ToastProvider>
+    <AuthGuard>
+      <AppShell />
+      <Toast />
+    </AuthGuard>
   );
 }

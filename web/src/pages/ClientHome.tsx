@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useToastStore } from '@/components/shared/Toast';
 import { apiGet } from '@/lib/api';
 
 const CATEGORIES = [
@@ -52,15 +53,6 @@ type ClientHomeProps = {
 
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
 
-function showMasterPopup(master: RecentMaster) {
-  const msg = `${master.specialty}\nРейтинг: ★ ${master.rating} (${master.reviews} отзывов)\n\nВы сможете связаться с мастером, когда создадите заказ!`;
-  if (window.Telegram?.WebApp?.showPopup) {
-    window.Telegram.WebApp.showPopup({ title: master.name, message: msg, buttons: [{ type: 'close' }] });
-  } else {
-    alert(msg);
-  }
-}
-
 function timeAgo(iso: string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (diff < 1) return 'только что';
@@ -72,6 +64,7 @@ function timeAgo(iso: string) {
 
 export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHomeProps) {
   const { impact } = useHaptic();
+  const showToast = useToastStore((s) => s.showToast);
   const [orders, setOrders] = useState<ClientOrder[]>([]);
   const [masters, setMasters] = useState<RecentMaster[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -179,7 +172,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
                   key={master.id}
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
-                  onClick={() => { impact('light'); showMasterPopup(master); }}
+                  onClick={() => { impact('light'); showToast('Профиль мастера откроется в версии 1.1. Сейчас они получают заказы автоматически!', 'info'); }}
                   className="w-44 shrink-0 snap-start bg-white rounded-2xl p-4 shadow-sm text-left active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-center gap-3 mb-2">

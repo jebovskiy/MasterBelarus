@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
-import { useToast } from '@/components/shared/Toast';
+import { useToastStore } from '@/components/shared/Toast';
 
 type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
@@ -36,7 +36,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { impact } = useHaptic();
-  const toast = useToast();
+  const showToast = useToastStore((s) => s.showToast);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,11 +71,11 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
     if ('error' in result && result.error) {
       setError(result.error);
-      toast.show('error', 'Ошибка', result.error);
+      showToast(result.error || 'Ошибка', 'error');
       return;
     }
 
-    toast.show('success', 'Заявка создана!', 'Мастера скоро увидят ваш заказ');
+    showToast('✅ Заявка создана! Мастера скоро увидят ваш заказ', 'success');
     onClose();
   };
 
