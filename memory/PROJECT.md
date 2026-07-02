@@ -592,3 +592,26 @@ pm install + sanity check (api + web)
 
 ### admin.ts
 - Approve использует `notifyMasterApproved` вместо inline sendMessage
+
+---
+## STATE — 2026-07-02 10:00 — Admin moderation tab
+
+### AdminPanelView.tsx
+- Добавлен таб **Модерация** (5-й, после Мастера)
+- Загружает список `GET /admin/masters/pending` при переключении на таб
+- Карточки «Мягкая галька»: белые rounded-2xl, border, active:scale-0.98
+  - Шапка: full_name, TG ID, бейдж «Ожидает проверки»
+  - Блок: 📞 phone, 📍 city, 🛠 category
+  - Две кнопки: ❌ Отклонить (bg-rose-50) / ✅ Одобрить (bg-slate-900)
+- Per-card loading: обе кнопки disabled пока запрос в полёте
+- Пустое состояние: 🎉 «Все заявки разобраны! Новых мастеров пока нет»
+- Админ-токен пробрасывается через `adminHeaders(token)` + `fetch` (как и остальные табы)
+
+### Migration 012 — `20260701000012_master_pending_category.sql`
+- Добавлена колонка `category text` в `profiles`
+
+### become-master (auth.ts)
+- Теперь сохраняет `category` в профиль (было: city сохранялся, category — нет)
+
+### admin.ts
+- Pending route теперь SELECTит `category`
