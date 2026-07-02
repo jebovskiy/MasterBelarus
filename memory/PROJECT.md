@@ -491,3 +491,24 @@ pm install + sanity check (api + web)
 1. Telegram initData.user.photo_url → сохраняется в `profiles.avatar_url` при auth
 2. Profile screen отображает Telegram фото через Avatar src
 3. EditProfile: tap на аватар → выбрать фото → POST /auth/avatar → Supabase storage → public URL → preview
+
+---
+## STATE — 2026-07-02 08:00 — Phone symmetry: client sees + edits, master sees + edits
+
+### Изменено
+- `web/src/components/screens/Profile.tsx` (client view):
+  - Block 1: masked phone `maskClientPhone()` → `+375 (29) ***-**-XX`
+  - Block 2: settings card — clean info rows (Язык, Тема, Уведомления) без полей ввода
+  - Block 3: [Редактировать профиль и телефон] → AnimatePresence bottom sheet с name input + phone input (+375 mask через `formatPhoneInput`)
+  - Удалены: «Мои заказы», «Способы оплаты», ссылка на SettingsScreen
+- `web/src/components/screens/MasterHome.tsx`:
+  - Header: gradient → белая карточка с Avatar, ФИО, рейтинг, бейдж НПД, «Связь: +375 (29) XXX-XX-XX»
+  - Добавлена кнопка [Редактировать анкету мастера] → onNavigate('edit_profile')
+  - Импортированы useAuthStore + Avatar
+- `web/src/components/screens/EditProfileScreen.tsx` — phone инициализируется из `profile?.phone`
+- `web/src/stores/auth.ts` — поле `phone: string | null` в `UserProfile`
+- `web/src/lib/api.ts` — type guard `isErrorResult()` для правильного TS-narrowing discriminated union
+
+### Симметрия
+- Заказчик: видит маскированный номер → Bottom Sheet → меняет имя и телефон
+- Мастер: видит полный номер в шапке → Редактировать анкету → меняет телефон + описание + категории
