@@ -28,7 +28,7 @@ export default function Profile({ onBack }: { onBack?: () => void }) {
     <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4">
       <div className="flex justify-between items-center px-1">
         <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
-        <button onClick={() => { toast.show('info', '⚙️ Настройки', 'Раздел появится в версии 1.1'); }} className="text-slate-400 text-lg">⚙️</button>
+        <div className="w-6" />
       </div>
 
       <div className="bg-slate-200/60 rounded-xl p-1 flex w-full">
@@ -126,8 +126,21 @@ export default function Profile({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="opacity-50 cursor-not-allowed select-none bg-slate-50 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-base">⚙️</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-800">Настройки</span>
+                  <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full border border-slate-200">В разработке (v1.1)</span>
+                </div>
+              </div>
+              <span className="text-slate-300 text-lg leading-none">→</span>
+            </div>
+          </div>
+
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Способы оплаты</span>
+            <span className="text-xl font-bold text-slate-900">Способы оплаты</span>
             <div className="space-y-2">
               {['Наличные', 'Банковская карта', 'ЕРИП'].map((m) => (
                 <label key={m} className="flex items-center gap-3 p-3 rounded-xl bg-[#f4f4f6] cursor-pointer">
