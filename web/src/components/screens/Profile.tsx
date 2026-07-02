@@ -12,8 +12,9 @@ const MOCK_MASTER = {
   active: 3,
 };
 
-export default function Profile() {
+export default function Profile({ onBack }: { onBack?: () => void }) {
   const profile = useAuthStore((s) => s.profile);
+  const clearAuth = useAuthStore((s) => s.clear);
   const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
 
@@ -24,8 +25,8 @@ export default function Profile() {
   return (
     <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4">
       <div className="flex justify-between items-center px-1">
-        <button className="text-slate-600 text-sm font-medium">← Назад</button>
-        <button className="text-slate-400 text-lg">⚙️</button>
+        <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
+        <button onClick={() => {}} className="text-slate-400 text-lg">⚙️</button>
       </div>
 
       <div className="bg-slate-200/60 rounded-xl p-1 flex w-full">
@@ -141,7 +142,7 @@ export default function Profile() {
         </div>
       )}
 
-      <button className="w-full bg-transparent text-rose-500/60 font-medium text-xs py-2 text-center block mt-4 hover:text-rose-600 transition-colors">
+      <button onClick={() => { impact('medium'); clearAuth(); }} className="w-full bg-transparent text-rose-500/60 font-medium text-xs py-2 text-center block mt-4 hover:text-rose-600 transition-colors">
         Выйти из аккаунта
       </button>
 

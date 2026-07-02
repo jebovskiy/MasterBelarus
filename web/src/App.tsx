@@ -36,7 +36,7 @@ function AppShell() {
         </div>
       )}
 
-      {tab === 'profile' && <Profile />}
+      {tab === 'profile' && <Profile onBack={() => setTab('home')} />}
 
       {!adminOpen && <BottomTabBar active={tab} onTab={setTab} onAdminChoice={() => setAdminOpen(true)} />}
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
