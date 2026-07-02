@@ -192,6 +192,22 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
+          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Язык</span>
+              <span className="text-sm text-slate-400">Русский</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Тема</span>
+              <span className="text-sm text-slate-400">Системная</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Уведомления</span>
+              <span className="text-sm text-slate-400">Вкл</span>
+            </div>
+          </div>
+
           <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
             Редактировать анкету мастера
           </button>
@@ -208,6 +224,22 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 <span className="text-slate-400 text-xs">• Надежный клиент</span>
               </div>
               <p className="text-xs text-slate-500 mt-1 font-mono">{maskPhone(profile?.phone)}</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Язык</span>
+              <span className="text-sm text-slate-400">Русский</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Тема</span>
+              <span className="text-sm text-slate-400">Системная</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700">Уведомления</span>
+              <span className="text-sm text-slate-400">Вкл</span>
             </div>
           </div>
 
