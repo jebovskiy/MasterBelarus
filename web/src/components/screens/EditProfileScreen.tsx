@@ -68,7 +68,8 @@ export default function EditProfileScreen({ onBack }: Props) {
     const result = await apiPatch('/auth/profile', body);
     setSaving(false);
     if ('error' in result) {
-      showToast('Ошибка сохранения. Попробуйте снова', 'error');
+      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
+      showToast(msg, 'error');
       return;
     }
     if ('data' in result && result.data) {
