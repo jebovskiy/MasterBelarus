@@ -72,7 +72,7 @@ SELECT
   vals.is_negotiable,
   vals.address,
   ST_SetSRID(ST_MakePoint(vals.lng, vals.lat), 4326),
-  vals.status,
+  vals.status::public.order_status,
   now() - (random() * interval '72 hours')
 FROM public.profiles c
 CROSS JOIN (VALUES
