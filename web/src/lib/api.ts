@@ -1,6 +1,10 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-type ApiResult<T> = { data: T; error?: never } | { data?: never; error: string; detail?: string };
+export type ApiResult<T> = { data: T; error?: never } | { data?: never; error: string; detail?: string };
+
+export function isErrorResult<T>(r: ApiResult<T>): r is { data?: never; error: string; detail?: string } {
+  return 'error' in r && r.error !== undefined;
+}
 
 function authHeaders(): Record<string, string> {
   const initData = typeof window !== 'undefined' && window.Telegram?.WebApp?.initData

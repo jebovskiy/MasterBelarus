@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
+import { apiPatch, isErrorResult } from '@/lib/api';
+import { useToastStore } from '@/components/shared/Toast';
 
 type Role = 'client' | 'master';
 
@@ -12,14 +15,70 @@ const MOCK_MASTER = {
   active: 3,
 };
 
+function maskClientPhone(phone?: string | null): string {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  const last = digits.length >= 2 ? digits.slice(-2) : '**';
+  return `+375 (29) ***-**-${last}`;
+}
+
+function formatPhone(phone?: string | null): string {
+  if (!phone) return '+375 (29) XXX-XX-XX';
+  const d = phone.replace(/\D/g, '').slice(-9);
+  if (d.length < 9) return '+375 (29) XXX-XX-XX';
+  return `+375 (29) ${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5, 7)}`;
+}
+
+function formatPhoneInput(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 9);
+  if (!d) return '';
+  let out = '+375 (29';
+  if (d.length > 2) out += ') ' + d.slice(2);
+  if (d.length > 5) out = out.slice(0, -1) + '-' + d.slice(5);
+  if (d.length > 7) out = out.slice(0, -1) + '-' + d.slice(7);
+  return out;
+}
+
+function parsePhone(display: string): string {
+  const d = display.replace(/\D/g, '');
+  if (d.length === 0) return '';
+  return '+' + d;
+}
+
 export default function Profile({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (screen: string) => void }) {
   const profile = useAuthStore((s) => s.profile);
+  const setProfile = useAuthStore((s) => s.setProfile);
   const clearAuth = useAuthStore((s) => s.clear);
+  const showToast = useToastStore((s) => s.showToast);
   const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
   const isMaster = role === 'master';
   const name = profile?.full_name ?? profile?.username ?? 'Пользователь';
-  const phone = '+375 (29) XXX-XX-XX';
+
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(profile?.full_name ?? '');
+  const [editPhone, setEditPhone] = useState(formatPhone(profile?.phone));
+  const [saving, setSaving] = useState(false);
+
+  const saveEdit = async () => {
+    setSaving(true);
+    const body: Record<string, unknown> = {};
+    if (editName.trim()) body.full_name = editName.trim();
+    const phoneRaw = parsePhone(editPhone);
+    if (phoneRaw) body.phone = phoneRaw;
+    const result = await apiPatch('/auth/profile', body);
+    setSaving(false);
+    if (isErrorResult(result)) {
+      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
+      showToast(msg, 'error');
+      return;
+    }
+    const updated = result.data as { full_name?: string | null; phone?: string | null } | null;
+    if (updated?.full_name !== undefined) profile!.full_name = updated.full_name;
+    if (updated?.phone !== undefined) profile!.phone = updated.phone;
+    setProfile(profile!);
+    setEditing(false);
+    showToast('✅ Профиль сохранён', 'success');
+  };
 
   return (
     <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4">
@@ -105,48 +164,26 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 <span className="text-slate-600 text-xs font-semibold">5.0</span>
                 <span className="text-slate-400 text-xs">• Надежный клиент</span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 font-mono">{phone}</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono">{maskClientPhone(profile?.phone)}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Мои заказы</span>
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <button onClick={() => onNavigate?.('order_history')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
-                <span className="block text-xl font-bold text-slate-800">1</span>
-                <span className="text-[11px] text-slate-500">Активный заказ</span>
-              </button>
-              <button onClick={() => onNavigate?.('order_history')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
-                <span className="block text-xl font-bold text-slate-400">12</span>
-                <span className="text-[11px] text-slate-500">Завершенных</span>
-              </button>
-            </div>
-          </div>
-
-          <button onClick={() => onNavigate?.('settings')} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.99] transition-transform text-left">
-            <div className="bg-white rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-base">⚙️</div>
-                <span className="text-sm font-semibold text-slate-800">Настройки</span>
+          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
+            {[
+              { label: 'Язык', value: 'Русский' },
+              { label: 'Тема', value: 'Системная' },
+              { label: 'Уведомления', value: 'Вкл' },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center justify-between py-2">
+                <span className="text-sm text-slate-700 font-medium">{s.label}</span>
+                <span className="text-xs text-slate-400">{s.value}</span>
               </div>
-              <span className="text-slate-300 text-lg leading-none">→</span>
-            </div>
-          </button>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-            <span className="text-xl font-bold text-slate-900">Способы оплаты</span>
-            <div className="space-y-2">
-              {['Наличные', 'Банковская карта', 'ЕРИП'].map((m) => (
-                <label key={m} className="flex items-center gap-3 p-3 rounded-xl bg-[#f4f4f6] cursor-pointer">
-                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-slate-800" />
-                  <span className="text-sm text-slate-700 font-medium">{m}</span>
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
 
-          <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-100 text-slate-800 rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
-            Изменить личные данные
+          <button onClick={() => { impact('light'); setEditName(profile?.full_name ?? ''); setEditPhone(formatPhone(profile?.phone)); setEditing(true); }} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+            Редактировать профиль и телефон
           </button>
         </div>
       )}
@@ -155,7 +192,45 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
         Выйти из аккаунта
       </button>
 
-
+      <AnimatePresence>
+        {editing && (
+          <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditing(false)} />
+            <motion.div className="relative w-full max-w-[430px] bg-white rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
+              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300" />
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Редактировать профиль</h3>
+              <p className="text-sm text-slate-500 mb-5">Имя и телефон будут видны мастерам при отклике</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Имя</label>
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Ваше имя"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Телефон</label>
+                  <input
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))}
+                    placeholder="+375 (29) XXX-XX-XX"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {saving ? 'Сохранение...' : 'Сохранить'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

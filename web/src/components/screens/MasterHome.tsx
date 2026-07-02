@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLocation } from '@/hooks/useLocation';
+import { Avatar } from '@/components/shared/Avatar';
 import { apiPost, apiGet } from '@/lib/api';
 
 type NearbyOrder = {
@@ -20,7 +22,15 @@ function categoryEmoji(cat: string): string {
   return map[cat] ?? '📋';
 }
 
+function formatPhone(phone?: string | null): string {
+  if (!phone) return '+375 (29) XXX-XX-XX';
+  const d = phone.replace(/\D/g, '').slice(-9);
+  if (d.length < 9) return '+375 (29) XXX-XX-XX';
+  return `+375 (29) ${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5, 7)}`;
+}
+
 export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => void }) {
+  const profile = useAuthStore((s) => s.profile);
   const [orders, setOrders] = useState<NearbyOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [balance] = useState<number>(15);
@@ -79,14 +89,21 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   return (
     <div className="min-h-screen bg-app-bg">
       <div className="px-4 pt-4 space-y-4">
-        <div className="bg-gradient-to-br from-primary-tint to-app-bg p-4 rounded-bento">
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl shadow-card">👷</div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-text-main">Мастер</p>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-success-tint text-success text-xs font-semibold">Статус: НПД Активен</span>
+            <Avatar size={48} name={profile?.full_name ?? 'Мастер'} src={profile?.avatar_url ?? undefined} />
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-bold text-slate-800 truncate">{profile?.full_name ?? 'Мастер'}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-amber-500 text-xs">★</span>
+                <span className="text-slate-600 text-xs font-semibold">{(profile?.avg_rating ?? 5.0).toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">НПД</span>
+                <span className="text-xs text-slate-500 font-medium">Связь: {formatPhone(profile?.phone)}</span>
+              </div>
             </div>
-            {balance !== null && <div className="px-2.5 py-1 rounded-full bg-primary-tint text-primary text-xs font-bold">💎 {balance}</div>}
+            {balance !== null && <div className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">💎 {balance}</div>}
           </div>
         </div>
 
@@ -110,6 +127,10 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           <span className="text-app-border">|</span>
           <span>📊 Сегодня <strong className="text-primary">{stats.todayBids}</strong></span>
         </div>
+
+        <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+          Редактировать анкету мастера
+        </button>
 
         <div>
           <div className="flex items-center justify-between px-1 mb-2">

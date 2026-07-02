@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/components/shared/Toast';
 import { Avatar } from '@/components/shared/Avatar';
-import { apiPatch, apiUpload } from '@/lib/api';
+import { apiPatch, apiUpload, isErrorResult } from '@/lib/api';
 
 const CATEGORIES = [
   { key: 'plumber', label: 'Сантехник' },
@@ -25,7 +25,7 @@ export default function EditProfileScreen({ onBack }: Props) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarSrc, setAvatarSrc] = useState(profile?.avatar_url ?? undefined);
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
   const [city, setCity] = useState('');
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
@@ -67,16 +67,14 @@ export default function EditProfileScreen({ onBack }: Props) {
     }
     const result = await apiPatch('/auth/profile', body);
     setSaving(false);
-    if ('error' in result) {
+    if (isErrorResult(result)) {
       const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
       showToast(msg, 'error');
       return;
     }
-    if ('data' in result && result.data) {
-      const updated = result.data as { full_name?: string | null; phone?: string | null; city?: string | null };
-      if (updated.full_name !== undefined) profile!.full_name = updated.full_name;
-      setProfile(profile!);
-    }
+    const updated = result.data as { full_name?: string | null; phone?: string | null; city?: string | null } | null;
+    if (updated?.full_name !== undefined) profile!.full_name = updated.full_name;
+    setProfile(profile!);
     showToast('✅ Профиль сохранён', 'success');
     onBack();
   };

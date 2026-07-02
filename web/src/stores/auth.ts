@@ -8,6 +8,7 @@ export type UserProfile = {
   role: 'client' | 'master';
   is_npd: boolean;
   avatar_url: string | null;
+  phone: string | null;
   avg_rating: number | null;
   review_count: number;
 };
