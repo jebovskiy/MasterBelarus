@@ -3,7 +3,7 @@ builder = "NIXPACKS"
 buildCommand = "cd api && npm ci --omit=dev && npx tsc -p tsconfig.json && node -e 'console.log(\"api build ok\")'"
 
 [deploy]
-startCommand = "node api/dist/server.js"
+startCommand = "node dist/server.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
