@@ -5,6 +5,7 @@ import ClientHome from '@/pages/ClientHome';
 import { MasterHome } from '@/components/screens/MasterHome';
 import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
 import OrderDetail from '@/components/screens/OrderDetail';
+import Profile from '@/components/screens/Profile';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { ToastProvider } from '@/components/shared/Toast';
 
@@ -32,11 +33,7 @@ function AppShell() {
         </div>
       )}
 
-      {tab === 'profile' && (
-        <div className="px-4 pt-4">
-          <p className="text-text-muted text-sm text-center py-10">Профиль</p>
-        </div>
-      )}
+      {tab === 'profile' && <Profile />}
 
       <BottomTabBar active={tab} onTab={setTab} />
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
