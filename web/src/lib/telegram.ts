@@ -41,9 +41,15 @@ declare global {
           impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
           notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
         };
+        LocationManager?: {
+          init: (callback?: () => void) => void;
+          getLocation: (callback: (location: { latitude: number; longitude: number } | null) => void) => void;
+          openSettings: () => void;
+        };
         locationManager?: {
-          open: () => void;
-          close: () => void;
+          init: (callback?: () => void) => void;
+          getLocation: (callback: (location: { latitude: number; longitude: number } | null) => void) => void;
+          openSettings: () => void;
         };
         showPopup: (params: { title?: string; message: string; buttons?: Array<{ type: string; text?: string; id?: string }> }) => void;
         showAlert: (message: string, callback?: () => void) => void;

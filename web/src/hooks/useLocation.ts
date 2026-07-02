@@ -21,18 +21,21 @@ function getBrowserLocation(): Promise<LocationCoords> {
 
 function getTelegramLocation(): Promise<LocationCoords> {
   return new Promise((resolve, reject) => {
-    const tg = window.Telegram?.WebApp;
-    if (!tg?.locationManager) {
+    const lm = window.Telegram?.WebApp?.LocationManager;
+    if (!lm) {
       reject(new Error('No Telegram LocationManager'));
       return;
     }
     try {
-      tg.locationManager.open();
-      const loc = tg.locationManager;
-      if (loc) {
-        resolve({ latitude: 0, longitude: 0 });
-      }
-      reject(new Error('LocationManager unavailable'));
+      lm.init(() => {
+        lm.getLocation((location: { latitude: number; longitude: number } | null) => {
+          if (location && typeof location.latitude === 'number') {
+            resolve({ latitude: location.latitude, longitude: location.longitude });
+          } else {
+            reject(new Error('Location access denied'));
+          }
+        });
+      });
     } catch {
       reject(new Error('LocationManager error'));
     }
