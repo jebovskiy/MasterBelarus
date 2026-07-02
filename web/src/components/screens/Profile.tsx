@@ -50,7 +50,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
       {isMaster ? (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <Avatar size={48} name={name} />
+            <Avatar size={48} name={name} src={profile?.avatar_url ?? undefined} />
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-slate-800 truncate">{name}</h2>
               <div className="flex items-center gap-1 mt-0.5">
@@ -97,7 +97,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
       ) : (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <Avatar size={48} name={name} />
+            <Avatar size={48} name={name} src={profile?.avatar_url ?? undefined} />
             <div>
               <h2 className="text-lg font-bold text-slate-800">{name}</h2>
               <div className="flex items-center gap-1 mt-0.5">

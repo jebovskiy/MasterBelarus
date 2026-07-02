@@ -50,3 +50,14 @@ export async function apiPatch<T>(path: string, body?: Record<string, unknown>):
   });
   return handle<T>(res);
 }
+
+export async function apiUpload<T>(path: string, file: File): Promise<ApiResult<T>> {
+  const form = new FormData();
+  form.append('avatar', file);
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+    body: form,
+  });
+  return handle<T>(res);
+}

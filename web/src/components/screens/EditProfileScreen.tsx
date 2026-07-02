@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/components/shared/Toast';
-import { apiPatch } from '@/lib/api';
+import { Avatar } from '@/components/shared/Avatar';
+import { apiPatch, apiUpload } from '@/lib/api';
 
 const CATEGORIES = [
   { key: 'plumber', label: 'Сантехник' },
@@ -20,6 +21,9 @@ export default function EditProfileScreen({ onBack }: Props) {
   const showToast = useToastStore((s) => s.showToast);
   const isMaster = profile?.role === 'master';
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState(profile?.avatar_url ?? undefined);
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
@@ -27,6 +31,24 @@ export default function EditProfileScreen({ onBack }: Props) {
   const [categories, setCategories] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState(30);
   const [saving, setSaving] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    const result = await apiUpload<{ avatar_url: string }>('/auth/avatar', file);
+    setAvatarUploading(false);
+    if ('error' in result) {
+      showToast('Ошибка загрузки фото', 'error');
+      return;
+    }
+    if ('data' in result && result.data) {
+      setAvatarSrc(result.data.avatar_url);
+      profile!.avatar_url = result.data.avatar_url;
+      setProfile(profile!);
+      showToast('Фото обновлено', 'success');
+    }
+  };
 
   const toggleCategory = (key: string) => {
     setCategories((prev) => prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]);
@@ -72,6 +94,21 @@ export default function EditProfileScreen({ onBack }: Props) {
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex flex-col items-center gap-2 pb-2">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={avatarUploading}
+              className="relative active:scale-95 transition-transform"
+            >
+              <Avatar size={64} name={fullName || profile?.full_name || '?'} src={avatarSrc} />
+              <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <span className="text-white text-[10px] font-bold">{avatarUploading ? '...' : '📷'}</span>
+              </div>
+            </button>
+            <span className="text-[11px] text-slate-400">Нажмите, чтобы изменить фото</span>
+          </div>
+
           <div>
             <label className={labelCls}>Имя</label>
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ваше имя" className={inputCls} />

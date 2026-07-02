@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
+import multer from 'multer';
 import { z } from 'zod';
 import { getSupabaseAdmin, type DBProfile } from '../lib/supabase.js';
 import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 import { authRequired, type AuthedRequest } from '../middleware/auth.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const Body = z.object({
   initData: z.string().min(20).optional(),
@@ -51,13 +54,14 @@ authRouter.post('/telegram', async (req, res) => {
     // Upsert profile by telegram_id.
     const { data: existing, error: selectErr } = await db
       .from('profiles')
-      .select('id, telegram_id, username, full_name, role, is_npd, created_at')
+      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
     if (selectErr) throw selectErr;
 
     let profile: DBProfile | null = (existing as DBProfile | null) ?? null;
+    const photoUrl = user.photo_url ?? null;
 
     if (!profile) {
       const { data: inserted, error: insertErr } = await db
@@ -68,11 +72,15 @@ authRouter.post('/telegram', async (req, res) => {
           full_name: fullName,
           role: 'client',
           is_npd: false,
+          avatar_url: photoUrl,
         })
-        .select('id, telegram_id, username, full_name, role, is_npd, created_at')
+        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, created_at')
         .single();
       if (insertErr) throw insertErr;
       profile = inserted as DBProfile;
+    } else if (photoUrl && photoUrl !== profile.avatar_url) {
+      await db.from('profiles').update({ avatar_url: photoUrl }).eq('id', profile.id);
+      profile.avatar_url = photoUrl;
     }
 
     // Generate a Supabase service-role session for the user. We use
@@ -101,6 +109,51 @@ authRouter.post('/telegram', async (req, res) => {
     const message = err instanceof Error ? err.message : 'unknown';
     logger.warn({ message }, 'auth/telegram failed');
     return res.status(401).json({ error: 'invalid initData', detail: message });
+  }
+});
+
+/**
+ * POST /auth/avatar — загрузить аватарку
+ */
+authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: AuthedRequest, res) => {
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'file missing' });
+  if (!file.mimetype.startsWith('image/')) {
+    return res.status(400).json({ error: 'only images allowed' });
+  }
+
+  try {
+    const db = getSupabaseAdmin();
+    const { data: existing } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', req.telegram!.user.id)
+      .maybeSingle();
+    if (!existing) return res.status(404).json({ error: 'profile not found' });
+
+    const ext = file.originalname.split('.').pop() ?? 'jpg';
+    const timestamp = Date.now();
+    const filePath = `u_${existing.id}_${timestamp}.${ext}`;
+
+    const { error: uploadErr } = await db.storage.from('avatars').upload(filePath, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false,
+    });
+    if (uploadErr) throw uploadErr;
+
+    const { data: publicUrl } = db.storage.from('avatars').getPublicUrl(filePath);
+
+    const { error: updateErr } = await db
+      .from('profiles')
+      .update({ avatar_url: publicUrl.publicUrl })
+      .eq('id', existing.id);
+    if (updateErr) throw updateErr;
+
+    return res.json({ avatar_url: publicUrl.publicUrl });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'auth/avatar upload failed');
+    return res.status(500).json({ error: 'upload failed', detail: msg });
   }
 });
 

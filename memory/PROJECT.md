@@ -443,34 +443,51 @@ pm install + sanity check (api + web)
 ## STATE — 2026-07-02 07:10 — 4 рабочих экрана (Settings, EditProfile, Wallet, OrderHistory)
 
 ### Создано
-- `web/src/components/screens/SettingsScreen.tsx`:
-  - 3 toggle-свитча (уведомления: nearby/chat/promo), localStorage
-  - Язык: Русский / Беларуская / English (radio с ✓)
-  - Тема: Системная / Светлая / Тёмная (сегмент-контроллер)
-- `web/src/components/screens/EditProfileScreen.tsx`:
-  - Общие поля: имя, телефон, город
-  - Для мастера: описание (textarea), категории (grid 2×2 toggle), радиус (range 1-200 км)
-  - `PATCH /auth/profile` — сохраняет full_name + опциональные поля + master_categories
-  - Toast-уведомление об успехе/ошибке
-- `web/src/components/screens/WalletScreen.tsx`:
-  - Табло баланса, сетка быстрых сумм (10/20/50/100/200/500 BYN)
-  - Кастомный инпут, выбор способа оплаты (карта / ЕРИП)
-  - Эмуляция платежа → экран успеха + возврат
-- `web/src/components/screens/OrderHistoryScreen.tsx`:
-  - Сегмент-контроллер: Активные (N) / Архив (N)
-  - Загрузка с `GET /orders/my`, fallback пустой список
-  - Карточки: категория, описание, статус, цена, дата
-  - Клик по активному → открывает OrderDetail
-- `api/src/routes/auth.ts` — `PATCH /auth/profile` (обновление full_name, phone, city, description, radius_km, categories)
-- `api/src/routes/orders.ts` — `GET /orders/my` (список заказов текущего клиента)
+- `web/src/components/screens/SettingsScreen.tsx`
+- `web/src/components/screens/EditProfileScreen.tsx`
+- `web/src/components/screens/WalletScreen.tsx`
+- `web/src/components/screens/OrderHistoryScreen.tsx`
+- `api/src/routes/auth.ts` — `PATCH /auth/profile`, `POST /auth/avatar`
+- `api/src/routes/orders.ts` — `GET /orders/my`
+- `supabase/migrations/20260701000009_profiles_extras.sql`
+- `supabase/migrations/20260701000010_avatar_storage.sql`
 
 ### Изменено
-- `web/src/App.tsx` — новый `screen` state (`'settings' | 'edit_profile' | 'wallet' | 'order_history'`), AnimatePresence overlay с key-анимацией, tab-бар скрыт пока active screen
-- `web/src/components/screens/Profile.tsx` — проп `onNavigate`, ⚙️ карточка стала кликабельной, редактирование/история ведут на новые экраны
-- `web/src/components/screens/MasterHome.tsx` — проп `onNavigate`, «Пополнить» ведёт на wallet
+- `web/src/App.tsx` — screen state overlay навигация
+- `web/src/components/screens/Profile.tsx` — ⚙️ кнопка → disabled "Настройки" card, "Способы оплаты" заголовок, Avatar src={profile?.avatar_url}
+- `web/src/components/screens/EditProfileScreen.tsx` — кликабельный Avatar для загрузки фото
+- `web/src/components/shared/Toast.tsx` — Context API → zustand store + haptic + backdrop-blur
+- `web/src/lib/api.ts` — apiUpload()
+- `web/src/hooks/useTelegramAuth.ts` — getTelegramLocation() использует Telegram.LocationManager вместо {0,0}
+- `web/src/types/telegram.d.ts` — LocationManager + getLocation типы
+- `api/src/routes/auth.ts` — photo_url → avatar_url при auth, POST /auth/avatar (multer → Supabase storage)
+- `api/src/lib/supabase.ts` — avatar_url в DBProfile
 
 ### Архитектура навигации
 - 4 экрана рендерятся как overlay (fixed inset-0 z-30) поверх AppShell, tab-бар скрыт
 - Анимация fade+slide x-20 (как AdminPanelView)
 - Back → setScreen(null) → возврат к предыдущему табу
-- OrderHistory → клик по активному заказу → setSelectedOrderId + setScreen(null) → открывается OrderDetail
+
+---
+## STATE — 2026-07-02 07:30 — Avatar из Telegram + загрузка
+
+### Создано
+- `supabase/migrations/20260701000010_avatar_storage.sql` — storage bucket `avatars` + RLS policies
+
+### Изменено
+- `api/src/lib/supabase.ts` — `avatar_url` добавлен в `DBProfile`
+- `api/src/routes/auth.ts`:
+  - При upsert профиля: `user.photo_url` из Telegram сохраняется в `avatar_url`
+  - При повторном входе: если photo_url изменился — обновляется
+  - `POST /auth/avatar` — multer memoryStorage, валидация image/*, upload в Supabase `avatars` bucket, обновление `profiles.avatar_url`
+- `web/src/lib/api.ts` — добавлена `apiUpload<T>(path, file)` с FormData
+- `web/src/components/screens/Profile.tsx` — `<Avatar src={profile?.avatar_url}>` для клиента и мастера
+- `web/src/components/screens/EditProfileScreen.tsx`:
+  - input[type=file] скрытый + ref
+  - клик по Avatar → file picker → upload → обновление auth store + preview
+  - Avatar размер 64px, hover overlay с 📷
+
+### Flow
+1. Telegram initData.user.photo_url → сохраняется в `profiles.avatar_url` при auth
+2. Profile screen отображает Telegram фото через Avatar src
+3. EditProfile: tap на аватар → выбрать фото → POST /auth/avatar → Supabase storage → public URL → preview

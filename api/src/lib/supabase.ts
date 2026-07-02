@@ -25,6 +25,7 @@ export type DBProfile = {
   full_name: string | null;
   role: 'client' | 'master';
   is_npd: boolean;
+  avatar_url: string | null;
   created_at: string;
 };
 
