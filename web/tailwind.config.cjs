@@ -1,0 +1,1 @@
+﻿module.exports = { content: ['./index.html','./src/**/*.{ts,tsx}'], theme: { extend: { colors: { appBg: '#F8F9FA', appSurface: '#FFFFFF', appBorder: '#E4E7EB', primary: '#7C3AED', success: '#059669', textMain: '#111827', textMuted: '#6B7280' }, borderRadius: { bento: '16px', btn: '12px' } } }, plugins: [] };

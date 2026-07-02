@@ -17,7 +17,7 @@ export function useTelegramAuth() {
 
     if ('error' in result) {
       clear();
-      console.warn('[auth] failed:', result.error, result.detail);
+      console.warn('[auth] failed:', result.error);
       return;
     }
 

@@ -1,11 +1,12 @@
 import { Telegraf, type Context } from 'telegraf';
 import type { AppEnv } from '../config/env.js';
-import { initNotificationService, sendBidNotification, sendMasterAcceptedNotification } from '../services/notifications.js';
+import { initNotificationService, sendBidNotification } from '../services/notifications.js';
+
+export { sendBidNotification };
 
 export function createBot(env: AppEnv): Telegraf<Context> {
   const bot = new Telegraf<Context>(env.BOT_TOKEN);
 
-  // Wire notifications: pass the live bot instance so sendMessage actually delivers.
   initNotificationService(bot);
 
   bot.start(async (ctx) => {

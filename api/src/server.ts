@@ -4,7 +4,7 @@ import { env } from './config/env.js';
 import { createApp } from './lib/app.js';
 import { logger } from './lib/logger.js';
 import { authRouter } from './routes/auth.js';
-import { createBot, initNotificationService } from './bot/index.js';
+import { createBot } from './bot/index.js';
 import { ordersRouter } from './routes/orders.js';
 import { bidsRouter } from './routes/bids.js';
 import { mastersRouter } from './routes/masters.js';
@@ -29,12 +29,10 @@ async function bootstrap() {
     res.status(500).json({ error: 'internal' });
   });
 
-  const httpServer = createServer(app);
-  const bot = createBot(env);
+const httpServer = createServer(app);
+const bot = createBot(env);
 
-  initNotificationService(bot);
-
-  const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
+const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
   app.use(`/${env.BOT_TOKEN}`, (req, res, next) => {
     if (req.method !== 'POST') return next();
     bot.webhookCallback(webhookPath)(req as never, res as never, next);
