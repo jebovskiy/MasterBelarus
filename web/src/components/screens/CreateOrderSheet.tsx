@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
+import { useToast } from '@/components/shared/Toast';
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -14,6 +15,9 @@ const CATEGORIES = [
   { key: 'cleaning', label: 'Уборка', emoji: '🧹' },
 ];
 
+const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base';
+const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block';
+
 export default function CreateOrderSheet({ open, onClose }: Props) {
   const [category, setCategory] = useState<string>('');
   const [description, setDescription] = useState('');
@@ -22,7 +26,8 @@ export default function CreateOrderSheet({ open, onClose }: Props) {
   const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { impact, notification } = useHaptic();
+  const { impact } = useHaptic();
+  const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const submit = async () => {
@@ -48,11 +53,11 @@ export default function CreateOrderSheet({ open, onClose }: Props) {
 
     if ('error' in result && result.error) {
       setError(result.error);
-      notification('error');
+      toast.show('error', 'Ошибка', result.error);
       return;
     }
 
-    notification('success');
+    toast.show('success', 'Заявка создана!', 'Мастера скоро увидят ваш заказ');
     onClose();
   };
 
@@ -61,42 +66,107 @@ export default function CreateOrderSheet({ open, onClose }: Props) {
       {open && (
         <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-          <motion.div className="relative w-full max-w-[430px] bg-app-surface rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
-            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-app-border" />
-            <h2 className="text-xl font-bold text-text-main mb-4">Опишите задачу</h2>
-            <div className="space-y-4">
+          <motion.div
+            className="relative w-full max-w-[430px] bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 p-6 max-h-[90vh] overflow-auto"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+          >
+            <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-slate-300" />
+            <h2 className="text-xl font-bold text-slate-800 mb-5">Создать заявку</h2>
+
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-text-main mb-2">Категория *</label>
+                <label className={labelCls}>Категория услуг</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {CATEGORIES.map((c) => (
-                    <button key={c.key} onClick={() => { setCategory(c.key); impact('light'); }} className={`flex flex-col items-center gap-1 p-3 rounded-bento border transition-all duration-180 ${category === c.key ? 'border-primary bg-primary-tint' : 'border-app-border bg-white hover:border-primary/40'}`}>
-                      <span className="text-xl">{c.emoji}</span>
-                      <span className="text-xs font-semibold text-text-main">{c.label}</span>
-                    </button>
-                  ))}
+                  {CATEGORIES.map((c) => {
+                    const active = category === c.key;
+                    return (
+                      <button
+                        key={c.key}
+                        onClick={() => { setCategory(c.key); impact('light'); }}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all outline-none ${
+                          active
+                            ? 'bg-slate-800 text-white shadow-md'
+                            : 'bg-[#f4f4f6] text-slate-600 hover:bg-slate-200/50 active:scale-[0.97]'
+                        }`}
+                      >
+                        <span className="text-xl">{c.emoji}</span>
+                        <span className="text-xs font-semibold">{c.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
               <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Описание *</label>
-                <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 1000))} placeholder="Что нужно сделать?" rows={4} className="w-full rounded-btn border border-app-border bg-white p-3 text-[15px] text-text-main placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition" />
+                <label className={labelCls}>Описание задачи</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
+                  placeholder="Опишите кратко, что случилось и какую работу нужно выполнить..."
+                  rows={4}
+                  className={`${inputCls} resize-none`}
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-text-main">Бюджет, BYN</label>
-                <button onClick={() => { setNegotiable(!negotiable); impact('light'); }} className={`px-3 h-8 rounded-full text-xs font-semibold transition ${negotiable ? 'bg-primary-tint text-primary' : 'bg-app-surface-alt text-text-muted'}`}>По договоренности</button>
-              </div>
-              {!negotiable && <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" inputMode="numeric" className="w-full rounded-btn border border-app-border bg-white p-3 text-[15px] text-text-main placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition" />}
+
               <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Адрес *</label>
-                <input type="text" value={address} onChange={(e) => setAddress(e.target.value.slice(0, 200))} placeholder="Минск-Мир, ул. Братская, 1" className="w-full rounded-btn border border-app-border bg-white p-3 text-[15px] text-text-main placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition" />
+                <div className="flex items-center justify-between mb-2">
+                  <label className={labelCls + ' mb-0'}>Бюджет, BYN</label>
+                  <button
+                    onClick={() => { setNegotiable(!negotiable); impact('light'); }}
+                    className={`px-3 h-8 rounded-full text-xs font-semibold transition-all ${
+                      negotiable ? 'bg-slate-800 text-white' : 'bg-[#f4f4f6] text-slate-500'
+                    }`}
+                  >
+                    Договорная
+                  </button>
+                </div>
+                {!negotiable && (
+                  <input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Сумма в белорусских рублях"
+                    inputMode="numeric"
+                    className={inputCls}
+                  />
+                )}
               </div>
+
               <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Фото (до 5)</label>
-                <button onClick={() => fileRef.current?.click()} className="w-full h-20 rounded-bento border border-dashed border-app-border bg-app-bg flex items-center justify-center text-text-muted text-sm font-medium hover:border-primary/50 transition">+ Прикрепить</button>
+                <label className={labelCls}>Ваш адрес</label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value.slice(0, 200))}
+                  placeholder="Минск-Мир, ул. Братская, 1"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Фото (до 5)</label>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full h-20 rounded-xl border-2 border-dashed border-slate-300 bg-[#f4f4f6] flex items-center justify-center gap-2 text-slate-400 text-sm font-medium hover:border-slate-400 hover:text-slate-500 transition-all"
+                >
+                  <span className="text-lg">+</span> Прикрепить фото
+                </button>
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" />
               </div>
-              {error && <p className="text-sm text-error">{error}</p>}
-              <button onClick={submit} disabled={submitting} className="w-full h-12 rounded-btn bg-primary hover:bg-primary-hover text-white font-semibold shadow-accent-glow transition-all duration-180 disabled:opacity-60 active:scale-[0.98]">
-                {submitting ? 'Публикую...' : 'Опубликовать заявку'}
+
+              {error && (
+                <p className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
+              )}
+
+              <button
+                onClick={submit}
+                disabled={submitting}
+                className="w-full bg-slate-900 text-white font-semibold text-base py-4 rounded-xl active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
+              >
+                {submitting ? 'Публикую...' : 'Создать заявку'}
               </button>
             </div>
           </motion.div>
