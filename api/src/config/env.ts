@@ -21,6 +21,7 @@ const EnvSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   ADMIN_TOKEN: z.string().optional(),
   ADMIN_TELEGRAM_ID: z.coerce.number().optional(),
+  MODERATOR_CHAT_ID: z.coerce.number().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

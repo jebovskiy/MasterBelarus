@@ -26,6 +26,10 @@ export type DBProfile = {
   role: 'client' | 'master';
   is_npd: boolean;
   avatar_url: string | null;
+  is_master: boolean;
+  current_role: 'customer' | 'master';
+  master_status: 'none' | 'pending' | 'approved' | 'rejected';
+  phone: string | null;
   created_at: string;
 };
 

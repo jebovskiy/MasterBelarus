@@ -31,6 +31,8 @@ async function bootstrap() {
 
 const httpServer = createServer(app);
 const bot = createBot(env);
+const { setBot } = await import('./services/botRegistry.js');
+setBot(bot);
 
 const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
   app.use(`/${env.BOT_TOKEN}`, (req, res, next) => {

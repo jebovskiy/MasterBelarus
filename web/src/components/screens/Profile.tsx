@@ -3,19 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
-import { apiPatch, isErrorResult } from '@/lib/api';
+import { apiPatch, apiPost, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
-
-type Role = 'client' | 'master';
 
 const SPECIALTIES = ['Сантехника', 'Электрика', 'Мелкий ремонт'];
 const MOCK_MASTER = {
-  about: 'Работаю сантехником и электриком более 8 лет. Выезжаю по Минску и области. Гарантия на все виды работ. Использую профессиональный инструмент и качественные материалы. Работаю аккуратно, после себя убираю.',
+  about: 'Работаю сантехником и электриком более 8 лет. Выезжаю по Минску и области. Гарантия на все виды работ.',
   completed: 142,
   active: 3,
 };
 
-function maskClientPhone(phone?: string | null): string {
+function maskPhone(phone?: string | null): string {
   const digits = (phone ?? '').replace(/\D/g, '');
   const last = digits.length >= 2 ? digits.slice(-2) : '**';
   return `+375 (29) ***-**-${last}`;
@@ -49,15 +47,23 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const setProfile = useAuthStore((s) => s.setProfile);
   const clearAuth = useAuthStore((s) => s.clear);
   const showToast = useToastStore((s) => s.showToast);
-  const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
-  const isMaster = role === 'master';
   const name = profile?.full_name ?? profile?.username ?? 'Пользователь';
+  const isMasterRole = profile?.is_master === true;
+  const currentRole = profile?.current_role ?? 'customer';
+  const masterStatus = profile?.master_status ?? 'none';
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(profile?.full_name ?? '');
   const [editPhone, setEditPhone] = useState(formatPhone(profile?.phone));
   const [saving, setSaving] = useState(false);
+
+  const [masterFormOpen, setMasterFormOpen] = useState(false);
+  const [mfName, setMfName] = useState(profile?.full_name ?? '');
+  const [mfPhone, setMfPhone] = useState(formatPhone(profile?.phone));
+  const [mfCity, setMfCity] = useState('');
+  const [mfCategory, setMfCategory] = useState('plumber');
+  const [mfSaving, setMfSaving] = useState(false);
 
   const saveEdit = async () => {
     setSaving(true);
@@ -68,8 +74,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     const result = await apiPatch('/auth/profile', body);
     setSaving(false);
     if (isErrorResult(result)) {
-      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
-      showToast(msg, 'error');
+      showToast(result.detail ? `${result.error}: ${result.detail}` : result.error, 'error');
       return;
     }
     const updated = result.data as { full_name?: string | null; phone?: string | null } | null;
@@ -80,6 +85,42 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     showToast('✅ Профиль сохранён', 'success');
   };
 
+  const submitMasterRequest = async () => {
+    setMfSaving(true);
+    const result = await apiPost('/auth/become-master', {
+      full_name: mfName,
+      phone: parsePhone(mfPhone),
+      city: mfCity,
+      category: mfCategory,
+    });
+    setMfSaving(false);
+    if (isErrorResult(result)) {
+      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
+      showToast(msg, 'error');
+      return;
+    }
+    profile!.master_status = 'pending';
+    setProfile(profile!);
+    setMasterFormOpen(false);
+    showToast('✅ Заявка отправлена на модерацию', 'success');
+  };
+
+  const switchRole = async () => {
+    impact('medium');
+    const result = await apiPost<{ current_role: string }>('/auth/switch-role');
+    if (isErrorResult(result)) {
+      showToast(result.error, 'error');
+      return;
+    }
+    if (result.data) {
+      profile!.current_role = result.data.current_role as 'customer' | 'master';
+      setProfile(profile!);
+    }
+  };
+
+  const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400';
+  const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5';
+
   return (
     <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4">
       <div className="flex justify-between items-center px-1">
@@ -87,26 +128,28 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
         <div className="w-6" />
       </div>
 
-      <div className="bg-slate-200/60 rounded-xl p-1 flex w-full">
-        {(['client', 'master'] as const).map((r) => {
-          const active = role === r;
-          return (
-            <button
-              key={r}
-              onClick={() => { setRole(r); impact('light'); }}
-              className={`flex-1 text-center text-xs py-2.5 rounded-lg transition-all ${
-                active
-                  ? 'bg-white text-slate-800 font-semibold shadow-sm'
-                  : 'text-slate-500 font-medium'
-              }`}
-            >
-              {r === 'client' ? 'Я заказчик' : 'Я мастер'}
-            </button>
-          );
-        })}
-      </div>
+      {isMasterRole && (
+        <div className="bg-slate-200/60 rounded-xl p-1 flex w-full">
+          <button
+            onClick={switchRole}
+            className={`flex-1 text-center text-xs py-2.5 rounded-lg transition-all ${
+              currentRole === 'customer' ? 'bg-white text-slate-800 font-semibold shadow-sm' : 'text-slate-500 font-medium'
+            }`}
+          >
+            Режим Клиента
+          </button>
+          <button
+            onClick={switchRole}
+            className={`flex-1 text-center text-xs py-2.5 rounded-lg transition-all ${
+              currentRole === 'master' ? 'bg-white text-slate-800 font-semibold shadow-sm' : 'text-slate-500 font-medium'
+            }`}
+          >
+            Режим Мастера
+          </button>
+        </div>
+      )}
 
-      {isMaster ? (
+      {currentRole === 'master' ? (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
             <Avatar size={48} name={name} src={profile?.avatar_url ?? undefined} />
@@ -164,23 +207,33 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 <span className="text-slate-600 text-xs font-semibold">5.0</span>
                 <span className="text-slate-400 text-xs">• Надежный клиент</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1 font-mono">{maskClientPhone(profile?.phone)}</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono">{maskPhone(profile?.phone)}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
-            {[
-              { label: 'Язык', value: 'Русский' },
-              { label: 'Тема', value: 'Системная' },
-              { label: 'Уведомления', value: 'Вкл' },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center justify-between py-2">
-                <span className="text-sm text-slate-700 font-medium">{s.label}</span>
-                <span className="text-xs text-slate-400">{s.value}</span>
+          {masterStatus === 'none' && (
+            <button onClick={() => { impact('light'); setMasterFormOpen(true); }} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.99] transition-transform text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-base">🔨</div>
+                <div>
+                  <span className="text-sm font-semibold text-slate-800">Стать мастером</span>
+                  <p className="text-xs text-slate-400 mt-0.5">Принимайте заказы и зарабатывайте</p>
+                </div>
               </div>
-            ))}
-          </div>
+            </button>
+          )}
+          {masterStatus === 'pending' && (
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-1">
+              <span className="text-sm font-semibold text-amber-800">⏳ Заявка на модерации</span>
+              <p className="text-xs text-amber-600">Ваша заявка рассматривается администратором. Обычно это занимает до 24 часов.</p>
+            </div>
+          )}
+          {masterStatus === 'rejected' && (
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-4">
+              <span className="text-sm font-semibold text-rose-800">❌ Заявка отклонена</span>
+              <p className="text-xs text-rose-600 mt-1">Свяжитесь с поддержкой для уточнения причины.</p>
+            </div>
+          )}
 
           <button onClick={() => { impact('light'); setEditName(profile?.full_name ?? ''); setEditPhone(formatPhone(profile?.phone)); setEditing(true); }} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
             Редактировать профиль и телефон
@@ -202,30 +255,57 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
               <p className="text-sm text-slate-500 mb-5">Имя и телефон будут видны мастерам при отклике</p>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Имя</label>
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Ваше имя"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400"
-                  />
+                  <label className={labelCls}>Имя</label>
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ваше имя" className={inputCls} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5">Телефон</label>
-                  <input
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))}
-                    placeholder="+375 (29) XXX-XX-XX"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400"
-                  />
+                  <label className={labelCls}>Телефон</label>
+                  <input value={editPhone} onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))} placeholder="+375 (29) XXX-XX-XX" className={inputCls} />
                 </div>
               </div>
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60"
-              >
+              <button onClick={saveEdit} disabled={saving} className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60">
                 {saving ? 'Сохранение...' : 'Сохранить'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {masterFormOpen && (
+          <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMasterFormOpen(false)} />
+            <motion.div className="relative w-full max-w-[430px] bg-white rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
+              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300" />
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Стать мастером</h3>
+              <p className="text-sm text-slate-500 mb-5">Заполните анкету для модерации</p>
+              <div className="space-y-4">
+                <div>
+                  <label className={labelCls}>Имя</label>
+                  <input value={mfName} onChange={(e) => setMfName(e.target.value)} placeholder="Иван" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Телефон</label>
+                  <input value={mfPhone} onChange={(e) => setMfPhone(formatPhoneInput(e.target.value))} placeholder="+375 (29) XXX-XX-XX" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Город / Район</label>
+                  <input value={mfCity} onChange={(e) => setMfCity(e.target.value)} placeholder="Минск" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Специализация</label>
+                  <select value={mfCategory} onChange={(e) => setMfCategory(e.target.value)} className={inputCls}>
+                    <option value="plumber">Сантехник</option>
+                    <option value="electrician">Электрик</option>
+                    <option value="mover">Грузчик</option>
+                    <option value="handyman">Муж на час</option>
+                    <option value="tutor">Репетитор</option>
+                    <option value="cleaning">Уборка</option>
+                  </select>
+                </div>
+              </div>
+              <button onClick={submitMasterRequest} disabled={mfSaving} className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60">
+                {mfSaving ? 'Отправка...' : 'Отправить заявку'}
               </button>
             </motion.div>
           </motion.div>

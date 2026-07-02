@@ -10,6 +10,84 @@ export const adminRouter = Router();
 adminRouter.use(adminRequired);
 
 /**
+ * POST /admin/masters/approve/:telegramId — одобрить заявку мастера
+ */
+adminRouter.post('/masters/approve/:telegramId', async (req, res) => {
+  const telegramId = Number(req.params.telegramId);
+  if (!telegramId) return res.status(400).json({ error: 'invalid telegramId' });
+  try {
+    const db = getSupabaseAdmin();
+    const { error } = await db
+      .from('profiles')
+      .update({ is_master: true, master_status: 'approved', current_role: 'master' })
+      .eq('telegram_id', telegramId);
+    if (error) throw error;
+    logger.info({ admin: (req as any).admin, telegramId }, 'admin: master approved');
+
+    // Notify user
+    const { getBot } = await import('../services/botRegistry.js');
+    const bot = getBot();
+    await bot.telegram.sendMessage(telegramId,
+      '✅ Поздравляем! Ваша заявка на статус мастера одобрена.\n' +
+      'Откройте Mini App и переключитесь в режим мастера в профиле.'
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
+ * POST /admin/masters/reject/:telegramId — отклонить заявку мастера
+ */
+adminRouter.post('/masters/reject/:telegramId', async (req, res) => {
+  const telegramId = Number(req.params.telegramId);
+  if (!telegramId) return res.status(400).json({ error: 'invalid telegramId' });
+  try {
+    const db = getSupabaseAdmin();
+    const { error } = await db
+      .from('profiles')
+      .update({ master_status: 'rejected' })
+      .eq('telegram_id', telegramId);
+    if (error) throw error;
+    logger.info({ admin: (req as any).admin, telegramId }, 'admin: master rejected');
+
+    const { getBot } = await import('../services/botRegistry.js');
+    const bot = getBot();
+    await bot.telegram.sendMessage(telegramId,
+      '❌ К сожалению, ваша заявка на статус мастера отклонена.\n' +
+      'Свяжитесь с поддержкой для уточнения причины.'
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
+ * GET /admin/masters/pending — список заявок на модерации
+ */
+adminRouter.get('/masters/pending', async (_req, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from('profiles')
+      .select('id, telegram_id, full_name, phone, username, city, master_status, created_at')
+      .eq('master_status', 'pending')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return res.json(data ?? []);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
  * GET /admin/stats — агрегированная статистика
  */
 adminRouter.get('/stats', async (_req: AdminRequest, res) => {

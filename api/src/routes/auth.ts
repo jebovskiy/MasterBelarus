@@ -54,7 +54,7 @@ authRouter.post('/telegram', async (req, res) => {
     // Upsert profile by telegram_id.
     const { data: existing, error: selectErr } = await db
       .from('profiles')
-      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, created_at')
+      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
@@ -74,7 +74,7 @@ authRouter.post('/telegram', async (req, res) => {
           is_npd: false,
           avatar_url: photoUrl,
         })
-        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, created_at')
+        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, created_at')
         .single();
       if (insertErr) throw insertErr;
       profile = inserted as DBProfile;
@@ -154,6 +154,124 @@ authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: Au
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'auth/avatar upload failed');
     return res.status(500).json({ error: 'upload failed', detail: msg });
+  }
+});
+
+/**
+ * POST /auth/become-master — подать заявку на статус мастера
+ */
+authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) => {
+  const Schema = z.object({
+    full_name: z.string().min(1).max(200),
+    phone: z.string().min(5).max(20),
+    city: z.string().min(1).max(100),
+    category: z.string().min(1).max(50),
+  });
+  const parsed = Schema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
+
+  try {
+    const db = getSupabaseAdmin();
+    const { data: existing } = await db
+      .from('profiles')
+      .select('id, master_status')
+      .eq('telegram_id', req.telegram!.user.id)
+      .maybeSingle();
+    if (!existing) return res.status(404).json({ error: 'profile not found' });
+    if (existing.master_status === 'pending') return res.status(400).json({ error: 'already pending' });
+    if (existing.master_status === 'approved') return res.status(400).json({ error: 'already a master' });
+
+    const { error: updateErr } = await db
+      .from('profiles')
+      .update({
+        full_name: parsed.data.full_name,
+        phone: parsed.data.phone,
+        city: parsed.data.city,
+        master_status: 'pending',
+      })
+      .eq('id', existing.id);
+    if (updateErr) throw updateErr;
+
+    // Notify moderator chat
+    const { getBot } = await import('../services/botRegistry.js');
+    const bot = getBot();
+    const chatId = env.MODERATOR_CHAT_ID;
+    if (chatId) {
+      const user = req.telegram!.user;
+      await bot.telegram.sendMessage(chatId, [
+        `👤 Новая заявка на статус мастера`,
+        `Имя: ${parsed.data.full_name}`,
+        `Телефон: ${parsed.data.phone}`,
+        `Город: ${parsed.data.city}`,
+        `Специализация: ${parsed.data.category}`,
+        `Telegram ID: ${user.id}`,
+        `Username: @${user.username ?? '—'}`,
+      ].join('\n'), {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '✅ Принять', callback_data: `approve_master:${user.id}` },
+              { text: '❌ Отклонить', callback_data: `reject_master:${user.id}` },
+            ],
+          ],
+        },
+      });
+    }
+
+    logger.info({ telegram_id: req.telegram!.user.id }, 'auth/become-master submitted');
+    return res.json({ master_status: 'pending' });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'auth/become-master failed');
+    return res.status(500).json({ error: 'request failed', detail: msg });
+  }
+});
+
+/**
+ * POST /auth/switch-role — переключить current_role (только если is_master)
+ */
+authRouter.post('/switch-role', authRequired, async (req: AuthedRequest, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data: existing } = await db
+      .from('profiles')
+      .select('id, is_master, current_role')
+      .eq('telegram_id', req.telegram!.user.id)
+      .maybeSingle();
+    if (!existing) return res.status(404).json({ error: 'profile not found' });
+    if (!existing.is_master) return res.status(403).json({ error: 'not a master' });
+
+    const newRole = existing.current_role === 'customer' ? 'master' : 'customer';
+    const { error: updateErr } = await db
+      .from('profiles')
+      .update({ current_role: newRole })
+      .eq('id', existing.id);
+    if (updateErr) throw updateErr;
+
+    return res.json({ current_role: newRole });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'auth/switch-role failed');
+    return res.status(500).json({ error: 'switch failed', detail: msg });
+  }
+});
+
+/**
+ * GET /auth/master-status — текущий статус мастера
+ */
+authRouter.get('/master-status', authRequired, async (req: AuthedRequest, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data } = await db
+      .from('profiles')
+      .select('is_master, current_role, master_status')
+      .eq('telegram_id', req.telegram!.user.id)
+      .maybeSingle();
+    if (!data) return res.status(404).json({ error: 'profile not found' });
+    return res.json(data);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
   }
 });
 

@@ -15,72 +15,82 @@ import OrderHistoryScreen from '@/components/screens/OrderHistoryScreen';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
 
-type Screen = 'settings' | 'edit_profile' | 'wallet' | 'order_history';
+type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history';
 
-function AppShell() {
-  const profile = useAuthStore((s) => s.profile);
+function CustomerApp() {
   const [tab, setTab] = useState<TabKey>('home');
   const [orderOpen, setOrderOpen] = useState(false);
   const [presetCategory, setPresetCategory] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
-  const [screen, setScreen] = useState<Screen | null>(null);
-
-  const isMaster = profile?.role === 'master';
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   return (
-    <div className="min-h-screen bg-app-bg pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
-      {tab === 'home' && (isMaster ? <MasterHome onNavigate={(s) => setScreen(s as Screen)} /> : <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} />)}
+    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
+      {tab === 'home' && <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} />}
+      {tab === 'orders' && <OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} />}
+      {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay)} />}
 
-      {tab === 'orders' && (
-        <div className="px-4 pt-4">
-          <p className="text-text-muted text-sm text-center py-10">История заказов</p>
-        </div>
-      )}
-
-      {tab === 'chat' && (
-        <div className="px-4 pt-4">
-          <p className="text-text-muted text-sm text-center py-10">Чат с мастерами</p>
-        </div>
-      )}
-
-      {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setScreen(s as Screen)} />}
-
-      {!adminOpen && !screen && <BottomTabBar active={tab} onTab={setTab} onAdminChoice={() => setAdminOpen(true)} />}
+      <BottomTabBar active={tab} onTab={setTab} />
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
+
       <AnimatePresence>
         {adminOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-0 z-40"
-          >
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-40">
             <AdminPanelView onClose={() => setAdminOpen(false)} />
           </motion.div>
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {screen && (
-          <motion.div
-            key={screen}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-0 z-30 bg-[#f4f4f6] overflow-y-auto"
-          >
-            {screen === 'settings' && <SettingsScreen onBack={() => setScreen(null)} />}
-            {screen === 'edit_profile' && <EditProfileScreen onBack={() => setScreen(null)} />}
-            {screen === 'wallet' && <WalletScreen onBack={() => setScreen(null)} />}
-            {screen === 'order_history' && <OrderHistoryScreen onBack={() => setScreen(null)} onOpenOrder={(id) => { setSelectedOrderId(id); setScreen(null); }} />}
+        {overlay && (
+          <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-30 bg-[#f4f4f6] overflow-y-auto">
+            {overlay === 'settings' && <SettingsScreen onBack={() => setOverlay(null)} />}
+            {overlay === 'edit_profile' && <EditProfileScreen onBack={() => setOverlay(null)} />}
+            {overlay === 'wallet' && <WalletScreen onBack={() => setOverlay(null)} />}
+            {overlay === 'order_history' && <OrderHistoryScreen onBack={() => setOverlay(null)} onOpenOrder={(id) => { setSelectedOrderId(id); setOverlay(null); }} />}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
+}
+
+function MasterApp() {
+  const [tab, setTab] = useState<TabKey>('feed');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
+
+  return (
+    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
+      {tab === 'feed' && <MasterHome onNavigate={(s) => setOverlay(s as Overlay)} />}
+      {tab === 'in_progress' && (
+        <div className="px-4 pt-4">
+          <p className="text-slate-400 text-sm text-center py-10">Заказы в работе</p>
+        </div>
+      )}
+      {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay)} />}
+
+      <BottomTabBar active={tab} onTab={setTab} />
+      <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+
+      <AnimatePresence>
+        {overlay && (
+          <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-30 bg-[#f4f4f6] overflow-y-auto">
+            {overlay === 'edit_profile' && <EditProfileScreen onBack={() => setOverlay(null)} />}
+            {overlay === 'wallet' && <WalletScreen onBack={() => setOverlay(null)} />}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AppShell() {
+  const profile = useAuthStore((s) => s.profile);
+  const isMasterMode = profile?.current_role === 'master' && profile?.is_master;
+
+  return isMasterMode ? <MasterApp /> : <CustomerApp />;
 }
 
 export default function App() {
