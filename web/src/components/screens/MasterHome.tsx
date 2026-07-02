@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useLocation } from '@/hooks/useLocation';
 import { apiPost, apiGet } from '@/lib/api';
 
 type NearbyOrder = {
@@ -29,11 +30,12 @@ export function MasterHome() {
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { impact, notification } = useHaptic();
+  const { location } = useLocation();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiGet<any>('/orders/nearby?lat=53.9&lng=27.5667&radius=5000');
+      const result = await apiGet<any>(`/orders/nearby?lat=${location.latitude}&lng=${location.longitude}&radius=5000`);
       if ('data' in result && Array.isArray(result.data)) {
         setOrders(result.data);
       }
@@ -42,7 +44,7 @@ export function MasterHome() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [location.latitude, location.longitude]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id); }, [load]);
