@@ -103,7 +103,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F4F6] overflow-y-auto">
+    <div className="h-screen bg-[#F4F4F6] overflow-y-auto">
       <div className="sticky top-0 z-10 bg-[#F4F4F6] pt-3 px-4 pb-2">
         <div className="bg-white shadow-sm rounded-xl border border-slate-100 p-3 flex items-center justify-between">
           <button
@@ -123,7 +123,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
         </div>
       </div>
 
-      <div className="px-4 pb-4 space-y-4">
+      <div className="px-4 pb-24 space-y-4">
         <div className="bg-slate-100 rounded-xl p-1 flex">
           {TABS.map((t) => {
             const active = tab === t.key;
