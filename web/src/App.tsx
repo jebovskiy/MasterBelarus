@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
 import ClientHome from '@/pages/ClientHome';
@@ -6,7 +7,7 @@ import { MasterHome } from '@/components/screens/MasterHome';
 import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
 import OrderDetail from '@/components/screens/OrderDetail';
 import Profile from '@/components/screens/Profile';
-import AdminDashboard from '@/components/screens/AdminDashboard';
+import AdminPanelView from '@/components/screens/AdminPanelView';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { ToastProvider } from '@/components/shared/Toast';
 
@@ -40,7 +41,19 @@ function AppShell() {
       {!adminOpen && <BottomTabBar active={tab} onTab={setTab} />}
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => setOrderOpen(false)} />
-      {adminOpen && <AdminDashboard onClose={() => setAdminOpen(false)} />}
+      <AnimatePresence>
+        {adminOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            className="fixed inset-0 z-40"
+          >
+            <AdminPanelView onClose={() => setAdminOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

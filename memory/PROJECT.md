@@ -321,8 +321,79 @@ pm install + sanity check (api + web)
 - Карусель последних мастеров
 - Авторизация: AdminToken в хедере — не реализовано на фронте
 
+---
+## STATE — 2026-07-02 04:20 — Profile screen + CreateOrderSheet redesign
+
+### Создано
+- `web/src/components/screens/Profile.tsx` — динамический экран профиля:
+  - Role Toggle Switch (Я заказчик / Я мастер) — `bg-slate-200/60` плашка, активная роль с белой подложкой
+  - Мастер: аватар, рейтинг, теги специализаций, НПД-статус (emerald), «О мастере», статистика заказов, кнопка редактирования
+  - Клиент: аватар, рейтинг, маскированный телефон, история заказов (активные/завершённые), способы оплаты (чекбоксы), кнопка изменения данных
+  - Footer: «Выйти из аккаунта» (rose-500/60)
+  - Mock-данные для мастера (специализации, описание, статистика)
+
+### Изменено
+- `CreateOrderSheet.tsx` — полный редизайн в стиле «Мягкая галька»:
+  - Белая карточка `rounded-2xl shadow-lg shadow-slate-200/50 p-6`
+  - Поля `bg-[#f4f4f6] rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white`
+  - Метки `text-xs font-semibold text-slate-500 uppercase tracking-wider`
+  - Категории: `bg-slate-800` (актив) / `bg-[#f4f4f6]` (неактив)
+  - Кнопка `bg-slate-900 text-white py-4 rounded-xl`
+  - Toast через shared-компонент вместо `notification()`
+- `App.tsx` — подключён Profile вместо заглушки
+- `ClientHome.tsx` — полное обновление:
+  - Hero bento в стиле «Мягкая галька» (bg-white rounded-2xl shadow-sm, slate-900 заголовок)
+  - Активные заказы: эмодзи статуса, emerald-500 левая рамка, status badge (Поиск мастера / В работе)
+  - Карусель «Проверенные мастера»: snap-x горизонтальный скролл, w-44 карточки, онлайн-индикатор emerald-500, аватар буква, рейтинг звёздами
+  - API запросы /orders/my + /masters/recent с fallback на мок-данные
+  - Скелетоны загрузки через animate-pulse
+
 ### Не начато
-- Seed data (supabase/seed.sql)
 - CI (`.github/workflows/ci.yml`)
 - Админ: жалобы, блокировка мастеров
 - Sentry / PostHog
+- Hover scale(1.02) на кнопках (вместо active scale(0.98))
+
+---
+## STATE — 2026-07-02 05:20 — Seed + LocationManager + AdminToken
+
+### Создано
+- `supabase/seed.sql` — 10 мастеров, 5 клиентов, 15 заказов, 25 откликов, категории, балансы
+- `web/src/hooks/useLocation.ts` — LocationManager через Telegram WebApp > Geolocation API > Minsk fallback, кеш localStorage
+- `web/src/stores/admin.ts` — zustand store + adminHeaders helper
+- `web/src/components/screens/AdminDashboard.tsx` — экран администратора:
+  - Ввод AdminToken (пароль, кеш localStorage)
+  - 3 таба: Статистика / Заказы / Мастера
+  - Тёмная тема (bg-slate-900), адаптив
+
+### Изменено
+- `api/src/routes/admin.ts` — добавлен `adminRouter.use(adminRequired)` на все админ-роуты
+- `web/src/components/screens/MasterHome.tsx` — хардкод lat/lng заменён на `useLocation()`
+- `web/src/App.tsx` — adminOpen стейт, условный рендер AdminDashboard вместо BottomTabBar
+- `web/src/components/screens/Profile.tsx` — проп onOpenAdmin, кнопка «Админ-панель» в футере
+-
+----
+-## STATE — 2026-07-02 05:50 — Admin panel refactor: отдельный полноэкранный экран + дизайн «Мягкая галька»
+-
+-### Изменено
+-- `web/src/App.tsx` — AnimatePresence + motion.div для fade/slide перехода (duration 0.2s, ease [0.32,0.72,0,1])
+-- `web/src/components/screens/Profile.tsx` — старая невидимая кнопка «Админ-панель» заменена на карточку bg-white rounded-2xl p-5 с иконкой 🛠 и →; показывается только когда isAdmin === true; useAdminStore вызов вынесен наверх компонента
+-- `web/src/components/screens/AdminDashboard.tsx` — удалён (заменён на AdminPanelView)
+-
+-### Создано
+-- `web/src/components/screens/AdminPanelView.tsx` — полноэкранный админ-экран в стиле «Мягкая галька»:
+-  - Login-экран (без токена): bg-[#F4F4F6], карточка bg-white rounded-2xl, поле ввода bg-[#F4F4F6], кнопка bg-slate-900
+-  - Хедер: bg-white shadow-sm rounded-xl border border-slate-100, кастомная кнопка «← Назад», «Выйти» (text-rose-500)
+-  - Таб-бар: bg-slate-100 rounded-xl p-1 (как Role Toggle в Profile), 4 таба: Статистика, Заказы, Мастера, Жалобы
+-  - Статистика: grid 2×2 карточек bg-white rounded-2xl p-5 shadow-sm
+-  - Заказы: карточки bg-white rounded-2xl p-5, статус-бейджи (emerald/blue/amber), цена, дата
+-  - Мастера: карточки bg-white rounded-2xl p-5, рейтинг (amber-600), НПД-бейдж, дата регистрации
+-  - Жалобы: микро-карточки с name (font-semibold), текстом (text-xs text-slate-500), кнопки «Отклонить» (bg-slate-100) / «Заблокировать» (bg-rose-50 text-rose-600), состояние resolved/blocked
+-  - Анимация: active:scale-[0.97] на всех кнопках, active:scale-[0.98] на карточках
+-
+-### Архитектура навигации
+-- Profile → onOpenAdmin → setAdminOpen(true) → AnimatePresence монтирует AdminPanelView
+-- AdminPanelView → onClose → setAdminOpen(false) → fade-out
+-- BottomTabBar скрыт пока adminOpen === true
+-- При отсутствии AdminToken экран показывает только логин-форму
+-- API те же: /admin/stats, /admin/orders, /admin/masters (mock complaints на фронте)
