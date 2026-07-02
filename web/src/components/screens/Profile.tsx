@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
-import { useToastStore } from '@/components/shared/Toast';
 import { Avatar } from '@/components/shared/Avatar';
 
 type Role = 'client' | 'master';
@@ -13,13 +12,11 @@ const MOCK_MASTER = {
   active: 3,
 };
 
-export default function Profile({ onBack }: { onBack?: () => void }) {
+export default function Profile({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (screen: string) => void }) {
   const profile = useAuthStore((s) => s.profile);
   const clearAuth = useAuthStore((s) => s.clear);
   const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
-  const showToast = useToastStore((s) => s.showToast);
-
   const isMaster = role === 'master';
   const name = profile?.full_name ?? profile?.username ?? 'Пользователь';
   const phone = '+375 (29) XXX-XX-XX';
@@ -93,7 +90,7 @@ export default function Profile({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
-          <button onClick={() => { showToast('Редактирование станет доступно в следующем обновлении', 'warning'); }} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+          <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
             Редактировать анкету мастера
           </button>
         </div>
@@ -115,29 +112,26 @@ export default function Profile({ onBack }: { onBack?: () => void }) {
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Мои заказы</span>
             <div className="grid grid-cols-2 gap-2 text-center">
-              <button onClick={() => showToast('История заказов появится после бета-теста', 'info')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
+              <button onClick={() => onNavigate?.('order_history')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
                 <span className="block text-xl font-bold text-slate-800">1</span>
                 <span className="text-[11px] text-slate-500">Активный заказ</span>
               </button>
-              <button onClick={() => showToast('История заказов появится после бета-теста', 'info')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
+              <button onClick={() => onNavigate?.('order_history')} className="bg-[#f4f4f6] rounded-xl p-3 active:scale-[0.97] transition-transform">
                 <span className="block text-xl font-bold text-slate-400">12</span>
                 <span className="text-[11px] text-slate-500">Завершенных</span>
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <div className="opacity-50 cursor-not-allowed select-none bg-slate-50 rounded-xl p-4 flex items-center justify-between">
+          <button onClick={() => onNavigate?.('settings')} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.99] transition-transform text-left">
+            <div className="bg-white rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-base">⚙️</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-800">Настройки</span>
-                  <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full border border-slate-200">В разработке (v1.1)</span>
-                </div>
+                <span className="text-sm font-semibold text-slate-800">Настройки</span>
               </div>
               <span className="text-slate-300 text-lg leading-none">→</span>
             </div>
-          </div>
+          </button>
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
             <span className="text-xl font-bold text-slate-900">Способы оплаты</span>
@@ -151,7 +145,7 @@ export default function Profile({ onBack }: { onBack?: () => void }) {
             </div>
           </div>
 
-          <button onClick={() => { showToast('Редактирование станет доступно в следующем обновлении', 'warning'); }} className="w-full bg-slate-100 text-slate-800 rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+          <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-100 text-slate-800 rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
             Изменить личные данные
           </button>
         </div>

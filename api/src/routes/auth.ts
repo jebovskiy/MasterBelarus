@@ -5,6 +5,7 @@ import { getSupabaseAdmin, type DBProfile } from '../lib/supabase.js';
 import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
+import { authRequired, type AuthedRequest } from '../middleware/auth.js';
 
 const Body = z.object({
   initData: z.string().min(20).optional(),
@@ -100,6 +101,66 @@ authRouter.post('/telegram', async (req, res) => {
     const message = err instanceof Error ? err.message : 'unknown';
     logger.warn({ message }, 'auth/telegram failed');
     return res.status(401).json({ error: 'invalid initData', detail: message });
+  }
+});
+
+const ProfileUpdate = z.object({
+  full_name: z.string().min(1).max(200).optional(),
+  phone: z.string().max(20).optional(),
+  city: z.string().max(100).optional(),
+  description: z.string().max(2000).optional(),
+  radius_km: z.coerce.number().int().min(1).max(200).optional(),
+  categories: z.array(z.string()).optional(),
+});
+
+/**
+ * PATCH /auth/profile — обновить профиль пользователя
+ */
+authRouter.patch('/profile', authRequired, async (req: AuthedRequest, res) => {
+  const parsed = ProfileUpdate.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
+  }
+
+  try {
+    const db = getSupabaseAdmin();
+    const { data: existing } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', req.telegram!.user.id)
+      .maybeSingle();
+
+    if (!existing) return res.status(404).json({ error: 'profile not found' });
+
+    const { categories, ...profileFields } = parsed.data;
+    const updates: Record<string, unknown> = {};
+    if (profileFields.full_name !== undefined) updates.full_name = profileFields.full_name;
+    if (profileFields.phone !== undefined) updates.phone = profileFields.phone;
+    if (profileFields.city !== undefined) updates.city = profileFields.city;
+    if (profileFields.description !== undefined) updates.description = profileFields.description;
+    if (profileFields.radius_km !== undefined) updates.radius_km = profileFields.radius_km;
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateErr } = await db.from('profiles').update(updates).eq('id', existing.id);
+      if (updateErr) throw updateErr;
+    }
+
+    if (categories) {
+      await db.from('master_categories').delete().eq('master_id', existing.id);
+      if (categories.length > 0) {
+        const { error: catErr } = await db.from('master_categories').insert(
+          categories.map((cat) => ({ master_id: existing.id, category: cat })),
+        );
+        if (catErr) throw catErr;
+      }
+    }
+
+    const { data: updated } = await db.from('profiles').select('*').eq('id', existing.id).single();
+    return res.json(updated);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'auth/profile patch failed');
+    return res.status(500).json({ error: 'update failed', detail: msg });
   }
 });
 

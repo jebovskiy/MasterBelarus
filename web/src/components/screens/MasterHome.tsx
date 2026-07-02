@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLocation } from '@/hooks/useLocation';
 import { apiPost, apiGet } from '@/lib/api';
-import { useToastStore } from '@/components/shared/Toast';
 
 type NearbyOrder = {
   id: string;
@@ -21,7 +20,7 @@ function categoryEmoji(cat: string): string {
   return map[cat] ?? '📋';
 }
 
-export function MasterHome() {
+export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => void }) {
   const [orders, setOrders] = useState<NearbyOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [balance] = useState<number>(15);
@@ -31,7 +30,6 @@ export function MasterHome() {
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { impact, notification } = useHaptic();
-  const showToast = useToastStore((s) => s.showToast);
   const { location } = useLocation();
 
   const load = useCallback(async () => {
@@ -96,7 +94,7 @@ export function MasterHome() {
           <div className="col-span-2 bg-white p-5 rounded-bento shadow-card">
             <p className="text-sm font-semibold text-text-muted">Баланс откликов</p>
             <p className="text-4xl font-extrabold text-primary mt-1">{balance ?? '—'}</p>
-            <button onClick={() => showToast('💎 Пополнение — запустится после бета-теста', 'info')} className="mt-2 text-sm font-semibold text-primary">Пополнить</button>
+            <button onClick={() => onNavigate?.('wallet')} className="mt-2 text-sm font-semibold text-primary">Пополнить</button>
           </div>
           <div className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between">
             <p className="text-sm font-semibold text-text-muted">Рейтинг</p>

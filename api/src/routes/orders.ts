@@ -74,6 +74,35 @@ ordersRouter.post('/', async (req: AuthedRequest, res) => {
 });
 
 /**
+ * GET /orders/my — заказы текущего пользователя
+ */
+ordersRouter.get('/my', async (req: AuthedRequest, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data: profile } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', req.telegram!.user.id)
+      .single();
+
+    if (!profile) return res.status(404).json({ error: 'profile not found' });
+
+    const { data: orders, error } = await db
+      .from('orders')
+      .select('*')
+      .eq('client_id', profile.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ orders: orders ?? [] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'orders/my failed');
+    return res.status(500).json({ error: 'my orders failed', detail: msg });
+  }
+});
+
+/**
  * GET /orders/nearby — заказы рядом с мастером (PostGIS RPC)
  */
 ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
