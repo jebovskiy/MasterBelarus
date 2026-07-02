@@ -18,8 +18,10 @@ const CATEGORIES = [
 const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base';
 const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block';
 
-const overlayTransition = { duration: 0.2, ease: [0.32, 0.72, 0, 1] };
-const sheetTransition = { type: 'spring' as const, damping: 28, stiffness: 240, mass: 0.8 };
+const swipeConfidenceThreshold = 80;
+const swipeVelocityThreshold = 400;
+
+const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
 export default function CreateOrderSheet({ open, onClose }: Props) {
   const [category, setCategory] = useState<string>('');
@@ -76,17 +78,28 @@ export default function CreateOrderSheet({ open, onClose }: Props) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={overlayTransition}>
+        <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
           <motion.div
-            className="relative w-full max-w-[430px] bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 p-6 max-h-[90vh] overflow-auto will-change-transform"
+            className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col max-h-[90vh]"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={sheetTransition}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > swipeConfidenceThreshold || info.velocity.y > swipeVelocityThreshold) {
+                onClose();
+              }
+            }}
           >
-            <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-slate-300" />
-            <h2 className="text-xl font-bold text-slate-800 mb-5">Создать заявку</h2>
+            <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
+              <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+            </div>
+            <div className="px-6 pb-6 overflow-auto">
+              <h2 className="text-xl font-bold text-slate-800 mb-5">Создать заявку</h2>
 
             <div className="space-y-5">
               <div>
@@ -180,6 +193,7 @@ export default function CreateOrderSheet({ open, onClose }: Props) {
               >
                 {submitting ? 'Публикую...' : 'Создать заявку'}
               </button>
+            </div>
             </div>
           </motion.div>
         </motion.div>
