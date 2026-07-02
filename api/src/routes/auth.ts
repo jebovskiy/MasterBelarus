@@ -187,6 +187,7 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
         full_name: parsed.data.full_name,
         phone: parsed.data.phone,
         city: parsed.data.city,
+        category: parsed.data.category,
         master_status: 'pending',
       })
       .eq('id', existing.id);

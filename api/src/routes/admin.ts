@@ -71,7 +71,7 @@ adminRouter.get('/masters/pending', async (_req, res) => {
     const db = getSupabaseAdmin();
     const { data, error } = await db
       .from('profiles')
-      .select('id, telegram_id, full_name, phone, username, city, master_status, created_at')
+      .select('id, telegram_id, full_name, phone, username, city, category, master_status, created_at')
       .eq('master_status', 'pending')
       .order('created_at', { ascending: false });
     if (error) throw error;

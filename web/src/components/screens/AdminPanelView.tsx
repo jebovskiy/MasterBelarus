@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useAdminStore, adminHeaders } from '@/stores/admin';
+import { useToastStore } from '@/components/shared/Toast';
 
-type Tab = 'stats' | 'orders' | 'masters' | 'complaints';
+type Tab = 'stats' | 'orders' | 'masters' | 'moderation' | 'complaints';
 
 type AdminStats = { users: number; masters: number; orders: number; bids: number };
 type AdminOrder = { id: string; category: string; status: string; price: number | null; created_at: string; client_id: string };
 type AdminMaster = { id: string; full_name: string; username: string | null; role: string; is_npd: boolean; created_at: string; avg_rating: number | null; review_count: number };
+
+type PendingMaster = {
+  id: string;
+  telegram_id: number;
+  full_name: string;
+  phone: string;
+  username: string | null;
+  city: string;
+  category: string | null;
+  master_status: string;
+  created_at: string;
+};
 
 type Complaint = {
   id: string;
@@ -20,6 +33,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'stats', label: 'Статистика' },
   { key: 'orders', label: 'Заказы' },
   { key: 'masters', label: 'Мастера' },
+  { key: 'moderation', label: 'Модерация' },
   { key: 'complaints', label: 'Жалобы' },
 ];
 
@@ -35,6 +49,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   const setToken = useAdminStore((s) => s.setToken);
   const clearToken = useAdminStore((s) => s.clear);
   const isAdmin = useAdminStore((s) => s.isAdmin);
+  const showToast = useToastStore((s) => s.showToast);
   const [inputToken, setInputToken] = useState('');
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -42,6 +57,10 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   const [masters, setMasters] = useState<AdminMaster[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
+
+  const [pendingMasters, setPendingMasters] = useState<PendingMaster[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!token) return;
@@ -65,6 +84,51 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
     };
     fetchData();
   }, [token]);
+
+  const fetchPendingMasters = async () => {
+    if (!token) return;
+    setLoadingPending(true);
+    const h = adminHeaders(token);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/admin/masters/pending`, { headers: { ...h } });
+      const data = await res.json() as PendingMaster[];
+      setPendingMasters(Array.isArray(data) ? data : []);
+    } catch {
+      showToast('Не удалось загрузить заявки', 'error');
+    } finally {
+      setLoadingPending(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'moderation' && token) {
+      fetchPendingMasters();
+    }
+  }, [tab, token]);
+
+  const handleModerate = async (tgId: number, action: 'approve' | 'reject') => {
+    const key = `${tgId}_${action}`;
+    setActionLoading((prev) => ({ ...prev, [key]: true }));
+    try {
+      const h = adminHeaders(token!);
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/admin/masters/${action}/${tgId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...h },
+        body: '{}',
+      });
+      if (!res.ok) throw new Error('request failed');
+      setPendingMasters((prev) => prev.filter((m) => m.telegram_id !== tgId));
+      if (action === 'approve') {
+        showToast('Мастер успешно верифицирован!', 'success');
+      } else {
+        showToast('Заявка мастера отклонена', 'warning');
+      }
+    } catch {
+      showToast('Ошибка выполнения операции', 'error');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const handleResolveComplaint = (id: string, resolution: 'approved' | 'rejected') => {
     setComplaints((prev) => prev.map((c) => (c.id === id ? { ...c, status: resolution } : c)));
@@ -221,6 +285,75 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {tab === 'moderation' && (
+          <div className="space-y-4">
+            {loadingPending && <p className="text-sm text-slate-400 text-center py-8">Загрузка...</p>}
+
+            {!loadingPending && pendingMasters.length === 0 && (
+              <div className="bg-white rounded-2xl p-8 shadow-sm text-center space-y-3">
+                <span className="text-3xl block">🎉</span>
+                <p className="text-sm font-semibold text-slate-800">Все заявки разобраны!</p>
+                <p className="text-xs text-slate-400">Новых мастеров пока нет</p>
+              </div>
+            )}
+
+            {pendingMasters.map((m) => {
+              const isApproving = actionLoading[`${m.telegram_id}_approve`] ?? false;
+              const isRejecting = actionLoading[`${m.telegram_id}_reject`] ?? false;
+              const disabled = isApproving || isRejecting;
+
+              return (
+                <div
+                  key={m.telegram_id}
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 active:scale-[0.98] transition-all duration-180"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 text-base">{m.full_name}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">TG ID: {m.telegram_id}</p>
+                    </div>
+                    <span className="bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
+                      Ожидает проверки
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 my-4 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span>📞</span>
+                      <span className="font-medium">{m.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>📍</span>
+                      <span>{m.city}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🛠</span>
+                      <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-md">{m.category ?? '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                      onClick={() => handleModerate(m.telegram_id, 'reject')}
+                      disabled={disabled}
+                      className="w-full bg-rose-50 text-rose-600 font-medium py-3 rounded-xl text-sm active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
+                    >
+                      ❌ Отклонить
+                    </button>
+                    <button
+                      onClick={() => handleModerate(m.telegram_id, 'approve')}
+                      disabled={disabled}
+                      className="w-full bg-slate-900 text-white font-medium py-3 rounded-xl text-sm active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
+                    >
+                      ✅ Одобрить
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
