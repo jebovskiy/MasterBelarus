@@ -1,10 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
 import { apiPatch, apiPost, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
+import { getTelegramInitData } from '@/lib/telegram';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 const SPECIALTIES = ['Сантехника', 'Электрика', 'Мелкий ремонт'];
 const MOCK_MASTER = {
@@ -140,6 +143,15 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const [mfCity, setMfCity] = useState('');
   const [mfCategory, setMfCategory] = useState('plumber');
   const [savingMaster, setSavingMaster] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+
+  useEffect(() => {
+    const initData = getTelegramInitData();
+    if (!initData) return;
+    fetch(`${API_BASE}/admin/self`, { headers: { 'x-telegram-init-data': initData } })
+      .then((r) => { if (r.ok) setIsAdminUser(true); })
+      .catch(() => {});
+  }, []);
 
   const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all';
   const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5';
@@ -297,6 +309,12 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
           </div>
 
           <SettingsCard />
+
+          {isAdminUser && (
+            <button onClick={() => onNavigate?.('admin')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.98] transition-transform">
+              ⚙️ Администрирование
+            </button>
+          )}
 
           {masterStatus === 'none' && (
             <button onClick={() => { impact('light'); setMfName(profile?.full_name ?? ''); setMfPhone(formatPhone(profile?.phone)); setMasterFormOpen(true); }} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.98] transition-transform text-left">

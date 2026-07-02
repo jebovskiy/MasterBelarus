@@ -635,3 +635,20 @@ pm install + sanity check (api + web)
   3. Если 200 → `setTelegramAdmin()` — админка открывается без токена
   4. Если нет initData или 401 → экран ввода токена как раньше
 - Все fetch-запросы теперь используют `adminHeaders(token)` который передаёт И токен И initData (работает любой способ)
+
+---
+## STATE — 2026-07-02 10:40 — Admin entry button from Profile
+
+### api/src/routes/admin.ts
+- Добавлен `GET /admin/self` — заглушка за `adminRequired`, возвращает `{ ok: true }` если авторизация пройдена
+
+### web/src/App.tsx
+- Тип `Overlay` расширен: `'admin'` добавлен к `'settings' | 'edit_profile' | 'wallet' | 'order_history'`
+- `adminOpen` / `setAdminOpen` удалены; админ-панель открывается как обычный оверлей (через `onNavigate('admin')`)
+- Вынесен компонент `AppOverlay` — рендерит любой оверлей по ключу (включая `AdminPanelView`)
+
+### web/src/components/screens/Profile.tsx
+- При монтировании вызывает `GET /admin/self` с `x-telegram-init-data`
+- Если ответ 200 — `isAdminUser = true`
+- Показывает кнопку **⚙️ Администрирование** (после карточки Настройки, перед «Стать мастером»)
+- Кнопка вызывает `onNavigate('admin')`, открывая админ-панель

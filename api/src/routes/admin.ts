@@ -11,6 +11,13 @@ export const adminRouter = Router();
 adminRouter.use(adminRequired);
 
 /**
+ * GET /admin/self — проверка доступа (возвращает ok если админ)
+ */
+adminRouter.get('/self', (_req, res) => {
+  return res.json({ ok: true });
+});
+
+/**
  * POST /admin/masters/approve/:telegramId — одобрить заявку мастера
  */
 adminRouter.post('/masters/approve/:telegramId', async (req, res) => {

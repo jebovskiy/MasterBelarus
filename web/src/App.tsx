@@ -15,42 +15,40 @@ import OrderHistoryScreen from '@/components/screens/OrderHistoryScreen';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
 
-type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history';
+type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin';
+
+function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: () => void }) {
+  if (!overlay) return null;
+  return (
+    <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-40 bg-[#f4f4f6] overflow-y-auto">
+      {overlay === 'settings' && <SettingsScreen onBack={onClose} />}
+      {overlay === 'edit_profile' && <EditProfileScreen onBack={onClose} />}
+      {overlay === 'wallet' && <WalletScreen onBack={onClose} />}
+      {overlay === 'order_history' && <OrderHistoryScreen onBack={onClose} />}
+      {overlay === 'admin' && <AdminPanelView onClose={onClose} />}
+    </motion.div>
+  );
+}
 
 function CustomerApp() {
   const [tab, setTab] = useState<TabKey>('home');
   const [orderOpen, setOrderOpen] = useState(false);
   const [presetCategory, setPresetCategory] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [adminOpen, setAdminOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'home' && <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} />}
       {tab === 'orders' && <OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} />}
-      {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay)} />}
+      {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
 
       <AnimatePresence>
-        {adminOpen && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-40">
-            <AdminPanelView onClose={() => setAdminOpen(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {overlay && (
-          <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-30 bg-[#f4f4f6] overflow-y-auto">
-            {overlay === 'settings' && <SettingsScreen onBack={() => setOverlay(null)} />}
-            {overlay === 'edit_profile' && <EditProfileScreen onBack={() => setOverlay(null)} />}
-            {overlay === 'wallet' && <WalletScreen onBack={() => setOverlay(null)} />}
-            {overlay === 'order_history' && <OrderHistoryScreen onBack={() => setOverlay(null)} onOpenOrder={(id) => { setSelectedOrderId(id); setOverlay(null); }} />}
-          </motion.div>
-        )}
+        <AppOverlay overlay={overlay} onClose={() => setOverlay(null)} />
       </AnimatePresence>
     </div>
   );
@@ -69,18 +67,13 @@ function MasterApp() {
           <p className="text-slate-400 text-sm text-center py-10">Заказы в работе</p>
         </div>
       )}
-      {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay)} />}
+      {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
 
       <AnimatePresence>
-        {overlay && (
-          <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-30 bg-[#f4f4f6] overflow-y-auto">
-            {overlay === 'edit_profile' && <EditProfileScreen onBack={() => setOverlay(null)} />}
-            {overlay === 'wallet' && <WalletScreen onBack={() => setOverlay(null)} />}
-          </motion.div>
-        )}
+        <AppOverlay overlay={overlay} onClose={() => setOverlay(null)} />
       </AnimatePresence>
     </div>
   );
