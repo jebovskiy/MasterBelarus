@@ -512,3 +512,38 @@ pm install + sanity check (api + web)
 ### Симметрия
 - Заказчик: видит маскированный номер → Bottom Sheet → меняет имя и телефон
 - Мастер: видит полный номер в шапке → Редактировать анкету → меняет телефон + описание + категории
+
+---
+## STATE — 2026-07-02 08:40 — Role separation (Вариант А)
+
+### Добавлено
+- `supabase/migrations/20260701000011_role_separation.sql` — is_master (bool), current_role (customer|master), master_status (none|pending|approved|rejected)
+- `api/src/services/botRegistry.ts` — singleton для Telegraf instance
+
+### Backend
+- `POST /auth/become-master` — принимает full_name, phone, city, category → master_status=pending, отправляет в MODERATOR_CHAT_ID с inline-кнопками [Принять/Отклонить]
+- `POST /auth/switch-role` — переключает current_role (только если is_master)
+- `GET /auth/master-status` — читает is_master, current_role, master_status
+- `POST /admin/masters/approve/:telegramId` — is_master=true, approved, уведомление пользователю
+- `POST /admin/masters/reject/:telegramId` — rejected, уведомление
+- `GET /admin/masters/pending` — список заявок
+
+### Bot
+- action `approve_master:\d+` — обновляет БД, редактирует сообщение, шлёт уведомление
+- action `reject_master:\d+` — обновляет БД, редактирует сообщение, шлёт уведомление
+
+### Frontend
+- `App.tsx` → CustomerApp / MasterApp по `current_role`
+- `BottomTabBar` — 3 таба: customer (Главная/Мои заказы/Профиль) / master (Лента заказов/В работе/Профиль)
+- `Profile.tsx`:
+  - Premium toggle [Режим Клиента / Режим Мастера] если is_master
+  - Client: кнопка «Стать мастером» (master_status=none) → bottom sheet форма
+  - Client: блок «⏳ Заявка на модерации» (pending)
+  - Client: блок «❌ Заявка отклонена» (rejected)
+  - Master view: прежний вид (аватар, рейтинг, НПД, статистика, редактирование)
+- `api/src/routes/auth.ts` — selects новые поля при upsert
+- `api/src/lib/supabase.ts` — DBProfile с is_master, current_role, master_status, phone
+- `web/src/stores/auth.ts` — UserProfile с is_master, current_role, master_status
+
+### Env
+- `MODERATOR_CHAT_ID` — ID чата модераторов для уведомлений о заявках

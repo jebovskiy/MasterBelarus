@@ -1,3 +1,5 @@
+import { getTelegramInitData } from './telegram.js';
+
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export type ApiResult<T> = { data: T; error?: never } | { data?: never; error: string; detail?: string };
@@ -7,9 +9,7 @@ export function isErrorResult<T>(r: ApiResult<T>): r is { data?: never; error: s
 }
 
 function authHeaders(): Record<string, string> {
-  const initData = typeof window !== 'undefined' && window.Telegram?.WebApp?.initData
-    ? window.Telegram.WebApp.initData
-    : '';
+  const initData = getTelegramInitData();
   return initData ? { 'x-telegram-init-data': initData } : {};
 }
 
