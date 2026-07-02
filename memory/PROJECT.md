@@ -397,3 +397,19 @@ pm install + sanity check (api + web)
 -- BottomTabBar скрыт пока adminOpen === true
 -- При отсутствии AdminToken экран показывает только логин-форму
 -- API те же: /admin/stats, /admin/orders, /admin/masters (mock complaints на фронте)
+-
+----
+-## STATE — 2026-07-02 06:10 — Admin access via long-press on Profile tab
+-
+-### Изменено
+-- `web/src/components/shared/BottomTabBar.tsx` — long-press (500ms) на кнопке Profile; если `profile.telegram_id === VITE_ADMIN_TELEGRAM_ID` → popover с выбором «Профиль» / «Админ-панель»; таймер сбрасывается на pointerUp/pointerLeave; isLongPress флаг блокирует обычный click
+-- `web/src/App.tsx` — Profile без `onOpenAdmin`; BottomTabBar с пропом `onAdminChoice`
+-- `web/src/components/screens/Profile.tsx` — удалён импорт `useAdminStore`, проп `onOpenAdmin`, карточка «Панель администратора»
+-- `web/vite-env.d.ts` — добавлен тип `VITE_ADMIN_TELEGRAM_ID`
+-- `web/.env` — создан с `VITE_ADMIN_TELEGRAM_ID=0` (заменить на Railway)
+-
+-### Архитектура
+-- без Admin ID: long-press бездействует
+-- с Admin ID: long-press Profile → popover [👤 Профиль] [🛠 Админ-панель]
+-- Popover: bg-white rounded-xl shadow-lg border-slate-100, над кнопкой профиля
+-- dismiss: любой выбор или повторный tap

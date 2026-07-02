@@ -36,9 +36,9 @@ function AppShell() {
         </div>
       )}
 
-      {tab === 'profile' && <Profile onOpenAdmin={() => setAdminOpen(true)} />}
+      {tab === 'profile' && <Profile />}
 
-      {!adminOpen && <BottomTabBar active={tab} onTab={setTab} />}
+      {!adminOpen && <BottomTabBar active={tab} onTab={setTab} onAdminChoice={() => setAdminOpen(true)} />}
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => setOrderOpen(false)} />
       <AnimatePresence>

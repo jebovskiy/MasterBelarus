@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
-import { useAdminStore } from '@/stores/admin';
 import { Avatar } from '@/components/shared/Avatar';
 
 type Role = 'client' | 'master';
@@ -13,9 +12,8 @@ const MOCK_MASTER = {
   active: 3,
 };
 
-export default function Profile({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
+export default function Profile() {
   const profile = useAuthStore((s) => s.profile);
-  const isAdmin = useAdminStore((s) => s.isAdmin);
   const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
 
@@ -147,15 +145,7 @@ export default function Profile({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
         Выйти из аккаунта
       </button>
 
-      {isAdmin && onOpenAdmin && (
-        <button onClick={onOpenAdmin} className="w-full bg-white rounded-2xl p-5 shadow-sm flex items-center justify-between active:scale-[0.97] transition-transform">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-base">🛠</div>
-            <span className="text-sm font-semibold text-slate-800">Панель администратора</span>
-          </div>
-          <span className="text-slate-300 text-lg leading-none">→</span>
-        </button>
-      )}
+
     </div>
   );
 }
