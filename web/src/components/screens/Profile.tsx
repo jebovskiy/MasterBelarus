@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -14,32 +14,108 @@ const MOCK_MASTER = {
 };
 
 function maskPhone(phone?: string | null): string {
-  const digits = (phone ?? '').replace(/\D/g, '');
-  const last = digits.length >= 2 ? digits.slice(-2) : '**';
-  return `+375 (29) ***-**-${last}`;
+  if (!phone) return '+375 (XX) XXX-XX-XX';
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 7) return phone;
+  const last2 = d.slice(-2);
+  const code = d.slice(0, 3);
+  const op = d.slice(3, 5);
+  return `+${code} (${op}) ***-**-${last2}`;
 }
 
 function formatPhone(phone?: string | null): string {
-  if (!phone) return '+375 (29) XXX-XX-XX';
-  const d = phone.replace(/\D/g, '').slice(-9);
-  if (d.length < 9) return '+375 (29) XXX-XX-XX';
-  return `+375 (29) ${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5, 7)}`;
+  if (!phone) return '';
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 7) return phone;
+  const code = d.slice(0, 3);
+  const op = d.slice(3, 5);
+  const rest = d.slice(5);
+  if (rest.length === 7) {
+    return `+${code} (${op}) ${rest.slice(0, 3)}-${rest.slice(3, 5)}-${rest.slice(5)}`;
+  }
+  return `+${code} (${op}) ${rest}`;
 }
 
 function formatPhoneInput(raw: string): string {
-  const d = raw.replace(/\D/g, '').slice(0, 9);
-  if (!d) return '';
-  let out = '+375 (29';
-  if (d.length > 2) out += ') ' + d.slice(2);
-  if (d.length > 5) out = out.slice(0, -1) + '-' + d.slice(5);
-  if (d.length > 7) out = out.slice(0, -1) + '-' + d.slice(7);
-  return out;
+  const d = raw.replace(/\D/g, '');
+  if (d.length === 0) return '';
+  if (d.length <= 3) return '+' + d;
+  if (d.length <= 5) return `+${d.slice(0, 3)} (${d.slice(3)}`;
+  if (d.length <= 8) return `+${d.slice(0, 3)} (${d.slice(3, 5)}) ${d.slice(5)}`;
+  if (d.length <= 10) return `+${d.slice(0, 3)} (${d.slice(3, 5)}) ${d.slice(5, 8)}-${d.slice(8)}`;
+  return `+${d.slice(0, 3)} (${d.slice(3, 5)}) ${d.slice(5, 8)}-${d.slice(8, 10)}-${d.slice(10, 12)}`;
 }
 
 function parsePhone(display: string): string {
   const d = display.replace(/\D/g, '');
-  if (d.length === 0) return '';
-  return '+' + d;
+  return d ? '+' + d : '';
+}
+
+function SettingsCard() {
+  return (
+    <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-700">Язык</span>
+        <span className="text-sm text-slate-400">Русский</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-700">Тема</span>
+        <span className="text-sm text-slate-400">Системная</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-700">Уведомления</span>
+        <span className="text-sm text-slate-400">Вкл</span>
+      </div>
+    </div>
+  );
+}
+
+function ProfileBottomSheet({ open, onClose, title, desc, children, loading }: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  desc: string;
+  children: ReactNode;
+  loading?: boolean;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+          <motion.div
+            className="relative w-full max-w-[430px] bg-white rounded-t-3xl shadow-modal flex flex-col"
+            style={{ maxHeight: '80dvh' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+          >
+            <div className="shrink-0 mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-300" />
+            <div className="shrink-0 px-5">
+              <h3 className="text-lg font-bold text-slate-900 mb-1">{title}</h3>
+              <p className="text-sm text-slate-500 mb-4">{desc}</p>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
+              {children}
+            </div>
+            <div className="shrink-0 px-5 pb-[calc(32px+env(safe-area-inset-bottom,0px))] pt-3">
+              <div className="h-px bg-slate-100 -mx-5 mb-4" />
+              <button
+                type="submit"
+                form="bottom-sheet-form"
+                disabled={loading}
+                className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {loading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 export default function Profile({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (screen: string) => void }) {
@@ -54,25 +130,35 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const masterStatus = profile?.master_status ?? 'none';
 
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(profile?.full_name ?? '');
-  const [editPhone, setEditPhone] = useState(formatPhone(profile?.phone));
-  const [saving, setSaving] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [masterFormOpen, setMasterFormOpen] = useState(false);
-  const [mfName, setMfName] = useState(profile?.full_name ?? '');
-  const [mfPhone, setMfPhone] = useState(formatPhone(profile?.phone));
+  const [mfName, setMfName] = useState('');
+  const [mfPhone, setMfPhone] = useState('');
   const [mfCity, setMfCity] = useState('');
   const [mfCategory, setMfCategory] = useState('plumber');
-  const [mfSaving, setMfSaving] = useState(false);
+  const [savingMaster, setSavingMaster] = useState(false);
+
+  const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all';
+  const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5';
+
+  function openEdit() {
+    impact('light');
+    setEditName(profile?.full_name ?? '');
+    setEditPhone(formatPhone(profile?.phone));
+    setEditing(true);
+  }
 
   const saveEdit = async () => {
-    setSaving(true);
+    setSavingEdit(true);
     const body: Record<string, unknown> = {};
     if (editName.trim()) body.full_name = editName.trim();
     const phoneRaw = parsePhone(editPhone);
     if (phoneRaw) body.phone = phoneRaw;
     const result = await apiPatch('/auth/profile', body);
-    setSaving(false);
+    setSavingEdit(false);
     if (isErrorResult(result)) {
       showToast(result.detail ? `${result.error}: ${result.detail}` : result.error, 'error');
       return;
@@ -82,18 +168,18 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     if (updated?.phone !== undefined) profile!.phone = updated.phone;
     setProfile(profile!);
     setEditing(false);
-    showToast('✅ Профиль сохранён', 'success');
+    showToast('Профиль сохранён', 'success');
   };
 
   const submitMasterRequest = async () => {
-    setMfSaving(true);
+    setSavingMaster(true);
     const result = await apiPost('/auth/become-master', {
       full_name: mfName,
       phone: parsePhone(mfPhone),
       city: mfCity,
       category: mfCategory,
     });
-    setMfSaving(false);
+    setSavingMaster(false);
     if (isErrorResult(result)) {
       const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
       showToast(msg, 'error');
@@ -102,7 +188,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     profile!.master_status = 'pending';
     setProfile(profile!);
     setMasterFormOpen(false);
-    showToast('✅ Заявка отправлена на модерацию', 'success');
+    showToast('Заявка отправлена на модерацию', 'success');
   };
 
   const switchRole = async () => {
@@ -118,11 +204,8 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     }
   };
 
-  const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400';
-  const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5';
-
   return (
-    <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4">
+    <div className="bg-[#f4f4f6] min-h-screen p-4 space-y-4 pb-8">
       <div className="flex justify-between items-center px-1">
         <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
         <div className="w-6" />
@@ -192,23 +275,9 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Язык</span>
-              <span className="text-sm text-slate-400">Русский</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Тема</span>
-              <span className="text-sm text-slate-400">Системная</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Уведомления</span>
-              <span className="text-sm text-slate-400">Вкл</span>
-            </div>
-          </div>
+          <SettingsCard />
 
-          <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+          <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.98] transition-transform">
             Редактировать анкету мастера
           </button>
         </div>
@@ -227,24 +296,10 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Язык</span>
-              <span className="text-sm text-slate-400">Русский</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Тема</span>
-              <span className="text-sm text-slate-400">Системная</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700">Уведомления</span>
-              <span className="text-sm text-slate-400">Вкл</span>
-            </div>
-          </div>
+          <SettingsCard />
 
           {masterStatus === 'none' && (
-            <button onClick={() => { impact('light'); setMasterFormOpen(true); }} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.99] transition-transform text-left">
+            <button onClick={() => { impact('light'); setMfName(profile?.full_name ?? ''); setMfPhone(formatPhone(profile?.phone)); setMasterFormOpen(true); }} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.98] transition-transform text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-base">🔨</div>
                 <div>
@@ -267,7 +322,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           )}
 
-          <button onClick={() => { impact('light'); setEditName(profile?.full_name ?? ''); setEditPhone(formatPhone(profile?.phone)); setEditing(true); }} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+          <button onClick={openEdit} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.98] transition-transform">
             Редактировать профиль и телефон
           </button>
         </div>
@@ -277,72 +332,64 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
         Выйти из аккаунта
       </button>
 
-      <AnimatePresence>
-        {editing && (
-          <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditing(false)} />
-            <motion.div className="relative w-full max-w-[430px] bg-white rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
-              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300" />
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Редактировать профиль</h3>
-              <p className="text-sm text-slate-500 mb-5">Имя и телефон будут видны мастерам при отклике</p>
-              <div className="space-y-4">
-                <div>
-                  <label className={labelCls}>Имя</label>
-                  <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ваше имя" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Телефон</label>
-                  <input value={editPhone} onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))} placeholder="+375 (29) XXX-XX-XX" className={inputCls} />
-                </div>
-              </div>
-              <button onClick={saveEdit} disabled={saving} className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60">
-                {saving ? 'Сохранение...' : 'Сохранить'}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ProfileBottomSheet open={editing} onClose={() => setEditing(false)} title="Редактировать профиль" desc="Имя и телефон будут видны мастерам при отклике" loading={savingEdit}>
+        <form id="bottom-sheet-form" onSubmit={(e) => { e.preventDefault(); saveEdit(); }}>
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Имя</label>
+              <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ваше имя" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Телефон</label>
+              <input
+                value={editPhone}
+                onChange={(e) => setEditPhone(formatPhoneInput(e.target.value))}
+                placeholder="+375 (29) XXX-XX-XX"
+                inputMode="numeric"
+                className={`${inputCls} tracking-wider`}
+              />
+              <p className="text-[11px] text-slate-400 mt-1.5">Введите цифры номера, начиная с 375 (код Беларуси)</p>
+            </div>
+          </div>
+        </form>
+      </ProfileBottomSheet>
 
-      <AnimatePresence>
-        {masterFormOpen && (
-          <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMasterFormOpen(false)} />
-            <motion.div className="relative w-full max-w-[430px] bg-white rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
-              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-300" />
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Стать мастером</h3>
-              <p className="text-sm text-slate-500 mb-5">Заполните анкету для модерации</p>
-              <div className="space-y-4">
-                <div>
-                  <label className={labelCls}>Имя</label>
-                  <input value={mfName} onChange={(e) => setMfName(e.target.value)} placeholder="Иван" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Телефон</label>
-                  <input value={mfPhone} onChange={(e) => setMfPhone(formatPhoneInput(e.target.value))} placeholder="+375 (29) XXX-XX-XX" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Город / Район</label>
-                  <input value={mfCity} onChange={(e) => setMfCity(e.target.value)} placeholder="Минск" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Специализация</label>
-                  <select value={mfCategory} onChange={(e) => setMfCategory(e.target.value)} className={inputCls}>
-                    <option value="plumber">Сантехник</option>
-                    <option value="electrician">Электрик</option>
-                    <option value="mover">Грузчик</option>
-                    <option value="handyman">Муж на час</option>
-                    <option value="tutor">Репетитор</option>
-                    <option value="cleaning">Уборка</option>
-                  </select>
-                </div>
-              </div>
-              <button onClick={submitMasterRequest} disabled={mfSaving} className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm mt-6 active:scale-[0.98] transition-all disabled:opacity-60">
-                {mfSaving ? 'Отправка...' : 'Отправить заявку'}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ProfileBottomSheet open={masterFormOpen} onClose={() => setMasterFormOpen(false)} title="Стать мастером" desc="Заполните анкету для модерации" loading={savingMaster}>
+        <form id="bottom-sheet-form" onSubmit={(e) => { e.preventDefault(); submitMasterRequest(); }}>
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Имя</label>
+              <input value={mfName} onChange={(e) => setMfName(e.target.value)} placeholder="Иван" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Телефон</label>
+              <input
+                value={mfPhone}
+                onChange={(e) => setMfPhone(formatPhoneInput(e.target.value))}
+                placeholder="+375 (29) XXX-XX-XX"
+                inputMode="numeric"
+                className={`${inputCls} tracking-wider`}
+              />
+              <p className="text-[11px] text-slate-400 mt-1.5">Введите цифры номера, начиная с 375 (код Беларуси)</p>
+            </div>
+            <div>
+              <label className={labelCls}>Город / Район</label>
+              <input value={mfCity} onChange={(e) => setMfCity(e.target.value)} placeholder="Минск" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Специализация</label>
+              <select value={mfCategory} onChange={(e) => setMfCategory(e.target.value)} className={inputCls}>
+                <option value="plumber">Сантехник</option>
+                <option value="electrician">Электрик</option>
+                <option value="mover">Грузчик</option>
+                <option value="handyman">Муж на час</option>
+                <option value="tutor">Репетитор</option>
+                <option value="cleaning">Уборка</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </ProfileBottomSheet>
     </div>
   );
 }
