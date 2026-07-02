@@ -1,4 +1,5 @@
 import { logger } from '../lib/logger.js';
+import { env } from '../config/env.js';
 import type { Telegraf } from 'telegraf';
 
 let bot: Telegraf | null = null;
@@ -9,43 +10,41 @@ export function initNotificationService(b: Telegraf) {
 
 type BidNotificationPayload = {
   telegramId: number;
-  category: string;
   masterName: string;
-  snippet: string;
+  rating?: number;
+  price?: number | null;
+  orderId: string;
 };
 
 export async function sendBidNotification({
   telegramId,
-  category,
   masterName,
-  snippet,
+  rating,
+  price,
+  orderId,
 }: BidNotificationPayload): Promise<void> {
   if (!bot) {
-    logger.info({ telegramId, category, masterName }, '[NOTIFY] stub: no bot wired');
+    logger.info({ telegramId, masterName }, '[NOTIFY] stub: no bot wired');
     return;
   }
 
+  const lines = ['🔔 Новый отклик на ваш заказ'];
+  lines.push(`Мастер: ${masterName}`);
+  if (rating) lines.push(`Рейтинг: ${'★'.repeat(Math.round(rating))} ${rating.toFixed(1)}`);
+  if (price) lines.push(`Цена: ${price} BYN`);
+  lines.push('');
+
   try {
-    await bot.telegram.sendMessage(
-      telegramId,
-      `🔔 Новый отклик на ваш заказ «${category}»\n\n` +
-        `Мастер: ${masterName}\n` +
-        `«${snippet.slice(0, 120)}»\n\n` +
-        `Откройте приложение, чтобы принять мастера.`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: 'Открыть МастерБай',
-                web_app: { url: 'http://localhost:3000' },
-              },
-            ],
-          ],
-        },
-        parse_mode: 'HTML',
+    await bot.telegram.sendMessage(telegramId, lines.join('\n'), {
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: 'Посмотреть отклик',
+            web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${orderId}` },
+          },
+        ]],
       },
-    );
+    });
     logger.info({ telegramId }, 'bid notification sent');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
@@ -72,19 +71,46 @@ export async function sendMasterAcceptedNotification(
 
     await bot.telegram.sendMessage(telegramId, text, {
       reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: 'Открыть чат',
-              web_app: { url: 'http://localhost:3000' },
-            },
-          ],
-        ],
+        inline_keyboard: [[
+          {
+            text: 'Открыть чат',
+            web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${category}` },
+          },
+        ]],
       },
     });
     logger.info({ telegramId }, 'accepted notification sent');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ telegramId, msg }, 'accepted notification failed');
+  }
+}
+
+export async function notifyMasterApproved(telegramId: number): Promise<void> {
+  if (!bot) {
+    logger.info({ telegramId }, '[NOTIFY] stub: no bot wired');
+    return;
+  }
+
+  try {
+    await bot.telegram.sendMessage(telegramId,
+      '🎉 Ваша заявка на статус мастера одобрена!\n\n' +
+      'Вам начислен стартовый баланс откликов.\n' +
+      'Откройте ленту заказов, чтобы начать зарабатывать.',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: 'Открыть ленту заказов',
+              web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=master_feed` },
+            },
+          ]],
+        },
+      },
+    );
+    logger.info({ telegramId }, 'master approved notification sent');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ telegramId, msg }, 'master approved notification failed');
   }
 }

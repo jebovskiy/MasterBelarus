@@ -4,6 +4,7 @@ import type { AdminRequest } from '../middleware/admin.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { adminRequired } from '../middleware/admin.js';
+import { notifyMasterApproved } from '../services/notifications.js';
 
 export const adminRouter = Router();
 
@@ -24,13 +25,7 @@ adminRouter.post('/masters/approve/:telegramId', async (req, res) => {
     if (error) throw error;
     logger.info({ admin: (req as any).admin, telegramId }, 'admin: master approved');
 
-    // Notify user
-    const { getBot } = await import('../services/botRegistry.js');
-    const bot = getBot();
-    await bot.telegram.sendMessage(telegramId,
-      '✅ Поздравляем! Ваша заявка на статус мастера одобрена.\n' +
-      'Откройте Mini App и переключитесь в режим мастера в профиле.'
-    );
+    await notifyMasterApproved(telegramId);
 
     return res.json({ ok: true });
   } catch (err) {

@@ -66,7 +66,7 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
     }
 
     const [{ data: masterProfile }, { data: order }] = await Promise.all([
-      db.from('profiles').select('full_name, username').eq('id', profile.id).single(),
+      db.from('profiles').select('full_name, username, avg_rating').eq('id', profile.id).single(),
       db.from('orders').select('category, description, client_id').eq('id', orderId).single(),
     ]);
 
@@ -84,11 +84,14 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
           (masterProfile as { username: string | null }).username ??
           'Мастер';
 
+        const mp = masterProfile as { avg_rating: number | null };
+
         void sendBidNotification({
           telegramId: clientTgId,
-          category: (order as { category: string }).category,
           masterName,
-          snippet: (order as { description: string }).description,
+          rating: mp.avg_rating ?? undefined,
+          price: parsed.data.proposed_price ?? undefined,
+          orderId: orderId as string,
         }).catch((notifyErr) => {
           logger.warn({ notifyErr }, 'client notification failed');
         });
