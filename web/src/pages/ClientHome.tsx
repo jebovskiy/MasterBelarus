@@ -18,7 +18,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
   const { impact } = useHaptic();
 
   return (
-    <div className="min-h-screen bg-app-bg pb-24">
+    <div className="min-h-screen bg-app-bg">
       <div className="px-4 pt-4">
         <div className="bg-white p-6 rounded-bento shadow-card">
           <div className="flex items-start justify-between gap-4">

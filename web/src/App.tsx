@@ -5,30 +5,40 @@ import ClientHome from '@/pages/ClientHome';
 import { MasterHome } from '@/components/screens/MasterHome';
 import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
 import OrderDetail from '@/components/screens/OrderDetail';
-import { useHaptic } from '@/hooks/useHaptic';
+import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
+import { ToastProvider } from '@/components/shared/Toast';
 
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
-  const [tab, setTab] = useState<'client' | 'master'>(profile?.role === 'master' ? 'master' : 'client');
+  const [tab, setTab] = useState<TabKey>('home');
   const [orderOpen, setOrderOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const { impact } = useHaptic();
+
+  const isMaster = profile?.role === 'master';
 
   return (
-    <div className="min-h-screen bg-app-bg">
-      <nav className="sticky top-0 z-40 bg-app-bg/80 backdrop-blur-md border-b border-app-border">
-        <div className="max-w-[430px] mx-auto flex items-center justify-around px-4 h-14">
-          <button onClick={() => { setTab('client'); impact('light'); }} className={`flex flex-col items-center gap-0.5 text-xs font-semibold transition ${tab !== 'master' ? 'text-primary' : 'text-text-muted'}`}><span className="text-lg">🏠</span>Клиенту</button>
-          <button onClick={() => { setTab('master'); impact('light'); }} className={`flex flex-col items-center gap-0.5 text-xs font-semibold transition ${tab === 'master' ? 'text-primary' : 'text-text-muted'}`}><span className="text-lg">👷</span>Мастеру</button>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-app-bg pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
+      {tab === 'home' && (isMaster ? <MasterHome /> : <ClientHome onOpenCreateOrder={() => setOrderOpen(true)} />)}
 
-      {tab !== 'master' ? (
-        <ClientHome onOpenCreateOrder={() => setOrderOpen(true)} />
-      ) : (
-        <MasterHome />
+      {tab === 'orders' && (
+        <div className="px-4 pt-4">
+          <p className="text-text-muted text-sm text-center py-10">История заказов</p>
+        </div>
       )}
 
+      {tab === 'chat' && (
+        <div className="px-4 pt-4">
+          <p className="text-text-muted text-sm text-center py-10">Чат с мастерами</p>
+        </div>
+      )}
+
+      {tab === 'profile' && (
+        <div className="px-4 pt-4">
+          <p className="text-text-muted text-sm text-center py-10">Профиль</p>
+        </div>
+      )}
+
+      <BottomTabBar active={tab} onTab={setTab} />
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => setOrderOpen(false)} />
     </div>
@@ -37,8 +47,10 @@ function AppShell() {
 
 export default function App() {
   return (
-    <AuthGuard>
-      <AppShell />
-    </AuthGuard>
+    <ToastProvider>
+      <AuthGuard>
+        <AppShell />
+      </AuthGuard>
+    </ToastProvider>
   );
 }

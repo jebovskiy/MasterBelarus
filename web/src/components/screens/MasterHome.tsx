@@ -22,8 +22,9 @@ function categoryEmoji(cat: string): string {
 export function MasterHome() {
   const [orders, setOrders] = useState<NearbyOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [balance] = useState<number | null>(null);
-  const [rating] = useState<{ value: number; count: number } | null>(null);
+  const [balance] = useState<number>(15);
+  const [rating] = useState<{ value: number; count: number }>({ value: 4.9, count: 87 });
+  const [stats] = useState({ completed: 12, inProgress: 2, todayBids: 7 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +75,7 @@ export function MasterHome() {
   const selected = orders.find((o) => o.id === selectedId);
 
   return (
-    <div className="min-h-screen bg-app-bg pb-24">
+    <div className="min-h-screen bg-app-bg">
       <div className="px-4 pt-4 space-y-4">
         <div className="bg-gradient-to-br from-primary-tint to-app-bg p-4 rounded-bento">
           <div className="flex items-center gap-3">
@@ -98,6 +99,14 @@ export function MasterHome() {
             <p className="text-2xl font-extrabold text-text-main mt-1">{rating ? `${rating.value} ★` : '—'}</p>
             <p className="text-xs text-text-muted">{rating ? `${rating.count} оценок` : ''}</p>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-bento shadow-card text-xs text-text-muted font-medium">
+          <span>✅ Выполнено <strong className="text-text-main">{stats.completed}</strong></span>
+          <span className="text-app-border">|</span>
+          <span>🔄 В работе <strong className="text-text-main">{stats.inProgress}</strong></span>
+          <span className="text-app-border">|</span>
+          <span>📊 Сегодня <strong className="text-primary">{stats.todayBids}</strong></span>
         </div>
 
         <div>
