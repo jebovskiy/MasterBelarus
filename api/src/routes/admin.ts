@@ -7,6 +7,8 @@ import { adminRequired } from '../middleware/admin.js';
 
 export const adminRouter = Router();
 
+adminRouter.use(adminRequired);
+
 /**
  * GET /admin/stats — агрегированная статистика
  */

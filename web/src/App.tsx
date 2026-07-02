@@ -6,6 +6,7 @@ import { MasterHome } from '@/components/screens/MasterHome';
 import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
 import OrderDetail from '@/components/screens/OrderDetail';
 import Profile from '@/components/screens/Profile';
+import AdminDashboard from '@/components/screens/AdminDashboard';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { ToastProvider } from '@/components/shared/Toast';
 
@@ -14,6 +15,7 @@ function AppShell() {
   const [tab, setTab] = useState<TabKey>('home');
   const [orderOpen, setOrderOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const isMaster = profile?.role === 'master';
 
@@ -33,11 +35,12 @@ function AppShell() {
         </div>
       )}
 
-      {tab === 'profile' && <Profile />}
+      {tab === 'profile' && <Profile onOpenAdmin={() => setAdminOpen(true)} />}
 
-      <BottomTabBar active={tab} onTab={setTab} />
+      {!adminOpen && <BottomTabBar active={tab} onTab={setTab} />}
       <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
       <CreateOrderSheet open={orderOpen} onClose={() => setOrderOpen(false)} />
+      {adminOpen && <AdminDashboard onClose={() => setAdminOpen(false)} />}
     </div>
   );
 }

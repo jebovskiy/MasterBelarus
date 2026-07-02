@@ -12,7 +12,7 @@ const MOCK_MASTER = {
   active: 3,
 };
 
-export default function Profile() {
+export default function Profile({ onOpenAdmin }: { onOpenAdmin?: () => void }) {
   const profile = useAuthStore((s) => s.profile);
   const [role, setRole] = useState<Role>(profile?.role ?? 'client');
   const { impact } = useHaptic();
@@ -144,6 +144,12 @@ export default function Profile() {
       <button className="w-full bg-transparent text-rose-500/60 font-medium text-xs py-2 text-center block mt-4 hover:text-rose-600 transition-colors">
         Выйти из аккаунта
       </button>
+
+      {onOpenAdmin && (
+        <button onClick={onOpenAdmin} className="w-full bg-transparent text-slate-300 font-medium text-[10px] py-1 text-center block hover:text-slate-400 transition-colors">
+          Админ-панель
+        </button>
+      )}
     </div>
   );
 }
