@@ -183,3 +183,44 @@ adminRouter.get('/masters', async (req: AdminRequest, res) => {
     return res.status(500).json({ error: msg });
   }
 });
+
+/**
+ * GET /admin/complaints — список жалоб
+ */
+adminRouter.get('/complaints', async (_req, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from('complaints')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return res.json(data ?? []);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
+ * POST /admin/complaints/:id/resolve — разрешить жалобу
+ */
+adminRouter.post('/complaints/:id/resolve', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body ?? {};
+  if (!id || !['approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ error: 'invalid id or status' });
+  }
+  try {
+    const db = getSupabaseAdmin();
+    const { error } = await db
+      .from('complaints')
+      .update({ status })
+      .eq('id', id);
+    if (error) throw error;
+    return res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});

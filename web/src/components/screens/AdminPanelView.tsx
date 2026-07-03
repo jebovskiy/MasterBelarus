@@ -23,10 +23,10 @@ type PendingMaster = {
 
 type Complaint = {
   id: string;
-  userName: string;
-  userRole: string;
+  user_name: string;
+  user_role: string;
   text: string;
-  date: string;
+  created_at: string;
   status: 'pending' | 'approved' | 'rejected';
 };
 
@@ -38,14 +38,18 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'complaints', label: 'Жалобы' },
 ];
 
-const MOCK_COMPLAINTS: Complaint[] = [
-  { id: '1', userName: 'Анна К.', userRole: 'Клиент', text: 'Не явился на заказ, игнорировал сообщения', date: '2 часа назад', status: 'pending' },
-  { id: '2', userName: 'Сергей М.', userRole: 'Мастер', text: 'Необоснованная жалоба, клиент отказался платить', date: '1 день назад', status: 'pending' },
-  { id: '3', userName: 'Елена П.', userRole: 'Клиент', text: 'Грубое поведение, некачественная работа', date: '3 дня назад', status: 'pending' },
-  { id: '4', userName: 'Дмитрий В.', userRole: 'Клиент', text: 'Нарушение сроков, пропал после предоплаты', date: '1 неделя назад', status: 'pending' },
-];
+const MOCK_COMPLAINTS: Complaint[] = [];
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+
+function timeAgo(iso: string) {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (diff < 1) return 'только что';
+  if (diff < 60) return `${diff} мин.`;
+  const h = Math.floor(diff / 60);
+  if (h < 24) return `${h} ч.`;
+  return `${Math.floor(h / 24)} дн.`;
+}
 
 export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   const token = useAdminStore((s) => s.token);
@@ -96,15 +100,17 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
         return res.json() as T;
       };
       try {
-        const [statsRes, ordersRes, mastersRes] = await Promise.all([
+        const [statsRes, ordersRes, mastersRes, complaintsRes] = await Promise.all([
           fetchWithToken<AdminStats & { error?: string }>('/admin/stats'),
           fetchWithToken<AdminOrder[] & { error?: string }>('/admin/orders?limit=20'),
           fetchWithToken<AdminMaster[] & { error?: string }>('/admin/masters?limit=20'),
+          fetchWithToken<Complaint[] & { error?: string }>('/admin/complaints'),
         ]);
         if ('error' in statsRes && statsRes.error) { setError(statsRes.error); return; }
         setStats(statsRes as AdminStats);
         setOrders(Array.isArray(ordersRes) ? ordersRes : []);
         setMasters(Array.isArray(mastersRes) ? mastersRes : []);
+        setComplaints(Array.isArray(complaintsRes) ? complaintsRes : []);
       } catch { setError('Failed to load admin data'); }
     };
     fetchData();
@@ -155,8 +161,20 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
     }
   };
 
-  const handleResolveComplaint = (id: string, resolution: 'approved' | 'rejected') => {
-    setComplaints((prev) => prev.map((c) => (c.id === id ? { ...c, status: resolution } : c)));
+  const handleResolveComplaint = async (id: string, status: 'approved' | 'rejected') => {
+    const h = adminHeaders(token);
+    try {
+      const res = await fetch(`${API_BASE}/admin/complaints/${id}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...h },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      setComplaints((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+      showToast(status === 'approved' ? 'Пользователь заблокирован' : 'Жалоба отклонена', 'success');
+    } catch {
+      showToast('Ошибка при обработке жалобы', 'error');
+    }
   };
 
   if (!isAdmin) {
@@ -398,11 +416,11 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               <div key={c.id} className="bg-white rounded-2xl p-5 shadow-sm space-y-3 active:scale-[0.98] transition-transform">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">{c.userName}</span>
+                    <span className="text-sm font-semibold text-slate-900">{c.user_name}</span>
                     <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                      {c.userRole}
+                      {c.user_role}
                     </span>
-                    <span className="text-[10px] text-slate-400">{c.date}</span>
+                    <span className="text-[10px] text-slate-400">{timeAgo(c.created_at)}</span>
                   </div>
                   {c.status !== 'pending' && (
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
