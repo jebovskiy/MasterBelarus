@@ -660,3 +660,22 @@ pm install + sanity check (api + web)
 - `load()` не вызывал `setLoading(false)` — ни в успехе, ни в catch
 - Скелетоны (pulse animation) крутились бесконечно
 - Добавлен `setLoading(false)` в обе ветки
+
+---
+## STATE — 2026-07-02 10:55 — Real complaints (instead of mocks)
+
+### supabase/migrations/20260701000013_complaints.sql
+- Новая таблица `complaints`: id, user_name, user_role, text, status (pending/approved/rejected), created_at
+
+### api/src/routes/admin.ts
+- `GET /admin/complaints` — список всех жалоб (order by created_at desc)
+- `POST /admin/complaints/:id/resolve` — установить status: approved | rejected
+
+### web/src/components/screens/AdminPanelView.tsx
+- `MOCK_COMPLAINTS` удалены (пустой массив)
+- Жалобы загружаются с `/admin/complaints` в общем fetchData
+- `handleResolveComplaint` теперь POST на `/admin/complaints/:id/resolve`
+- Тип Complaint переименован в snake_case (user_name, user_role, created_at)
+- Добавлен `timeAgo()` для отображения created_at
+- Тосты об успехе/ошибке
+
