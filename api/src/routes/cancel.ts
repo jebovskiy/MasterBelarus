@@ -153,17 +153,24 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
       }
     }
 
-    const { error: updateErr } = await db
+    const { error: statusErr } = await db
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .eq('id', orderId);
+    if (statusErr) throw statusErr;
+
+    // try to persist cancellation details (columns may not exist yet — ignore if so)
+    const { error: detailErr } = await db
       .from('orders')
       .update({
-        status: 'cancelled',
         cancelled_by,
         cancellation_reason_id,
         cancellation_reason_text: cancellation_reason_text ?? null,
       })
       .eq('id', orderId);
-
-    if (updateErr) throw updateErr;
+    if (detailErr) {
+      logger.warn({ orderId, detail: detailErr.message }, 'cancel detail save skipped (migration 014?)');
+    }
 
     logger.info({ orderId, cancelled_by, cancellation_reason_id }, 'order cancelled');
     return res.json({ ok: true });
