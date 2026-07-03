@@ -153,7 +153,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
       }
     }
 
-    await db
+    const { error: updateErr } = await db
       .from('orders')
       .update({
         status: 'cancelled',
@@ -162,6 +162,8 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
         cancellation_reason_text: cancellation_reason_text ?? null,
       })
       .eq('id', orderId);
+
+    if (updateErr) throw updateErr;
 
     logger.info({ orderId, cancelled_by, cancellation_reason_id }, 'order cancelled');
     return res.json({ ok: true });
