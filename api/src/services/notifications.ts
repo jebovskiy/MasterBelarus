@@ -138,6 +138,65 @@ export async function notifyLowBalance(telegramId: number, balance: number): Pro
   }
 }
 
+export async function sendOrderCancelledToMasters(
+  mastersTgIds: number[],
+  orderId: string,
+  category: string,
+  reasonLabel: string,
+): Promise<void> {
+  if (!bot) return;
+  const text =
+    `📢 Заказ №${orderId.slice(0, 8)} ["${category}"] был отменен заказчиком.\n` +
+    `Причина: ${reasonLabel}\n\nНе ждите ответа.`;
+
+  for (const tgId of mastersTgIds) {
+    try {
+      await bot.telegram.sendMessage(tgId, text);
+      logger.info({ telegramId: tgId }, 'cancel notification sent to master');
+    } catch (err) {
+      logger.warn({ telegramId: tgId, err }, 'cancel notify master failed');
+    }
+  }
+}
+
+export async function sendMasterCancelledToClient(
+  clientTgId: number,
+  orderId: string,
+  reasonLabel: string,
+): Promise<void> {
+  if (!bot) return;
+  try {
+    await bot.telegram.sendMessage(clientTgId,
+      `❌ Мастер отменил выполнение заказа №${orderId.slice(0, 8)}.\n` +
+      `Причина: ${reasonLabel}\n\nВы можете перезапустить поиск мастера.`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '🔄 Вернуть заказ в поиск',
+              web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=reactive_order_${orderId}` },
+            },
+          ]],
+        },
+      },
+    );
+    logger.info({ clientTgId, orderId }, 'master cancelled notification sent to client');
+  } catch (err) {
+    logger.warn({ clientTgId, err }, 'notify client about master cancel failed');
+  }
+}
+
+export async function sendRefundNotification(telegramId: number, masterName: string, orderId: string): Promise<void> {
+  if (!bot) return;
+  try {
+    await bot.telegram.sendMessage(telegramId,
+      `🔄 Баланс восстановлен.\nЗаказ №${orderId.slice(0, 8)} был отменён заказчиком как ошибочный.\n\nСписание отклика за отменённый заказ отменено.`,
+    );
+  } catch (err) {
+    logger.warn({ telegramId, err }, 'refund notification failed');
+  }
+}
+
 type ComplaintPayload = {
   id: string;
   userName: string;

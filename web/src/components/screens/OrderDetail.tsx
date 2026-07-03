@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
+import { useAuthStore } from '@/stores/auth';
 
 type OrderRow = {
   id: string;
@@ -14,6 +15,9 @@ type OrderRow = {
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   images: string[];
   created_at: string;
+  cancelled_by?: string;
+  cancellation_reason_id?: number;
+  cancellation_reason_text?: string;
 };
 
 type Bid = {
@@ -23,6 +27,20 @@ type Bid = {
   comment: string | null;
   created_at: string;
 };
+
+const CLIENT_REASONS = [
+  { id: 1, label: 'Создал по ошибке / Тестирую' },
+  { id: 2, label: 'Мастер не выходит на связь' },
+  { id: 3, label: 'Услуга больше не нужна' },
+  { id: 4, label: 'Нашел исполнителя в другом месте' },
+  { id: 5, label: 'Другое' },
+];
+
+const MASTER_REASONS = [
+  { id: 10, label: 'Клиент неадекватен / не отвечает' },
+  { id: 11, label: 'Неверно указан объем работ' },
+  { id: 12, label: 'Форс-мажор / Заболел' },
+];
 
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
 const STATUS_BADGE: Record<string, string> = { open: 'bg-amber-50 text-amber-700', in_progress: 'bg-blue-50 text-blue-700', completed: 'bg-emerald-50 text-emerald-700', cancelled: 'bg-rose-50 text-rose-600' };
@@ -54,8 +72,12 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [showCancelSheet, setShowCancelSheet] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<number | null>(null);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const { impact, notification } = useHaptic();
   const showToast = useToastStore((s) => s.showToast);
+  const currentRole = useAuthStore((s) => s.profile?.current_role);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -103,6 +125,32 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     showToast('✅ Отзыв сохранён!', 'success');
     setOrder((prev) => (prev ? { ...prev, status: 'completed' } : prev));
   };
+
+  const openCancel = () => {
+    impact('medium');
+    setSelectedReason(null);
+    setShowCancelSheet(true);
+  };
+
+  const submitCancel = async () => {
+    if (!orderId || selectedReason === null) return;
+    setCancelSubmitting(true);
+    impact('medium');
+    const res = await apiPost(`/orders/${orderId}/cancel`, {
+      cancelled_by: currentRole === 'master' ? 'master' : 'client',
+      cancellation_reason_id: selectedReason,
+    });
+    setCancelSubmitting(false);
+    if ('error' in res) { notification('error'); showToast('Ошибка при отмене', 'error'); return; }
+    notification('warning');
+    showToast('Заказ отменён', 'warning');
+    setShowCancelSheet(false);
+    setOrder((prev) => (prev ? { ...prev, status: 'cancelled', cancelled_by: currentRole === 'master' ? 'master' : 'client', cancellation_reason_id: selectedReason } : prev));
+  };
+
+  const reasons = currentRole === 'master' ? MASTER_REASONS : CLIENT_REASONS;
+  const canCancelClient = currentRole === 'customer' && order?.status === 'open' && order?.cancelled_by !== 'client';
+  const canCancelMaster = currentRole === 'master' && order?.status === 'in_progress' && order?.cancelled_by !== 'master';
 
   return (
     <AnimatePresence>
@@ -246,10 +294,26 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                     </div>
                   )}
 
+                  {(canCancelClient || canCancelMaster) && (
+                    <button
+                      onClick={openCancel}
+                      className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300"
+                    >
+                      {currentRole === 'master' ? 'Отказаться от заказа' : 'Отменить заказ'}
+                    </button>
+                  )}
+
                   {order.status === 'completed' && (
                     <div className="text-center py-8 space-y-2">
                       <span className="text-4xl">✅</span>
                       <p className="text-sm font-semibold text-slate-700">Заказ завершён</p>
+                    </div>
+                  )}
+
+                  {order.status === 'cancelled' && (
+                    <div className="text-center py-8 space-y-2">
+                      <span className="text-4xl">❌</span>
+                      <p className="text-sm font-semibold text-slate-700">Заказ отменён</p>
                     </div>
                   )}
                 </>
@@ -258,6 +322,58 @@ export default function OrderDetail({ orderId, onBack }: Props) {
           </motion.div>
         </motion.div>
       )}
+
+      <AnimatePresence>
+        {showCancelSheet && (
+          <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCancelSheet(false)} />
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={sheetTransition}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.4 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > swipeConfidenceThreshold || info.velocity.y > swipeVelocityThreshold) {
+                  setShowCancelSheet(false);
+                }
+              }}
+            >
+              <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
+                <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-6 pb-8 space-y-4">
+                <h3 className="text-lg font-bold text-slate-800">Причина отмены</h3>
+                <div className="space-y-2">
+                  {reasons.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => setSelectedReason(r.id)}
+                      className={`w-full text-left p-4 rounded-xl text-sm transition-all ${
+                        selectedReason === r.id
+                          ? 'bg-slate-900 text-white font-semibold'
+                          : 'bg-[#f4f4f6] text-slate-700 active:bg-slate-200'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={submitCancel}
+                  disabled={selectedReason === null || cancelSubmitting}
+                  className="w-full bg-rose-600 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-40 active:scale-[0.98] transition-all"
+                >
+                  {cancelSubmitting ? 'Отменяю...' : 'Подтвердить отмену'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 }

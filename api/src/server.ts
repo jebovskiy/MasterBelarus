@@ -11,6 +11,7 @@ import { mastersRouter } from './routes/masters.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { adminRouter } from './routes/admin.js';
 import { complaintsRouter } from './routes/complaints.js';
+import { cancelRouter } from './routes/cancel.js';
 
 async function bootstrap() {
   const app = createApp();
@@ -18,6 +19,7 @@ async function bootstrap() {
   app.use('/orders', ordersRouter);
   app.use('/orders', bidsRouter);
   app.use('/orders', reviewsRouter);
+  app.use('/orders', cancelRouter);
   app.use('/masters', mastersRouter);
   app.use('/admin', adminRouter);
   app.use('/complaints', complaintsRouter);
