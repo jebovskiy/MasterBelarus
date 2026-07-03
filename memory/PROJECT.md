@@ -679,3 +679,32 @@ pm install + sanity check (api + web)
 - Добавлен `timeAgo()` для отображения created_at
 - Тосты об успехе/ошибке
 
+---
+## STATE — 2026-07-02 11:10 — Bot commands overhaul (per spec)
+
+### api/src/bot/index.ts
+- **/start**: проверка/создание профиля в Supabase, deep linking (order_, master_feed, complaint_)
+- **/help**: развёрнутые правила + информация о 20 бесплатных откликов + @masterby_support
+- **/menu**: инлайн-меню (Открыть приложение, Мой статус, Правила)
+- **/status**: роль, баланс (bid_balance + total_earned из master_balances), маскированный телефон, рейтинг
+- **Master moderation**: approve/reject (существующие action-обработчики, код упрощён)
+- **Complaint moderation**: block_complaint / dismiss_complaint action-обработчики с inline-кнопками
+
+### api/src/services/notifications.ts
+- `notifyLowBalance`: предупреждение при ≤3 откликах, кнопка пополнения ?startapp=topup
+- `notifyComplaintToModerator`: пересылка жалобы в `MODERATOR_CHAT_ID` с inline-кнопками (Заблокировать / Отклонить)
+
+### api/src/routes/complaints.ts (новый файл)
+- `POST /complaints` — создание жалобы клиентом (authRequired)
+- Валидация: text ≥5 символов, user_role, опциональный accused_telegram_id
+- После создания — фоновая отправка `notifyComplaintToModerator`
+
+### api/src/server.ts
+- Подключён `complaintsRouter` на `/complaints`
+
+### api/src/lib/supabase.ts
+- `DBProfile.master_status` — добавлен `'blocked'`
+
+### web/src/stores/auth.ts
+- AuthProfile.master_status — добавлен `'blocked'`
+

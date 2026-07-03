@@ -11,7 +11,7 @@ export type UserProfile = {
   phone: string | null;
   is_master: boolean;
   current_role: 'customer' | 'master';
-  master_status: 'none' | 'pending' | 'approved' | 'rejected';
+  master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
   avg_rating: number | null;
   review_count: number;
 };

@@ -28,7 +28,7 @@ export type DBProfile = {
   avatar_url: string | null;
   is_master: boolean;
   current_role: 'customer' | 'master';
-  master_status: 'none' | 'pending' | 'approved' | 'rejected';
+  master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
   phone: string | null;
   created_at: string;
 };

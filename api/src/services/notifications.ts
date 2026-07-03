@@ -1,3 +1,4 @@
+import { Markup } from 'telegraf';
 import { logger } from '../lib/logger.js';
 import { env } from '../config/env.js';
 import type { Telegraf } from 'telegraf';
@@ -39,7 +40,7 @@ export async function sendBidNotification({
       reply_markup: {
         inline_keyboard: [[
           {
-            text: 'Посмотреть отклик',
+            text: '🔍 Посмотреть отклик',
             web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${orderId}` },
           },
         ]],
@@ -101,7 +102,7 @@ export async function notifyMasterApproved(telegramId: number): Promise<void> {
         reply_markup: {
           inline_keyboard: [[
             {
-              text: 'Открыть ленту заказов',
+              text: '📋 Открыть ленту заказов',
               web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=master_feed` },
             },
           ]],
@@ -112,5 +113,65 @@ export async function notifyMasterApproved(telegramId: number): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ telegramId, msg }, 'master approved notification failed');
+  }
+}
+
+export async function notifyLowBalance(telegramId: number, balance: number): Promise<void> {
+  if (!bot) return;
+  try {
+    await bot.telegram.sendMessage(telegramId,
+      `⚠️ У вас осталось всего ${balance} откликов.\n` +
+      'Пополните баланс, чтобы продолжить откликаться на заказы.',
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '💰 Пополнить',
+              web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=topup` },
+            },
+          ]],
+        },
+      },
+    );
+  } catch (err) {
+    logger.warn({ telegramId, err }, 'low balance notification failed');
+  }
+}
+
+type ComplaintPayload = {
+  id: string;
+  userName: string;
+  userRole: string;
+  text: string;
+  accusedTgId?: number;
+};
+
+export async function notifyComplaintToModerator(payload: ComplaintPayload): Promise<void> {
+  const chatId = env.MODERATOR_CHAT_ID;
+  if (!bot || !chatId) {
+    logger.info({ payload }, '[COMPLAINT] stub: no bot or MODERATOR_CHAT_ID');
+    return;
+  }
+
+  try {
+    await bot.telegram.sendMessage(chatId,
+      `🆕 <b>Новая жалоба</b>\n\n` +
+      `От: ${payload.userName} (${payload.userRole})\n` +
+      `Текст: ${payload.text}\n` +
+      (payload.accusedTgId ? `ID нарушителя: ${payload.accusedTgId}` : ''),
+      {
+        parse_mode: 'HTML',
+        reply_markup: Markup.inlineKeyboard([
+          [
+            Markup.button.callback('🚫 Заблокировать', `block_complaint:${payload.id}:${payload.accusedTgId ?? 0}`),
+            Markup.button.callback('✅ Отклонить', `dismiss_complaint:${payload.id}`),
+          ],
+        ]).reply_markup,
+      },
+    );
+    logger.info({ complaintId: payload.id }, 'complaint forwarded to moderator');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ complaintId: payload.id, msg }, 'complaint forwarding failed');
   }
 }

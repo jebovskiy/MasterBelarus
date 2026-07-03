@@ -10,6 +10,7 @@ import { bidsRouter } from './routes/bids.js';
 import { mastersRouter } from './routes/masters.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { adminRouter } from './routes/admin.js';
+import { complaintsRouter } from './routes/complaints.js';
 
 async function bootstrap() {
   const app = createApp();
@@ -19,6 +20,7 @@ async function bootstrap() {
   app.use('/orders', reviewsRouter);
   app.use('/masters', mastersRouter);
   app.use('/admin', adminRouter);
+  app.use('/complaints', complaintsRouter);
 
   app.use((req, res) => {
     res.status(404).json({ error: 'not found', path: req.path });
