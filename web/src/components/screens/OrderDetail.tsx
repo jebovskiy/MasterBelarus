@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
+import { useToastStore } from '@/components/shared/Toast';
 
 type OrderRow = {
   id: string;
@@ -24,7 +25,7 @@ type Bid = {
 };
 
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
-const STATUS_BADGE: Record<string, string> = { open: 'bg-primary-tint text-primary', in_progress: 'bg-[#FEF3C7] text-[#92400E]', completed: 'bg-success-tint text-success', cancelled: 'bg-red-50 text-error' };
+const STATUS_BADGE: Record<string, string> = { open: 'bg-amber-50 text-amber-700', in_progress: 'bg-blue-50 text-blue-700', completed: 'bg-emerald-50 text-emerald-700', cancelled: 'bg-rose-50 text-rose-600' };
 const STATUS_LABEL: Record<string, string> = { open: 'Открыт', in_progress: 'В работе', completed: 'Завершён', cancelled: 'Отменён' };
 
 function timeAgo(iso: string) {
@@ -35,6 +36,12 @@ function timeAgo(iso: string) {
   if (h < 24) return `${h} ч`;
   return `${Math.floor(h / 24)} дн.`;
 }
+
+const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base';
+
+const swipeConfidenceThreshold = 80;
+const swipeVelocityThreshold = 400;
+const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
 type Props = { orderId: string | null; onBack: () => void };
 
@@ -48,6 +55,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const { impact, notification } = useHaptic();
+  const showToast = useToastStore((s) => s.showToast);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -78,8 +86,9 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     impact('medium');
     const res = await apiPost(`/orders/${orderId}/accept-bid/${bidId}`, {});
     setAcceptingId(null);
-    if ('error' in res) { notification('error'); console.warn('[accept]', res.error); return; }
+    if ('error' in res) { notification('error'); showToast('Ошибка при выборе мастера', 'error'); return; }
     notification('success');
+    showToast('✅ Мастер выбран!', 'success');
     setOrder((prev) => (prev ? { ...prev, status: 'in_progress' } : prev));
   };
 
@@ -89,77 +98,166 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     impact('medium');
     const res = await apiPost(`/orders/${orderId}/review`, { rating: reviewRating, comment: reviewComment });
     setReviewSubmitting(false);
-    if ('error' in res) { notification('error'); return; }
+    if ('error' in res) { notification('error'); showToast('Ошибка при отправке', 'error'); return; }
     notification('success');
+    showToast('✅ Отзыв сохранён!', 'success');
     setOrder((prev) => (prev ? { ...prev, status: 'completed' } : prev));
   };
 
-  if (!orderId) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-app-bg overflow-auto">
-      <header className="sticky top-0 z-10 bg-app-bg/80 backdrop-blur-md border-b border-app-border">
-        <div className="max-w-[430px] mx-auto flex items-center justify-between px-4 h-14">
-          <button onClick={onBack} className="px-3 h-8 rounded-btn bg-app-surface-alt text-sm font-semibold">Назад</button>
-          {order && <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-gray-100'}`}>{STATUS_LABEL[order.status] ?? order.status}</span>}
-        </div>
-      </header>
-
-      <div className="max-w-[430px] mx-auto px-4 py-4 space-y-4">
-        {error && <div className="bg-red-50 text-error p-3 rounded-bento text-sm">{error} <button onClick={load} className="ml-2 underline font-semibold">Повторить</button></div>}
-        {loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-28 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
-        {!loading && order && (
-          <>
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-5 rounded-bento shadow-card">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{EMOJI[order.category] ?? '📋'}</span>
-                <h2 className="text-base font-bold text-text-main">{order.category}</h2>
-                <span className="text-xs text-text-muted ml-auto">{timeAgo(order.created_at)}</span>
+    <AnimatePresence>
+      {orderId && (
+        <motion.div key={orderId} className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onBack} />
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col max-h-[90vh]"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={sheetTransition}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > swipeConfidenceThreshold || info.velocity.y > swipeVelocityThreshold) {
+                onBack();
+              }
+            }}
+          >
+            <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
+              <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+            </div>
+            <div className="px-6 pb-6 overflow-auto space-y-5">
+              <div className="flex items-center justify-between pt-1">
+                <h2 className="text-xl font-bold text-slate-800">Детали заказа</h2>
+                {order && (
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                    {STATUS_LABEL[order.status] ?? order.status}
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-text-main leading-relaxed">{order.description}</p>
-              <div className="mt-3 flex items-center gap-2 text-xs text-text-muted"><span>📍 {order.address_text}</span></div>
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-2xl font-extrabold text-primary">{order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}</p>
-                {order.images.length > 0 && <span className="text-xs text-text-muted">📎 {order.images.length}</span>}
-              </div>
-            </motion.div>
 
-            {order.status === 'open' && (
-              <div>
-                <h3 className="text-sm font-bold text-text-main mb-2 px-1">Отклики ({bids.length})</h3>
-                {bids.length === 0 && <p className="text-sm text-text-muted px-1">Мастера ещё не откликнулись.</p>}
+              {error && (
+                <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm flex items-center justify-between">
+                  <span>{error}</span>
+                  <button onClick={load} className="underline font-semibold ml-2 shrink-0">Повторить</button>
+                </div>
+              )}
+
+              {loading && (
                 <div className="space-y-3">
-                  {bids.map((bid, idx) => (
-                    <motion.div key={bid.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 40 }} className="bg-white p-4 rounded-bento shadow-card">
-                      <div className="flex items-center justify-between mb-2">
-                        <div><p className="text-sm font-semibold text-text-main">Мастер #{bid.master_id.slice(0, 6)}</p><p className="text-xs text-text-muted">{timeAgo(bid.created_at)}</p></div>
-                        <p className="text-lg font-extrabold text-primary">{bid.proposed_price ? `${bid.proposed_price} BYN` : 'Договорная'}</p>
-                      </div>
-                      {bid.comment && <p className="text-sm text-text-secondary mb-3">{bid.comment}</p>}
-                      <button onClick={() => acceptBid(bid.id)} disabled={acceptingId === bid.id} className="w-full h-10 rounded-btn bg-primary hover:bg-primary-hover text-white text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition">
-                        {acceptingId === bid.id ? 'Принимаю...' : 'Выбрать этого мастера'}
-                      </button>
-                    </motion.div>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="bg-white rounded-xl p-5 animate-pulse space-y-2 border border-slate-100">
+                      <div className="h-4 w-24 bg-slate-200 rounded" />
+                      <div className="h-3 w-full bg-slate-100 rounded" />
+                      <div className="h-3 w-3/4 bg-slate-100 rounded" />
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {order.status === 'in_progress' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white p-5 rounded-bento shadow-card">
-                <p className="text-sm font-semibold text-text-main mb-2">Оставить отзыв о выполнении</p>
-                <div className="flex gap-2 mb-3">{[1, 2, 3, 4, 5].map((star) => (<button key={star} onClick={() => { setReviewRating(star); impact('light'); }} className={`text-2xl transition ${star <= reviewRating ? 'scale-110' : 'opacity-30'}`}>★</button>))}</div>
-                <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value.slice(0, 1000))} placeholder="Ваш отзыв..." className="w-full rounded-btn border border-app-border bg-white p-3 text-sm mb-3" />
-                <button onClick={submitReview} disabled={reviewSubmitting} className="w-full h-11 rounded-btn bg-primary hover:bg-primary-hover text-white font-semibold disabled:opacity-50">
-                  {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
-                </button>
-              </motion.div>
-            )}
+              {!loading && order && (
+                <>
+                  <div className="bg-[#f4f4f6] rounded-xl p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{EMOJI[order.category] ?? '📋'}</span>
+                      <span className="text-base font-bold text-slate-800">{order.category}</span>
+                      <span className="text-xs text-slate-400 ml-auto">{timeAgo(order.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed">{order.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span>📍</span>
+                      <span>{order.address_text}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <p className="text-2xl font-extrabold text-slate-900">
+                        {order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}
+                      </p>
+                      {order.images.length > 0 && (
+                        <span className="text-xs text-slate-400">📎 {order.images.length} фото</span>
+                      )}
+                    </div>
+                  </div>
 
-            {order.status === 'completed' && <div className="text-center py-6"><span className="text-4xl">✅</span><p className="text-sm font-semibold text-text-main mt-2">Заказ завершён</p></div>}
-          </>
-        )}
-      </div>
-    </div>
+                  {order.status === 'open' && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-bold text-slate-800">Отклики ({bids.length})</h3>
+                      {bids.length === 0 && (
+                        <p className="text-sm text-slate-400">Мастера ещё не откликнулись.</p>
+                      )}
+                      {bids.map((bid, idx) => (
+                        <motion.div
+                          key={bid.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.04 }}
+                          className="bg-white rounded-xl p-5 border border-slate-100 space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">Мастер #{bid.master_id.slice(0, 6)}</p>
+                              <p className="text-xs text-slate-400">{timeAgo(bid.created_at)}</p>
+                            </div>
+                            <p className="text-lg font-extrabold text-slate-900">
+                              {bid.proposed_price ? `${bid.proposed_price} BYN` : 'Договорная'}
+                            </p>
+                          </div>
+                          {bid.comment && <p className="text-sm text-slate-500">{bid.comment}</p>}
+                          <button
+                            onClick={() => acceptBid(bid.id)}
+                            disabled={acceptingId === bid.id}
+                            className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-all"
+                          >
+                            {acceptingId === bid.id ? 'Принимаю...' : 'Выбрать этого мастера'}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  {order.status === 'in_progress' && (
+                    <div className="bg-[#f4f4f6] rounded-xl p-5 space-y-4">
+                      <p className="text-sm font-bold text-slate-800">Оставить отзыв о выполнении</p>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => { setReviewRating(star); impact('light'); }}
+                            className={`text-2xl transition-all ${star <= reviewRating ? 'text-amber-400 scale-110' : 'text-slate-300'}`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value.slice(0, 1000))}
+                        placeholder="Ваш отзыв..."
+                        className={`${inputCls} resize-none`}
+                        rows={3}
+                      />
+                      <button
+                        onClick={submitReview}
+                        disabled={reviewSubmitting}
+                        className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-all"
+                      >
+                        {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
+                      </button>
+                    </div>
+                  )}
+
+                  {order.status === 'completed' && (
+                    <div className="text-center py-8 space-y-2">
+                      <span className="text-4xl">✅</span>
+                      <p className="text-sm font-semibold text-slate-700">Заказ завершён</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
