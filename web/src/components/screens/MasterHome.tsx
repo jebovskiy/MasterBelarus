@@ -5,6 +5,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { useLocation } from '@/hooks/useLocation';
 import { Avatar } from '@/components/shared/Avatar';
 import { apiPost, apiGet } from '@/lib/api';
+import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 
 type NearbyOrder = {
   id: string;
@@ -36,6 +37,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const [balance] = useState<number>(15);
   const [rating] = useState<{ value: number; count: number }>({ value: 4.9, count: 87 });
   const [stats] = useState({ completed: 12, inProgress: 2, todayBids: 7 });
+  const [filterCity, setFilterCity] = useState<CityValue | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -45,7 +47,13 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await apiGet<any>(`/orders/nearby?lat=${location.latitude}&lng=${location.longitude}&radius=5000`);
+      const params = new URLSearchParams({
+        lat: String(location.latitude),
+        lng: String(location.longitude),
+        radius: '5000',
+      });
+      if (filterCity) params.set('city', filterCity.city);
+      const result = await apiGet<any>(`/orders/nearby?${params}`);
       if ('data' in result && Array.isArray(result.data)) {
         setOrders(result.data);
       }
@@ -54,7 +62,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
     } finally {
       setLoading(false);
     }
-  }, [location.latitude, location.longitude]);
+  }, [location.latitude, location.longitude, filterCity]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id); }, [load]);
@@ -126,6 +134,21 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           <span>🔄 В работе <strong className="text-text-main">{stats.inProgress}</strong></span>
           <span className="text-app-border">|</span>
           <span>📊 Сегодня <strong className="text-primary">{stats.todayBids}</strong></span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Фильтр по городу</label>
+            <CitySelector value={filterCity} onChange={setFilterCity} />
+          </div>
+          {filterCity && (
+            <button
+              onClick={() => setFilterCity(null)}
+              className="mt-5 shrink-0 text-xs font-semibold text-rose-500 active:text-rose-600"
+            >
+              Сбросить
+            </button>
+          )}
         </div>
 
         <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">

@@ -5,13 +5,23 @@ import { getSupabaseAdmin, type DBOrderStatus } from '../lib/supabase.js';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 import { authRequired } from '../middleware/auth.js';
+import { isValidCity } from '../data/belarus-cities.js';
+
+function extractCityFromAddress(address: string): string | null {
+  // address_text формат: "г. Минск, Московский р-н, ул. Братская 1"
+  const m = address.match(/^г\.\s*(.+?)(?:[,，]|$)/);
+  return m?.[1]?.trim() ?? null;
+}
 
 const BodyCreate = z.object({
   category: z.string().min(2),
   description: z.string().min(5),
   price: z.coerce.number().positive().optional().nullable(),
   is_negotiable: z.boolean().default(false),
-  address_text: z.string().min(3),
+  address_text: z.string().min(3).refine((addr) => {
+    const city = extractCityFromAddress(addr);
+    return city !== null && isValidCity(city);
+  }, { message: 'город в address_text не поддерживается' }),
   lat: z.coerce.number().optional(),
   lng: z.coerce.number().optional(),
   images: z.array(z.string().url()).default([]),
@@ -22,6 +32,7 @@ const QueryNearby = z.object({
   lng: z.coerce.number(),
   radius: z.coerce.number().int().positive().default(5000),
   category: z.string().optional(),
+  city: z.string().optional().refine((c) => !c || isValidCity(c), { message: 'неподдерживаемый город' }),
 });
 
 export const ordersRouter = Router();
@@ -111,7 +122,7 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
     return res.status(400).json({ error: 'invalid query', detail: q.error.flatten() });
   }
 
-  const { lat, lng, radius, category } = q.data;
+  const { lat, lng, radius, category, city } = q.data;
 
   try {
     const db = getSupabaseAdmin();
@@ -123,7 +134,17 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
     });
 
     if (error) throw error;
-    return res.json(data ?? []);
+
+    let result = data ?? [];
+    if (city) {
+      const cityPrefix = `г. ${city}`;
+      result = (result as Record<string, unknown>[]).filter((o) => {
+        const addr = o.address_text as string | undefined;
+        return addr?.startsWith(cityPrefix) ?? false;
+      });
+    }
+
+    return res.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'orders/nearby failed');

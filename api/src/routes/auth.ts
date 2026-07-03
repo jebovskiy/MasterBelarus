@@ -7,6 +7,7 @@ import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js'
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 import { authRequired, type AuthedRequest } from '../middleware/auth.js';
+import { isValidCity } from '../data/belarus-cities.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -164,7 +165,7 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
   const Schema = z.object({
     full_name: z.string().min(1).max(200),
     phone: z.string().min(5).max(20),
-    city: z.string().min(1).max(100),
+    city: z.string().min(1).max(100).refine((c) => isValidCity(c), { message: 'неподдерживаемый город' }),
     category: z.string().min(1).max(50),
   });
   const parsed = Schema.safeParse(req.body ?? {});
@@ -279,7 +280,7 @@ authRouter.get('/master-status', authRequired, async (req: AuthedRequest, res) =
 const ProfileUpdate = z.object({
   full_name: z.string().max(200).optional(),
   phone: z.string().max(20).optional(),
-  city: z.string().max(100).optional(),
+  city: z.string().max(100).refine((c) => !c || isValidCity(c), { message: 'неподдерживаемый город' }).optional(),
   description: z.string().max(2000).optional(),
   radius_km: z.coerce.number().int().min(1).max(200).optional(),
   categories: z.array(z.string().min(1).max(50)).optional(),
