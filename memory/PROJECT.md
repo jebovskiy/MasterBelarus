@@ -652,3 +652,11 @@ pm install + sanity check (api + web)
 - Если ответ 200 — `isAdminUser = true`
 - Показывает кнопку **⚙️ Администрирование** (после карточки Настройки, перед «Стать мастером»)
 - Кнопка вызывает `onNavigate('admin')`, открывая админ-панель
+
+---
+## STATE — 2026-07-02 10:50 — OrderHistoryScreen infinite loading fix
+
+### web/src/components/screens/OrderHistoryScreen.tsx
+- `load()` не вызывал `setLoading(false)` — ни в успехе, ни в catch
+- Скелетоны (pulse animation) крутились бесконечно
+- Добавлен `setLoading(false)` в обе ветки
