@@ -708,3 +708,24 @@ pm install + sanity check (api + web)
 ### web/src/stores/auth.ts
 - AuthProfile.master_status — добавлен `'blocked'`
 
+---
+## STATE — 2026-07-03 12:20 — OrderDetail bottom sheet + Belarus city cascade picker
+
+### OrderDetail.tsx — полный редизайн под CreateOrderSheet стиль
+- Переписан с full-screen на bottom sheet с drag-to-dismiss
+- `tg-white rounded-t-2xl shadow-lg shadow-slate-200/50` вместо `bg-app-bg / shadow-card`
+- `bg-[#f4f4f6]` карточки вместо `rounded-bento`
+- `text-slate-*` цветовая схема вместо `text-text-main / text-text-muted`
+- AnimatePresence enter/exit анимация (key={orderId})
+- Swipe down / backdrop click → onBack()
+
+### CitySelector — каскадный выбор города
+- `web/src/data/belarus-cities.ts` — 6 областей, 120+ городов, 9 районов Минска
+- `web/src/components/shared/CitySelector.tsx` — bottom sheet picker (oblast → city → district)
+- Интегрирован в:
+  - **CreateOrderSheet**: CitySelector + улица/дом → `address_text` собирается как `"г. Минск, Московский р-н, ул. Братская 1"`
+  - **EditProfileScreen**: `city` через CitySelector
+  - **Profile** (стать мастером): `city` через CitySelector
+- Коммит: `b3474fd`
+- Не начато: API-валидация городов на бэкенде, поиск по городу в ленте мастеров
+
