@@ -148,9 +148,10 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     setOrder((prev) => (prev ? { ...prev, status: 'cancelled', cancelled_by: currentRole === 'master' ? 'master' : 'client', cancellation_reason_id: selectedReason } : prev));
   };
 
-  const reasons = currentRole === 'master' ? MASTER_REASONS : CLIENT_REASONS;
-  const canCancelClient = currentRole === 'customer' && order?.status === 'open' && order?.cancelled_by !== 'client';
-  const canCancelMaster = currentRole === 'master' && order?.status === 'in_progress' && order?.cancelled_by !== 'master';
+  const role = currentRole ?? 'customer';
+  const reasons = role === 'master' ? MASTER_REASONS : CLIENT_REASONS;
+  const canCancelClient = role === 'customer' && order?.status === 'open';
+  const canCancelMaster = role === 'master' && order?.status === 'in_progress';
 
   return (
     <AnimatePresence>
