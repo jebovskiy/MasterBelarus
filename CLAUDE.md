@@ -1,12 +1,12 @@
 # MasterBelarus
 
-Биржа бытовых мастеров внутри Telegram Mini App. Рынок: Беларусь, 2026.
+Биржа бытовых мастеров внутри Telegram Mini App. Рынок: Беларусь, 2026. Проблема: найти проверенного сантехника/электрика/грузчика «сегодня» — хаос в Viber/Telegram-чатах ЖК, старые доски объявлений неповоротливы. Решение: один запрос в Telegram → мастер из соседнего дома откликается за 2-5 минут.
 
 ## Стек
 
 - **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui + framer-motion + Zustand + @telegram-apps/sdk
 - **Backend**: Node.js + Express + TypeScript + telegraf + BullMQ (Redis)
-- **DB**: Supabase (PostgreSQL + PostGIS + Realtime)
+- **DB**: Supabase (PostgreSQL + PostGIS + Realtime + Storage + Auth)
 - **Infra**: Hetzner CX22 / Docker / Nginx + Let's Encrypt
 
 ## Архитектура
@@ -56,7 +56,7 @@ MasterBelarus/
 - `master_balances` (bid_balance, total_earned)
 - `complaints` (user_name, text, status)
 - `notifications_log`
-- RPC: `find_orders_nearby(lat, lng, radius_m, category?)`
+- RPC: `find_orders_nearby(lat, lng, radius_m, category?)`, `deduct_response(master_id)`
 
 ## API маршруты
 
@@ -76,6 +76,17 @@ MasterBelarus/
 | POST /orders/:id/review | Отзыв + завершение |
 | GET /admin/* | Админка (проверка adminRequired) |
 | POST /complaints | Жалоба от клиента |
+
+## Ключевые решения (ADR-lite)
+
+1. **Нет эквайринга на MVP** — расчёты наличные/ЕРИП напрямую. Приложение = доска объявлений.
+2. **Модель монетизации** — плата за отклик (0.5-1 BYN), пополнение через ЕРИП позже. Старт: 20 бесплатных откликов.
+3. **Supabase Free Tier** для MVP, миграция на Pro при >500 MAU.
+4. **Telegraf webhook** вместо polling для уведомлений.
+5. **Redis для BullMQ** — чтобы не упираться в rate-limit Telegram (30 msg/sec).
+6. **Cold start через ручной outreach** — 30-50 мастеров до публичного запуска.
+7. **Локальный запуск** — один ЖК (Минск-Мир / Новая Боровая) как стартовая площадка.
+8. **НПД-статус** — чекбокс в профиле мастера, без верификации на MVP.
 
 ## Файлы сессии (последние изменения)
 
@@ -102,3 +113,370 @@ MasterBelarus/
 7. Поиск по городу в ленте мастеров — NOT STARTED
 8. Real уведомления: wired telegraf bot — DONE
 9. Seed-скрипт — DONE
+
+---
+
+## STATE — 2026-07-01 04:42
+
+### Завершено (закоммичено)
+- Root: `package.json` (workspaces api + web), `.gitignore`, `README.md`, `Dockerfile.api`
+- **API Sprint 1:** Express + telegraf + Supabase + zod + pino.
+  - `POST /auth/telegram` — HMAC-валидация initData, upsert profiles.
+  - Telegraf `/start`, deep-link `?startapp=ref_*`, inline-keyboard.
+  - Webhook на `/telegraf/<TOKEN>`.
+  - Unit-тесты: `tests/telegram.test.ts`.
+- **8 идемпотентных Supabase миграций:**
+  - `001_create_enums`, `002_profiles+RLS`, `003_orders+PostGIS+RLS`,
+  - `004_bids+RLS`, `005_master_categories+RLS`,
+  - `006_master_balances+deduct_response()+trigger`,
+  - `007_reviews+avg_rating trigger`,
+  - `008_notifications_log+find_orders_nearby()+storage bucket`.
+- **Web Sprint 1:** React 18 + Vite + Tailwind (palette из visual-spec).
+  - `@telegram-apps/sdk` init, `window.Telegram` типы.
+  - Zustand auth-store, `useTelegramAuth`, `useHaptic`.
+  - `SplashScreen + AuthGuard`, `ClientHome` (Hero Bento + 6 категорий).
+- **Sprint 2 backend (частично):**
+  - `api/src/routes/orders.ts` — POST/GET/:id/GET/nearby/PATCH/:id/status.
+  - Подключен в `server.ts`.
+- Railway проект создан, сервисы отложены.
+- GitHub: `jebovskiy/MasterBelarus`.
+
+### В процессе
+- Web: `CreateOrderSheet`, `MasterHome`, лента заказов, socket.io realtime.
+
+### Не начато
+- Seed data (`supabase/seed.sql`)
+- CI (`.github/workflows/ci.yml`)
+- `npm install` + sanity check
+- Sprint 3: bids API, notifications, баланс
+
+---
+
+## STATE — 2026-07-01 04:55
+
+Завершено (commit 25b610f):
+- `api/src/routes/bids.ts` — POST /orders/:id/bids, GET /orders/:id/bids, POST /orders/:id/accept-bid/:bidId
+- `api/src/services/notifications.ts` — sendBidNotification stub
+- `api/src/types/bids.ts`
+- server.ts подключил bidsRouter под /orders
+
+Не начато:
+- frontend: кнопка «Откликнуться» в MasterHome → POST /orders/:id/bids
+- CI sanity check: npm install, tsc --noEmit, vite build
+
+---
+
+## STATE — 2026-07-01 05:00
+
+Завершено (commit e88ed8c):
+- api/src/routes/bids.ts — POST/GET/accept-bid
+- api/src/services/notifications.ts — stub
+- **web Sprint 2-3:**
+  - CreateOrderSheet — создание заказа через POST /orders
+  - MasterHome — лента nearby + bid-sheet + POST /orders/:id/bids
+  - App.tsx — табы Клиенту/Мастеру
+
+Не начато:
+- Real уведомления
+- Спринт 4: accept-bid → диалог, reviews, баланс
+- CI sanity check, Railway deploy
+
+---
+
+## STATE — 2026-07-01 05:05
+
+Завершено (commit pending):
+- api/src/services/notifications.ts — real telegraf notifications (wired)
+
+Не начато:
+- Sprint 4: accept-bid → диалог, reviews, finish order
+- CI sanity check, Railway deploy
+
+---
+
+## STATE — 2026-07-01 05:15
+
+Завершено (commit 7e3e92d):
+- api/src/routes/masters.ts — GET /masters/:masterId/profile
+- api/src/services/notifications.ts — real sendBidNotification + sendMasterAcceptedNotification
+- api/src/bot/index.ts — createBot c wired notifications
+
+По бэклогу Sprint 4 закрыт (кроме POST /orders/:id/review).
+
+Не начато:
+- Frontend: OrderDetail + AcceptBid review flow
+- POST /orders/:id/review endpoint
+- npm install + sanity check, Railway deploy
+
+---
+
+## STATE — 2026-07-01 05:30
+
+Завершено (commit 8ac18f2):
+- api/src/routes/reviews.ts — POST /orders/:id/review + complete order
+- **web:** OrderDetail.tsx — full cycle: order info, bids list, accept-bid, review form
+- **web:** App.tsx — wired OrderDetail into tab-based shell
+
+По бэклогу Sprint 4 закрыт полностью. Фронтенд cycle замкнут.
+
+---
+
+## STATE — 2026-07-01 05:50
+
+### Завершено (commits 8ac18f2 / c64644b)
+- **Backend Sprint 4 closed:**
+  - api/src/routes/reviews.ts — POST /orders/:id/review
+  - api/src/routes/masters.ts — GET /masters/:masterId/profile
+  - api/src/services/notifications.ts — real telegraf bot sendMessage wired
+  - api/src/bot/index.ts — initNotificationService(bot) in createBot()
+- **Frontend Sprint 2-4 closed:**
+  - CreateOrderSheet, MasterHome, OrderDetail, App.tsx tabs
+- **Sprint 5 (частично): админ-модуль**
+  - api/src/middleware/admin.ts, api/src/routes/admin.ts
+  - web/src/components/admin/AdminPanel.tsx
+  - .env.example — ADMIN_TOKEN, ADMIN_TELEGRAM_ID
+
+### Не начато
+- Админ: детальный review moderation + жалобы
+- npm install + sanity check
+- Railway deployment, Sentry / PostHog, Seed-скрипт
+
+---
+
+## STATE — 2026-07-02 04:00 — Design fix + shared components
+
+### Исправлено
+- `vite.config.ts` — удалён `postcss: null` (PostCSS был выключен → Tailwind не работал)
+- Создан `postcss.config.cjs` — tailwindcss + autoprefixer
+- `tailwind.config.cjs` — добавлены токены дизайна (цвета, тени, duration)
+- `index.css` — CSS-переменные `--sat`/`--sab` для safe-area
+
+### Создано
+- `web/src/components/shared/`: Button, Input, Badge, Chip, Avatar, BottomTabBar, Toast
+
+### Изменено
+- App.tsx — BottomTabBar, ToastProvider
+- MasterHome.tsx — stats row
+- ClientHome.tsx — убран pb-24
+
+---
+
+## STATE — 2026-07-02 04:20 — Profile screen + CreateOrderSheet redesign
+
+### Создано
+- `web/src/components/screens/Profile.tsx` — динамический профиль с Role Toggle, мастер/клиент view
+
+### Изменено
+- `CreateOrderSheet.tsx` — редизайн «Мягкая галька»: `bg-white rounded-2xl shadow-lg`, поля `bg-[#f4f4f6]`, метки `text-xs font-semibold text-slate-500 uppercase tracking-wider`
+- `App.tsx` — подключён Profile
+- `ClientHome.tsx` — Hero bento, активные заказы, карусель мастеров, API-запросы
+
+---
+
+## STATE — 2026-07-02 05:20 — Seed + LocationManager + AdminToken
+
+### Создано
+- `supabase/seed.sql` — 10 мастеров, 5 клиентов, 15 заказов, 25 откликов
+- `web/src/hooks/useLocation.ts` — LocationManager (Telegram → Geolocation API → Minsk fallback)
+- `web/src/stores/admin.ts` — zustand store + adminHeaders
+- `web/src/components/screens/AdminDashboard.tsx`
+
+### Изменено
+- `api/src/routes/admin.ts` — adminRequired на все роуты
+- `MasterHome.tsx` — useLocation() вместо хардкода
+- `App.tsx`, `Profile.tsx` — админ-навигация
+
+---
+
+## STATE — 2026-07-02 05:50 — Admin panel refactor
+
+### Изменено
+- App.tsx — AnimatePresence overlay
+- Profile.tsx — карточка админки
+- AdminDashboard.tsx → AdminPanelView.tsx (full screen, «Мягкая галька»)
+
+### Создано
+- `AdminPanelView.tsx` — 4 таба (Статистика, Заказы, Мастера, Жалобы)
+
+---
+
+## STATE — 2026-07-02 06:10 — Admin access via long-press
+
+### Изменено
+- BottomTabBar.tsx — long-press (500ms) на Profile → popover
+- App.tsx — Profile без onOpenAdmin
+- Profile.tsx — удалён импорт useAdminStore
+
+---
+
+## STATE — 2026-07-02 06:40 — Premium Toast (zustand + haptic)
+
+### Создано
+- `Toast.tsx` — zustand store, haptic, backdrop-blur, fadeInUp CSS
+
+### Изменено
+- App.tsx, Profile.tsx, MasterHome.tsx, CreateOrderSheet.tsx, ClientHome.tsx — useToast → useToastStore
+
+---
+
+## STATE — 2026-07-02 07:10 — 4 рабочих экрана (Settings, EditProfile, Wallet, OrderHistory)
+
+### Создано
+- SettingsScreen, EditProfileScreen, WalletScreen, OrderHistoryScreen
+- api/src/routes/auth.ts — PATCH /auth/profile, POST /auth/avatar
+- api/src/routes/orders.ts — GET /orders/my
+- migrations 009, 010
+
+### Архитектура
+- 4 экрана как overlay (fixed inset-0 z-30), анимация fade+slide x-20
+
+---
+
+## STATE — 2026-07-02 07:30 — Avatar из Telegram + загрузка
+
+### Создано
+- migration 010 — storage bucket avatars + RLS
+
+### Изменено
+- api/src/routes/auth.ts — photo_url → avatar_url, POST /auth/avatar
+- web: Avatar upload flow в EditProfileScreen
+
+---
+
+## STATE — 2026-07-02 08:00 — Phone symmetry
+
+### Изменено
+- Profile.tsx — masked phone, bottom sheet edit
+- MasterHome.tsx — phone in header, edit button
+- EditProfileScreen.tsx — phone init from profile
+- stores/auth.ts — phone field
+- lib/api.ts — isErrorResult() type guard
+
+---
+
+## STATE — 2026-07-02 08:40 — Role separation
+
+### Добавлено
+- migration 011 — is_master, current_role, master_status
+- api/src/services/botRegistry.ts
+
+### Backend
+- POST /auth/become-master, POST /auth/switch-role, GET /auth/master-status
+- POST /admin/masters/approve|reject/:telegramId
+
+### Frontend
+- CustomerApp / MasterApp по current_role
+- Profile: toggle, become-master form, pending/rejected статусы
+
+---
+
+## STATE — 2026-07-02 09:20 — Auth fix + Profile polish
+
+### Изменено
+- api.ts — getTelegramInitData() вместо window.Telegram
+- Profile.tsx — formatPhone, formatPhoneInput, maskPhone, ProfileBottomSheet, SettingsCard
+
+---
+
+## STATE — 2026-07-02 09:40 — Bot deep linking + notifications + moderation guard
+
+### bot/index.ts
+- Deep linking: startPayload → order_{id}, master_feed
+- Atomic guard: master_status check before approve/reject
+
+### services/notifications.ts
+- sendBidNotification, notifyMasterApproved, sendMasterAcceptedNotification
+
+---
+
+## STATE — 2026-07-02 10:00 — Admin moderation tab
+
+### AdminPanelView.tsx
+- Таб Модерация (5-й), GET /admin/masters/pending
+- Карточки, approve/reject per-card loading
+
+### Migration 012
+- category column в profiles
+
+---
+
+## STATE — 2026-07-02 10:20 — Admin auto-auth via initData
+
+### api/src/middleware/admin.ts
+- Два способа: x-admin-token ИЛИ x-telegram-init-data
+
+### web/src/stores/admin.ts
+- setTelegramAdmin(), adminHeaders() с initData
+
+### AdminPanelView.tsx
+- Авто-проверка доступа через /admin/stats
+
+---
+
+## STATE — 2026-07-02 10:40 — Admin entry button from Profile
+
+### api/src/routes/admin.ts
+- GET /admin/self — заглушка за adminRequired
+
+### App.tsx
+- Overlay тип расширен, adminOpen → overlay навигация
+
+### Profile.tsx
+- Проверка /admin/self при монтировании, кнопка «⚙️ Администрирование»
+
+---
+
+## STATE — 2026-07-02 10:50 — OrderHistoryScreen infinite loading fix
+
+### OrderHistoryScreen.tsx
+- Добавлен setLoading(false) в успех и catch
+
+---
+
+## STATE — 2026-07-02 10:55 — Real complaints (instead of mocks)
+
+### migration 013
+- Таблица complaints
+
+### api/src/routes/admin.ts
+- GET /admin/complaints, POST /admin/complaints/:id/resolve
+
+### AdminPanelView.tsx
+- Реальные жалобы вместо MOCK_COMPLAINTS
+
+---
+
+## STATE — 2026-07-02 11:10 — Bot commands overhaul
+
+### api/src/bot/index.ts
+- /start, /help, /menu, /status
+- Master moderation approve/reject
+- Complaint moderation block/dismiss
+
+### api/src/services/notifications.ts
+- notifyLowBalance, notifyComplaintToModerator
+
+### api/src/routes/complaints.ts (new)
+- POST /complaints
+
+---
+
+## STATE — 2026-07-03 12:20 — OrderDetail bottom sheet + Belarus city cascade picker
+
+### OrderDetail.tsx — полный редизайн под CreateOrderSheet стиль
+- Переписан с full-screen на bottom sheet с drag-to-dismiss
+- `bg-white rounded-t-2xl shadow-lg shadow-slate-200/50` вместо `bg-app-bg / shadow-card`
+- `bg-[#f4f4f6]` карточки вместо `rounded-bento`
+- `text-slate-*` цветовая схема вместо `text-text-main / text-text-muted`
+- AnimatePresence enter/exit анимация (key={orderId})
+- Swipe down / backdrop click → onBack()
+
+### CitySelector — каскадный выбор города
+- `web/src/data/belarus-cities.ts` — 6 областей, 120+ городов, 9 районов Минска
+- `web/src/components/shared/CitySelector.tsx` — bottom sheet picker (oblast → city → district)
+- Интегрирован в:
+  - **CreateOrderSheet**: CitySelector + улица/дом → `address_text` собирается как `"г. {city}, {district} р-н, {street}"`
+  - **EditProfileScreen**: `city` через CitySelector
+  - **Profile** (стать мастером): `city` через CitySelector
+- Коммит: `b3474fd`
+- Не начато: API-валидация городов на бэкенде, поиск по городу в ленте мастеров
