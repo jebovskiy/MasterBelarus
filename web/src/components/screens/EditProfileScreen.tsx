@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/components/shared/Toast';
 import { Avatar } from '@/components/shared/Avatar';
+import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 import { apiPatch, apiUpload, isErrorResult } from '@/lib/api';
 
 const CATEGORIES = [
@@ -26,7 +27,7 @@ export default function EditProfileScreen({ onBack }: Props) {
   const [avatarSrc, setAvatarSrc] = useState(profile?.avatar_url ?? undefined);
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
-  const [city, setCity] = useState('');
+  const [cityValue, setCityValue] = useState<CityValue | null>(null);
   const [description, setDescription] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState(30);
@@ -59,7 +60,7 @@ export default function EditProfileScreen({ onBack }: Props) {
     const body: Record<string, unknown> = {};
     if (fullName.trim()) body.full_name = fullName.trim();
     if (phone.trim()) body.phone = phone.trim();
-    if (city.trim()) body.city = city.trim();
+    if (cityValue?.city) body.city = cityValue.city;
     if (isMaster) {
       if (description.trim()) body.description = description.trim();
       if (categories.length > 0) body.categories = categories;
@@ -120,7 +121,7 @@ export default function EditProfileScreen({ onBack }: Props) {
 
           <div>
             <label className={labelCls}>Город</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Минск" className={inputCls} />
+            <CitySelector value={cityValue} onChange={setCityValue} />
           </div>
 
           {isMaster && (

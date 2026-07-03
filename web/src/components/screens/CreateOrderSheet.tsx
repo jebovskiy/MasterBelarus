@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
+import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 
 type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
@@ -32,7 +33,8 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [negotiable, setNegotiable] = useState(false);
-  const [address, setAddress] = useState('');
+  const [cityValue, setCityValue] = useState<CityValue | null>(null);
+  const [street, setStreet] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { impact } = useHaptic();
@@ -49,7 +51,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   }, [open]);
 
   const submit = async () => {
-    if (!category || !description.trim() || !address.trim()) {
+    if (!category || !description.trim() || !cityValue) {
       setError('Заполните все обязательные поля');
       impact('heavy');
       return;
@@ -58,12 +60,17 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
     setError(null);
     impact('medium');
 
+    const addrParts = [`г. ${cityValue.city}`];
+    if (cityValue.district) addrParts.push(`${cityValue.district} р-н`);
+    if (street.trim()) addrParts.push(street.trim());
+    const address_text = addrParts.join(', ');
+
     const result = await apiPost<{ id: string }>('/orders', {
       category,
       description: description.trim(),
       price: negotiable ? null : Number(price || 0),
       is_negotiable: negotiable,
-      address_text: address.trim(),
+      address_text,
       images: [],
     });
 
@@ -165,12 +172,17 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               </div>
 
               <div>
-                <label className={labelCls}>Ваш адрес</label>
+                <label className={labelCls}>Город</label>
+                <CitySelector value={cityValue} onChange={setCityValue} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Улица, дом</label>
                 <input
                   type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value.slice(0, 200))}
-                  placeholder="Минск-Мир, ул. Братская, 1"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value.slice(0, 200))}
+                  placeholder="ул. Братская, 1"
                   className={inputCls}
                 />
               </div>

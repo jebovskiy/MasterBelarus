@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
+import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 import { apiPatch, apiPost, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import { getTelegramInitData } from '@/lib/telegram';
@@ -140,7 +141,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const [masterFormOpen, setMasterFormOpen] = useState(false);
   const [mfName, setMfName] = useState('');
   const [mfPhone, setMfPhone] = useState('');
-  const [mfCity, setMfCity] = useState('');
+  const [mfCityValue, setMfCityValue] = useState<CityValue | null>(null);
   const [mfCategory, setMfCategory] = useState('plumber');
   const [savingMaster, setSavingMaster] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -188,7 +189,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     const result = await apiPost('/auth/become-master', {
       full_name: mfName,
       phone: parsePhone(mfPhone),
-      city: mfCity,
+      city: mfCityValue?.city ?? '',
       category: mfCategory,
     });
     setSavingMaster(false);
@@ -392,7 +393,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
             <div>
               <label className={labelCls}>Город / Район</label>
-              <input value={mfCity} onChange={(e) => setMfCity(e.target.value)} placeholder="Минск" className={inputCls} />
+              <CitySelector value={mfCityValue} onChange={setMfCityValue} />
             </div>
             <div>
               <label className={labelCls}>Специализация</label>
