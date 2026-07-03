@@ -51,10 +51,12 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
       const result = await apiGet<{ orders: OrderItem[] }>('/orders/my');
       if ('data' in result && result.data?.orders) {
         setOrders(result.data.orders);
+        setLoading(false);
         return;
       }
     } catch { /* fallback */ }
     setOrders([]);
+    setLoading(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
