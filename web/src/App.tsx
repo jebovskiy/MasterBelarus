@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
@@ -84,20 +84,35 @@ function MasterApp() {
   );
 }
 
+function usePrevious<T>(value: T): T | null {
+  const ref = useRef<T | null>(null);
+  useEffect(() => { ref.current = value; });
+  return ref.current;
+}
+
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
   const isMasterMode = profile?.current_role === 'master' && profile?.is_master;
-  const [transitioning, setTransitioning] = useState<'customer' | 'master' | null>(null);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [overlayTarget, setOverlayTarget] = useState<'customer' | 'master'>('customer');
+  const [initialLoaded, setInitialLoaded] = useState(false);
+  const prevMode = usePrevious(isMasterMode);
 
   useStartAppHandler();
 
   useEffect(() => {
-    if (isMasterMode === (transitioning === 'master')) return;
-    const target = isMasterMode ? 'master' : 'customer';
-    setTransitioning(target);
-    const t = setTimeout(() => setTransitioning(null), 2000);
+    if (!profile) return;
+    if (!initialLoaded) { setInitialLoaded(true); return; }
+    if (prevMode === isMasterMode) return;
+    setOverlayTarget(isMasterMode ? 'master' : 'customer');
+    setShowOverlay(true);
+  }, [profile, isMasterMode, prevMode, initialLoaded]);
+
+  useEffect(() => {
+    if (!showOverlay) return;
+    const t = setTimeout(() => setShowOverlay(false), 2000);
     return () => clearTimeout(t);
-  }, [isMasterMode]);
+  }, [showOverlay]);
 
   return (
     <>
@@ -128,7 +143,7 @@ function AppShell() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {transitioning && (
+        {showOverlay && (
           <motion.div
             className="fixed inset-0 z-[70] bg-[#f4f4f6] flex flex-col items-center justify-center gap-3"
             initial={{ opacity: 1 }}
@@ -138,7 +153,7 @@ function AppShell() {
           >
             <div className="w-7 h-7 border-2 border-slate-300 border-t-slate-800 rounded-full animate-spin" />
             <p className="text-sm text-slate-500 font-medium">
-              {transitioning === 'master' ? 'Переключение в режим мастера...' : 'Переключение в режим клиента...'}
+              {overlayTarget === 'master' ? 'Переключение в режим мастера...' : 'Переключение в режим клиента...'}
             </p>
           </motion.div>
         )}
