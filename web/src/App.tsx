@@ -22,7 +22,7 @@ type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin
 function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: () => void }) {
   if (!overlay) return null;
   return (
-    <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 bg-[#f4f4f6] overflow-y-auto">
+    <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[60] bg-[#f4f4f6] overflow-y-auto">
       {overlay === 'settings' && <SettingsScreen onBack={onClose} />}
       {overlay === 'edit_profile' && <EditProfileScreen onBack={onClose} />}
       {overlay === 'wallet' && <WalletScreen onBack={onClose} />}

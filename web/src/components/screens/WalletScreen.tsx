@@ -44,7 +44,7 @@ export default function WalletScreen({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-dvh bg-[#f4f4f6] flex flex-col">
+    <div className="relative min-h-dvh bg-[#f4f4f6] flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-4 pb-2 shrink-0">
         <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
         <h1 className="text-lg font-bold text-slate-900">Пополнение баланса</h1>
