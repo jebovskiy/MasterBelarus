@@ -86,14 +86,32 @@ function AppShell() {
 
   useEffect(() => {
     setShowOverlay(true);
-    const t = setTimeout(() => setShowOverlay(false), 250);
+    const t = setTimeout(() => setShowOverlay(false), 300);
     return () => clearTimeout(t);
   }, [isMasterMode]);
 
   return (
-    <>
-      <div className={isMasterMode ? 'hidden' : ''}><CustomerApp /></div>
-      <div className={isMasterMode ? '' : 'hidden'}><MasterApp /></div>
+    <div className="relative min-h-dvh overflow-hidden">
+      <div
+        className="absolute inset-0 transition-all duration-150 ease-in-out"
+        style={{
+          opacity: isMasterMode ? 0 : 1,
+          pointerEvents: isMasterMode ? 'none' : 'auto',
+          willChange: 'opacity',
+        }}
+      >
+        <CustomerApp />
+      </div>
+      <div
+        className="absolute inset-0 transition-all duration-150 ease-in-out"
+        style={{
+          opacity: isMasterMode ? 1 : 0,
+          pointerEvents: isMasterMode ? 'auto' : 'none',
+          willChange: 'opacity',
+        }}
+      >
+        <MasterApp />
+      </div>
 
       <AnimatePresence>
         {showOverlay && (
@@ -108,7 +126,7 @@ function AppShell() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
 
