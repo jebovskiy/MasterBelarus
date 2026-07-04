@@ -115,6 +115,10 @@ export function createBot(env: AppEnv): Telegraf<Context> {
     } else if (payload.startsWith('complaint_')) {
       buttonUrl += `?startapp=${payload}`;
       text = '📩 Ваша жалоба получена.\nМодератор рассмотрит её в ближайшее время.';
+    } else if (payload.startsWith('reactive_order_')) {
+      const orderId = payload.replace('reactive_order_', '');
+      buttonUrl += `?startapp=${payload}`;
+      text = `🔄 Заказ №${orderId.slice(0, 8)} готов к повторному открытию.\n\nНажмите кнопку, чтобы вернуть его в поиск и найти нового мастера.`;
     } else {
       text = `🛠 Добро пожаловать в МастерБай, ${tgUser.first_name}!\nСоздавайте заявки и находите мастеров рядом.`;
     }

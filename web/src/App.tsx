@@ -15,6 +15,7 @@ import WalletScreen from '@/components/screens/WalletScreen';
 import OrderHistoryScreen from '@/components/screens/OrderHistoryScreen';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
+import { useStartAppHandler } from '@/hooks/useStartAppHandler';
 
 type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin';
 
@@ -79,6 +80,8 @@ function MasterApp() {
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
   const isMasterMode = profile?.current_role === 'master' && profile?.is_master;
+
+  useStartAppHandler();
 
   return isMasterMode ? <MasterApp /> : <CustomerApp />;
 }

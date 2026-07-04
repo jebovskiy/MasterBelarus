@@ -180,3 +180,52 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
     return res.status(500).json({ error: 'cancel failed', detail: msg });
   }
 });
+
+/**
+ * POST /orders/:id/reactivate — вернуть отменённый заказ в статус open
+ * Только клиент, только если статус cancelled и cancelled_by === 'master'
+ */
+cancelRouter.post('/:id/reactivate', async (req: AuthedRequest, res) => {
+  const orderId = req.params.id ?? '';
+  const telegramId = req.telegram!.user.id;
+
+  try {
+    const db = getSupabaseAdmin();
+
+    const { data: profile } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    if (!profile) return res.status(404).json({ error: 'profile not found' });
+
+    const { data: order, error: orderErr } = await db
+      .from('orders')
+      .select('id, client_id, status, cancelled_by')
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr || !order) return res.status(404).json({ error: 'order not found' });
+
+    const o = order as { client_id: string; status: string; cancelled_by: string };
+
+    if (profile.id !== o.client_id) return res.status(403).json({ error: 'not your order' });
+    if (o.status !== 'cancelled') return res.status(400).json({ error: 'order is not cancelled' });
+    if (o.cancelled_by !== 'master') return res.status(400).json({ error: 'can only reactivate after master cancellation' });
+
+    const { error: updateErr } = await db
+      .from('orders')
+      .update({ status: 'open' })
+      .eq('id', orderId);
+
+    if (updateErr) throw updateErr;
+
+    logger.info({ orderId }, 'order reactivated');
+    return res.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ orderId, msg }, 'reactivate failed');
+    return res.status(500).json({ error: 'reactivate failed', detail: msg });
+  }
+});
