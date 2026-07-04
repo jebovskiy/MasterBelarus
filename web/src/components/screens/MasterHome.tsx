@@ -78,7 +78,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
 
   const openOrder = (order: NearbyOrder) => {
     setSelectedId(order.id);
-    setBidPrice(order.is_negotiable ? '' : String(order.price ?? ''));
+    setBidPrice('');
     impact('light');
   };
 
@@ -200,20 +200,22 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
         {selectedId && (
           <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div
-              className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
+              className="flex max-h-[80vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-white shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
             >
-              <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
-                <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
+              <div className="flex justify-center pt-3 pb-2 shrink-0">
+                <div className="h-1 w-12 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-5 pb-3 shrink-0">
                 <h3 className="text-base font-semibold text-slate-800">Отклик на заказ</h3>
               </div>
               {selected && (
-                <>
-                  <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-4">
-                    <p className="text-sm text-slate-600 line-clamp-2">{selected.description}</p>
+                <div className="flex flex-col flex-1 min-h-0">
+                  <div className="flex-1 overflow-y-auto px-5 space-y-4 pb-4">
+                    <p className="text-sm text-slate-600">{selected.description}</p>
                     {!selected.is_negotiable && (
                       <div>
                         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ваша цена, BYN</label>
@@ -222,15 +224,15 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     )}
                     {selected.is_negotiable && <p className="text-sm text-slate-500">Договорная цена — предложите свои условия в комментарии.</p>}
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
+                  <div className="shrink-0 px-5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] space-y-2 pt-4 border-t border-slate-100">
                     <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60">
                       {submitting ? 'Отправляю...' : 'Отправить отклик'}
                     </button>
-                    <button onClick={() => setSelectedId(null)} className="w-full mt-2 py-3 rounded-xl text-sm font-semibold text-slate-500 active:bg-slate-100 transition-colors">
+                    <button onClick={() => setSelectedId(null)} className="w-full py-3 rounded-xl text-sm font-semibold text-slate-500 active:bg-slate-100 transition-colors">
                       Передумал
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </motion.div>
           </motion.div>
