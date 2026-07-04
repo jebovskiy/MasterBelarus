@@ -117,7 +117,7 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
                   key={order.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.03 }}
+                  transition={{ delay: Math.min(idx * 0.03, 0.5) }}
                   onClick={() => {
                     if (isActive && onOpenOrder) onOpenOrder(order.id);
                     else showToast('Заказ завершён. Детали доступны в архиве', 'info');

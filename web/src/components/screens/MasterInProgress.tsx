@@ -95,13 +95,13 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
 
       <AnimatePresence>
         {cancelTarget && (
-          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div
               className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
             >
               <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
                 <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />

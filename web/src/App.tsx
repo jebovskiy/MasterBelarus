@@ -1,21 +1,22 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
 import ClientHome from '@/pages/ClientHome';
 import { MasterHome } from '@/components/screens/MasterHome';
 import { MasterInProgress } from '@/components/screens/MasterInProgress';
-import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
-import OrderDetail from '@/components/screens/OrderDetail';
 import Profile from '@/components/screens/Profile';
-import AdminPanelView from '@/components/screens/AdminPanelView';
-import SettingsScreen from '@/components/screens/SettingsScreen';
-import EditProfileScreen from '@/components/screens/EditProfileScreen';
-import WalletScreen from '@/components/screens/WalletScreen';
-import OrderHistoryScreen from '@/components/screens/OrderHistoryScreen';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
 import { useStartAppHandler } from '@/hooks/useStartAppHandler';
+
+const CreateOrderSheet = lazy(() => import('@/components/screens/CreateOrderSheet'));
+const OrderDetail = lazy(() => import('@/components/screens/OrderDetail'));
+const SettingsScreen = lazy(() => import('@/components/screens/SettingsScreen'));
+const EditProfileScreen = lazy(() => import('@/components/screens/EditProfileScreen'));
+const WalletScreen = lazy(() => import('@/components/screens/WalletScreen'));
+const OrderHistoryScreen = lazy(() => import('@/components/screens/OrderHistoryScreen'));
+const AdminPanelView = lazy(() => import('@/components/screens/AdminPanelView'));
 
 type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin';
 
@@ -23,11 +24,13 @@ function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: ()
   if (!overlay) return null;
   return (
     <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[60] bg-[#f4f4f6] overflow-y-auto">
-      {overlay === 'settings' && <SettingsScreen onBack={onClose} />}
-      {overlay === 'edit_profile' && <EditProfileScreen onBack={onClose} />}
-      {overlay === 'wallet' && <WalletScreen onBack={onClose} />}
-      {overlay === 'order_history' && <OrderHistoryScreen onBack={onClose} />}
-      {overlay === 'admin' && <AdminPanelView onClose={onClose} />}
+      <Suspense fallback={null}>
+        {overlay === 'settings' && <SettingsScreen onBack={onClose} />}
+        {overlay === 'edit_profile' && <EditProfileScreen onBack={onClose} />}
+        {overlay === 'wallet' && <WalletScreen onBack={onClose} />}
+        {overlay === 'order_history' && <OrderHistoryScreen onBack={onClose} />}
+        {overlay === 'admin' && <AdminPanelView onClose={onClose} />}
+      </Suspense>
     </motion.div>
   );
 }
@@ -46,8 +49,10 @@ function CustomerApp() {
       {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
-      <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
-      <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
+      <Suspense fallback={null}>
+        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+        <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
+      </Suspense>
 
       <AnimatePresence>
         <AppOverlay overlay={overlay} onClose={() => setOverlay(null)} />
@@ -68,7 +73,9 @@ function MasterApp() {
       {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
-      <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+      <Suspense fallback={null}>
+        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+      </Suspense>
 
       <AnimatePresence>
         <AppOverlay overlay={overlay} onClose={() => setOverlay(null)} />

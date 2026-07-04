@@ -89,7 +89,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+        <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
           <motion.div
             className="relative flex max-h-[90vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
             initial={{ y: '100%' }}

@@ -188,7 +188,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   return (
     <AnimatePresence>
       {orderId && (
-        <motion.div key={orderId} className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+        <motion.div key={orderId} className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
           <motion.div
             className="relative flex max-h-[90vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
             initial={{ y: '100%' }}
@@ -267,7 +267,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                           key={bid.id}
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.04 }}
+                          transition={{ delay: Math.min(idx * 0.04, 0.5) }}
                           className="bg-white rounded-xl p-5 border border-slate-100 space-y-3"
                         >
                           <div className="flex items-center justify-between">
@@ -344,7 +344,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
 
       <AnimatePresence>
         {showCancelSheet && (
-          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
             <motion.div
               className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
               initial={{ y: '100%' }}

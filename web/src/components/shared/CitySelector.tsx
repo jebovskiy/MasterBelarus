@@ -91,7 +91,7 @@ export default function CitySelector({ value, onChange }: Props) {
       <AnimatePresence>
         {open && (
           <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={cancel} />
+            <div className="absolute inset-0 bg-black/40 " onClick={cancel} />
             <motion.div
               className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col max-h-[70vh]"
               initial={{ y: '100%' }}

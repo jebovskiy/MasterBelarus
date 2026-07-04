@@ -87,14 +87,14 @@ function ProfileBottomSheet({ open, onClose, title, desc, children, loading }: {
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-[60] flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/40 " onClick={onClose} />
           <motion.div
             className="relative w-full max-w-[430px] bg-white rounded-t-3xl shadow-modal flex flex-col"
             style={{ maxHeight: '80dvh' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           >
             <div className="shrink-0 mx-auto mt-3 mb-2 h-1.5 w-10 rounded-full bg-slate-300" />
             <div className="shrink-0 px-5">
