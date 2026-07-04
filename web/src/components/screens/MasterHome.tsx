@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/auth';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLocation } from '@/hooks/useLocation';
 import { Avatar } from '@/components/shared/Avatar';
-import { apiPost, apiGet } from '@/lib/api';
+import { apiPost, apiGet, isErrorResult } from '@/lib/api';
+import { useToastStore } from '@/components/shared/Toast';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 
 type NearbyOrder = {
@@ -41,8 +42,10 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [bidOrderIds, setBidOrderIds] = useState<Set<string>>(new Set());
   const { impact, notification } = useHaptic();
   const { location } = useLocation();
+  const showToast = useToastStore((s) => s.showToast);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,12 +85,14 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
       comment: '',
     });
     setSubmitting(false);
-    if ('error' in result) {
+    if (isErrorResult(result)) {
       notification('error');
-      console.warn('[bid] failed:', result.error);
+      showToast('Ошибка: ' + (result.detail ?? result.error), 'error');
       return;
     }
     notification('success');
+    showToast('Отклик отправлен!', 'success');
+    setBidOrderIds((prev) => new Set(prev).add(selectedId));
     setSelectedId(null);
     setBidPrice('');
   };
@@ -173,7 +178,11 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                 <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-base font-extrabold text-primary">{order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}</p>
-                  <span className="px-3 h-8 rounded-btn bg-primary text-white text-sm font-semibold">Откликнуться</span>
+                  {bidOrderIds.has(order.id) ? (
+                    <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">✓ Вы откликнулись</span>
+                  ) : (
+                    <span className="px-3 h-8 rounded-xl bg-slate-900 text-white text-sm font-semibold flex items-center">Откликнуться</span>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -183,7 +192,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
 
       <AnimatePresence>
         {selectedId && (
-          <motion.div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div
               className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
               initial={{ y: '100%' }}
