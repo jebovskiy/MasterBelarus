@@ -25,10 +25,16 @@ function categoryEmoji(cat: string): string {
 }
 
 function formatPhone(phone?: string | null): string {
-  if (!phone) return '+375 (29) XXX-XX-XX';
-  const d = phone.replace(/\D/g, '').slice(-9);
-  if (d.length < 9) return '+375 (29) XXX-XX-XX';
-  return `+375 (29) ${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5, 7)}`;
+  if (!phone) return '+375 (XX) XXX-XX-XX';
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 7) return phone;
+  const code = d.slice(0, 3);
+  const op = d.slice(3, 5);
+  const rest = d.slice(5);
+  if (rest.length === 7) {
+    return `+${code} (${op}) ${rest.slice(0, 3)}-${rest.slice(3, 5)}-${rest.slice(5)}`;
+  }
+  return `+${code} (${op}) ${rest}`;
 }
 
 export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => void }) {
@@ -117,8 +123,13 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                 <span className="text-amber-500 text-xs">★</span>
                 <span className="text-slate-600 text-xs font-semibold">{(profile?.avg_rating ?? 5.0).toFixed(1)}</span>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">НПД</span>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {profile?.is_npd && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">НПД</span>
+                )}
+                {profile?.master_status === 'approved' && (
+                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">✅ Проверен</span>
+                )}
                 <span className="text-xs text-slate-500 font-medium">Связь: {formatPhone(profile?.phone)}</span>
               </div>
             </div>

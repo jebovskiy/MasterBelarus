@@ -210,12 +210,13 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
         phone: parsed.data.phone,
         city: parsed.data.city,
         category: parsed.data.category,
-        master_status: 'pending',
+        is_master: true,
+        current_role: 'master',
       })
       .eq('id', profileId);
     if (updateErr) throw updateErr;
 
-    // Notify moderator chat
+    // Notify moderator chat (optional verification only)
     const { getBot } = await import('../services/botRegistry.js');
     const bot = getBot();
     const chatId = env.MODERATOR_CHAT_ID;
@@ -228,7 +229,7 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
 
       const uname = (profile as { username: string | null; full_name: string | null } | null)?.username ?? '—';
       await bot.telegram.sendMessage(chatId, [
-        `👤 Новая заявка на статус мастера`,
+        `👤 Новый мастер зарегистрировался`,
         `Имя: ${parsed.data.full_name}`,
         `Телефон: ${parsed.data.phone}`,
         `Город: ${parsed.data.city}`,
@@ -239,16 +240,16 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '✅ Принять', callback_data: `approve_master:${telegramId}` },
-              { text: '❌ Отклонить', callback_data: `reject_master:${telegramId}` },
+              { text: '✅ Верифицировать', callback_data: `approve_master:${telegramId}` },
+              { text: '❌ Заблокировать', callback_data: `reject_master:${telegramId}` },
             ],
           ],
         },
       });
     }
 
-    logger.info({ telegram_id: telegramId }, 'auth/become-master submitted');
-    return res.json({ master_status: 'pending' });
+    logger.info({ telegram_id: telegramId }, 'auth/become-master activated');
+    return res.json({ is_master: true, current_role: 'master' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'auth/become-master failed');

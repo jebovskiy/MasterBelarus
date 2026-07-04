@@ -198,9 +198,9 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
       showToast(result.error || 'Ошибка', 'error');
       return;
     }
-    setProfile({ ...profile!, master_status: 'pending' });
+    setProfile({ ...profile!, is_master: true, current_role: 'master' });
     setMasterFormOpen(false);
-    showToast('Заявка отправлена на модерацию', 'success');
+    showToast('✅ Вы стали мастером!', 'success');
   };
 
   const switchRole = async () => {

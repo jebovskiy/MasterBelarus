@@ -48,8 +48,11 @@ bidsRouter.post('/:orderId/bids', async (req: JwtRequest, res) => {
       return res.status(404).json({ error: 'profile not found' });
     }
 
-    if (!profile.is_master || profile.master_status !== 'approved') {
-      return res.status(403).json({ error: 'only approved masters can bid' });
+    if (!profile.is_master) {
+      return res.status(403).json({ error: 'only masters can bid' });
+    }
+    if (profile.master_status === 'blocked') {
+      return res.status(403).json({ error: 'Ваш аккаунт заблокирован' });
     }
 
     const { data: deductOk, error: deductErr } = await dbAdmin.rpc('deduct_response', { p_master_id: profileId });
