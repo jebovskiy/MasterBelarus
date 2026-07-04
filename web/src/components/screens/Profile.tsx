@@ -110,7 +110,7 @@ function ProfileBottomSheet({ open, onClose, title, desc, children, loading }: {
                 type="submit"
                 form="bottom-sheet-form"
                 disabled={loading}
-                className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+                className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60"
               >
                 {loading ? 'Сохранение...' : 'Сохранить'}
               </button>

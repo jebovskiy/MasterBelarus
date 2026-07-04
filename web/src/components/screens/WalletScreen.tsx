@@ -34,7 +34,7 @@ export default function WalletScreen({ onBack }: Props) {
           <p className="text-sm text-slate-500">Средства зачислены на ваш счёт</p>
           <button
             onClick={onBack}
-            className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all mt-4"
+            className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all mt-4"
           >
             Вернуться
           </button>
@@ -65,7 +65,7 @@ export default function WalletScreen({ onBack }: Props) {
               <button
                 key={val}
                 onClick={() => quickSelect(val)}
-                className={`py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] ${
+                className={`py-3 rounded-xl text-sm font-semibold hover:scale-[1.02] transition-all active:scale-[0.97] ${
                   amount === val ? 'bg-slate-800 text-white shadow-md' : 'bg-[#f4f4f6] text-slate-700'
                 }`}
               >
@@ -112,7 +112,7 @@ export default function WalletScreen({ onBack }: Props) {
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#f4f4f6] via-[#f4f4f6]/95 to-transparent pt-8 pb-[calc(16px+env(safe-area-inset-bottom,0px))] px-4">
         <button
           onClick={pay}
-          className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all shadow-md"
+          className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
         >
           Перейти к оплате — {finalAmount > 0 ? `${finalAmount} BYN` : 'Сумма не указана'}
         </button>

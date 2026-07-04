@@ -205,7 +205,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               <button
                 onClick={submit}
                 disabled={submitting}
-                className="w-full bg-slate-900 text-white font-semibold text-base py-4 rounded-xl active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
+                className="w-full bg-slate-900 text-white font-semibold text-base py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
               >
                 {submitting ? 'Публикую...' : 'Создать заявку'}
               </button>

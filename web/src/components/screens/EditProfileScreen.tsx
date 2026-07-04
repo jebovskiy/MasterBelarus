@@ -182,7 +182,7 @@ export default function EditProfileScreen({ onBack }: Props) {
         <button
           onClick={save}
           disabled={saving}
-          className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-60"
+          className="w-full bg-slate-950 text-white rounded-xl py-4 font-semibold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60"
         >
           {saving ? 'Сохранение...' : 'Сохранить изменения'}
         </button>

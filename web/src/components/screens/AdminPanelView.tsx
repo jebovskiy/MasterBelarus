@@ -201,12 +201,12 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
             <button
               onClick={() => { setToken(inputToken); setInputToken(''); }}
               disabled={!inputToken.trim()}
-              className="w-full bg-slate-900 text-white rounded-xl py-4 text-sm font-semibold disabled:opacity-50 active:scale-[0.97] transition-all"
+              className="w-full bg-slate-900 text-white rounded-xl py-4 text-sm font-semibold disabled:opacity-50 hover:scale-[1.02] active:scale-[0.97] transition-all"
             >
               Войти
             </button>
             {onClose && (
-              <button onClick={onClose} className="w-full text-slate-500 text-xs py-2 active:scale-[0.97] transition-transform">
+              <button onClick={onClose} className="w-full text-slate-500 text-xs py-2 hover:scale-[1.02] active:scale-[0.97] transition-transform">
                 Отмена
               </button>
             )}
@@ -222,7 +222,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
         <div className="bg-white shadow-sm rounded-xl border border-slate-100 p-3 flex items-center justify-between">
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 active:scale-[0.97] transition-transform"
+            className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:scale-[1.02] active:scale-[0.97] transition-transform"
           >
             <span className="text-slate-400 text-lg leading-none">←</span>
             <span>Назад</span>
@@ -230,7 +230,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
           <span className="text-sm font-bold text-slate-900">Администрирование</span>
           <button
             onClick={clearToken}
-            className="text-xs font-medium text-rose-500 active:scale-[0.97] transition-transform"
+            className="text-xs font-medium text-rose-500 hover:scale-[1.02] active:scale-[0.97] transition-transform"
           >
             Выйти
           </button>
@@ -271,7 +271,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               { label: 'Заказы', value: stats.orders },
               { label: 'Отклики', value: stats.bids },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm text-center active:scale-[0.98] transition-transform">
+              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm text-center hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <p className="text-3xl font-bold text-slate-900">{s.value}</p>
                 <p className="text-xs text-slate-500 mt-1 font-medium">{s.label}</p>
               </div>
@@ -285,7 +285,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               <p className="text-sm text-slate-400 text-center py-8">Нет заказов</p>
             )}
             {orders.map((o) => (
-              <div key={o.id} className="bg-white rounded-2xl p-5 shadow-sm space-y-2 active:scale-[0.98] transition-transform">
+              <div key={o.id} className="bg-white rounded-2xl p-5 shadow-sm space-y-2 hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-slate-400">{o.id.slice(0, 8)}…</span>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -312,7 +312,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               <p className="text-sm text-slate-400 text-center py-8">Нет мастеров</p>
             )}
             {masters.map((m) => (
-              <div key={m.id} className="bg-white rounded-2xl p-5 shadow-sm active:scale-[0.98] transition-transform">
+              <div key={m.id} className="bg-white rounded-2xl p-5 shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{m.full_name}</p>
@@ -358,7 +358,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               return (
                 <div
                   key={m.telegram_id}
-                  className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 active:scale-[0.98] transition-all duration-180"
+                  className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-180"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -389,14 +389,14 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
                     <button
                       onClick={() => handleModerate(m.telegram_id, 'reject')}
                       disabled={disabled}
-                      className="w-full bg-rose-50 text-rose-600 font-medium py-3 rounded-xl text-sm active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
+                      className="w-full bg-rose-50 text-rose-600 font-medium py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
                     >
                       ❌ Отклонить
                     </button>
                     <button
                       onClick={() => handleModerate(m.telegram_id, 'approve')}
                       disabled={disabled}
-                      className="w-full bg-slate-900 text-white font-medium py-3 rounded-xl text-sm active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
+                      className="w-full bg-slate-900 text-white font-medium py-3 rounded-xl text-sm hover:scale-[1.02] active:scale-[0.97] transition-transform duration-180 disabled:opacity-50 disabled:active:scale-100"
                     >
                       ✅ Одобрить
                     </button>
@@ -413,7 +413,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
               <p className="text-sm text-slate-400 text-center py-8">Нет жалоб</p>
             )}
             {complaints.map((c) => (
-              <div key={c.id} className="bg-white rounded-2xl p-5 shadow-sm space-y-3 active:scale-[0.98] transition-transform">
+              <div key={c.id} className="bg-white rounded-2xl p-5 shadow-sm space-y-3 hover:scale-[1.02] active:scale-[0.98] transition-transform">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-900">{c.user_name}</span>
@@ -435,13 +435,13 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => handleResolveComplaint(c.id, 'rejected')}
-                      className="flex-1 bg-slate-100 text-slate-800 rounded-xl py-2.5 text-xs font-semibold active:scale-[0.97] transition-all"
+                      className="flex-1 bg-slate-100 text-slate-800 rounded-xl py-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-[0.97] transition-all"
                     >
                       Отклонить
                     </button>
                     <button
                       onClick={() => handleResolveComplaint(c.id, 'approved')}
-                      className="flex-1 bg-rose-50 text-rose-600 rounded-xl py-2.5 text-xs font-semibold active:scale-[0.97] transition-all"
+                      className="flex-1 bg-rose-50 text-rose-600 rounded-xl py-2.5 text-xs font-semibold hover:scale-[1.02] active:scale-[0.97] transition-all"
                     >
                       Заблокировать
                     </button>

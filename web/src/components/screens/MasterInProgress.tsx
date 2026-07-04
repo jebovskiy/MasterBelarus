@@ -73,7 +73,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
       )}
       <div className="space-y-3">
         {orders.map((order) => (
-          <div key={order.id} onClick={() => onOpenOrder?.(order.id)} className="bg-white rounded-2xl shadow-sm p-4 active:scale-[0.99] transition-transform cursor-pointer">
+          <div key={order.id} onClick={() => onOpenOrder?.(order.id)} className="bg-white rounded-2xl shadow-sm p-4 hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
             <div className="flex items-center justify-between mb-2">
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">{order.category}</span>
               <span className="text-[11px] text-slate-400">{formatDate(order.created_at)}</span>
@@ -84,7 +84,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
               <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}</p>
               <button
                 onClick={(e) => { e.stopPropagation(); impact('light'); setCancelTarget(order); }}
-                className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-semibold active:scale-[0.98] transition-transform"
+                className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform"
               >
                 Отменить
               </button>

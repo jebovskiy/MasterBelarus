@@ -122,7 +122,7 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
                     if (isActive && onOpenOrder) onOpenOrder(order.id);
                     else showToast('Заказ завершён. Детали доступны в архиве', 'info');
                   }}
-                  className="w-full bg-white rounded-2xl p-5 shadow-sm text-left active:scale-[0.99] transition-transform"
+                  className="w-full bg-white rounded-2xl p-5 shadow-sm text-left hover:scale-[1.02] active:scale-[0.99] transition-transform"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-semibold text-slate-800">

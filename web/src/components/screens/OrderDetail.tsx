@@ -160,25 +160,25 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const footerActions = (() => {
     if (loading || !order) return null;
     if (error) return (
-      <button onClick={load} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all">Повторить</button>
+      <button onClick={load} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">Повторить</button>
     );
     if (order.status === 'in_progress' && isOwner) return (
       <div className="space-y-2">
-        <button onClick={submitReview} disabled={reviewSubmitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-50">
+        <button onClick={submitReview} disabled={reviewSubmitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50">
           {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
         </button>
-        <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+        <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
           Отказаться от заказа
         </button>
       </div>
     );
     if (canCancelClient) return (
-      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
         Отменить заказ
       </button>
     );
     if (canCancelMaster) return (
-      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
         Отказаться от заказа
       </button>
     );
@@ -283,7 +283,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                           <button
                             onClick={() => acceptBid(bid.id)}
                             disabled={acceptingId === bid.id}
-                            className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-all"
+                            className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98] transition-all"
                           >
                             {acceptingId === bid.id ? 'Принимаю...' : 'Выбрать этого мастера'}
                           </button>
@@ -380,7 +380,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                 ))}
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
-                <button onClick={submitCancel} disabled={selectedReason === null || cancelSubmitting} className="w-full bg-rose-600 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-40">
+                <button onClick={submitCancel} disabled={selectedReason === null || cancelSubmitting} className="w-full bg-rose-600 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40">
                   {cancelSubmitting ? 'Отменяю...' : 'Подтвердить отмену'}
                 </button>
               </div>

@@ -156,7 +156,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           )}
         </div>
 
-        <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.99] transition-transform">
+        <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform">
           Редактировать анкету мастера
         </button>
 
@@ -169,7 +169,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">Пока нет заказов рядом</div>}
           <motion.div layout className="space-y-3">
             {orders.map((order, idx) => (
-              <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 40 }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card active:scale-[0.99] transition-transform cursor-pointer">
+              <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 40 }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{categoryEmoji(order.category)} {order.category}</span>
                   <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}м</div>
@@ -217,7 +217,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     {selected.is_negotiable && <p className="text-sm text-slate-500">Договорная цена — предложите свои условия в комментарии.</p>}
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
-                    <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-60">
+                    <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60">
                       {submitting ? 'Отправляю...' : 'Отправить отклик'}
                     </button>
                     <button onClick={() => setSelectedId(null)} className="w-full mt-2 py-3 rounded-xl text-sm font-semibold text-slate-500 active:bg-slate-100 transition-colors">

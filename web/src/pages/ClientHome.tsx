@@ -104,7 +104,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
           <h1 className="text-2xl font-extrabold text-slate-900 mt-1 leading-tight">Нужен мастер сегодня?</h1>
           <p className="text-[13px] text-slate-500 mt-1">Отклик за 5 минут</p>
           <div className="flex items-center justify-between mt-4">
-            <button onClick={() => onOpenCreateOrder()} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-all mr-3">+ Создать заявку</button>
+            <button onClick={() => onOpenCreateOrder()} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-all mr-3">+ Создать заявку</button>
             <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">🔨</div>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => { impact('light'); onOpenOrder?.(order.id); }}
-                className="w-full bg-white rounded-2xl p-4 shadow-sm text-left active:scale-[0.99] transition-transform border-l-[3px] border-emerald-500"
+                className="w-full bg-white rounded-2xl p-4 shadow-sm text-left hover:scale-[1.02] active:scale-[0.99] transition-transform border-l-[3px] border-emerald-500"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">

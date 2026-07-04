@@ -75,7 +75,7 @@ export default function SettingsScreen({ onBack }: Props) {
             <button
               key={value}
               onClick={() => setSettings((prev) => ({ ...prev, language: value }))}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-[#f4f4f6] active:scale-[0.99] transition-transform"
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-[#f4f4f6] hover:scale-[1.02] active:scale-[0.99] transition-transform"
             >
               <span className="text-sm text-slate-700 font-medium">{label}</span>
               {settings.language === value && <span className="text-slate-800 text-lg">✓</span>}
