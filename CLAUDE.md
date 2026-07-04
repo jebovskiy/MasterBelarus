@@ -559,3 +559,28 @@ MasterBelarus/
 - Фикс: разделён UPDATE на 2 — сначала статус (гарантированно работает), потом детали отмены (игнорируется ошибка если колонок нет)
 
 ### Commit: `5009953`
+
+---
+
+## STATE — 2026-07-03 23:30 — Master in_progress tab + OrderDetail fixes
+
+### API
+- `GET /orders/in-progress` — bids → filter in_progress orders for current master
+  - Ищет все bids мастера, собирает order_ids, фильтрует по status='in_progress'
+
+### Frontend
+- `web/src/components/screens/MasterInProgress.tsx` — список заказов в работе мастера
+  - Карточки с category, description, address, price, датой
+  - Cancel button с e.stopPropagation() (не триггерит открытие OrderDetail)
+  - Bottom sheet c 3 причинами отмены (мастер)
+  - onOpenOrder для открытия OrderDetail по тапу на карточку
+- `web/src/data/cancel-reasons.ts` — shared константы CLIENT_REASONS + MASTER_REASONS
+- `App.tsx` — placeholder заменён на `<MasterInProgress />` с onOpenOrder
+- `OrderDetail.tsx`:
+  - Добавлены `client_id`, `master_id` в OrderRow
+  - Форма отзыва скрыта для не-владельцев заказа (`isOwner` check)
+
+### Не начато
+- `/startapp=reactivate_order_{id}` handler в bot/index.ts (после отмены мастером)
+
+### Commit: `febde51`
