@@ -90,34 +90,36 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
           .select('master_id')
           .eq('order_id', orderId);
 
-        if (bids) {
-          for (const bid of bids as { master_id: string }[]) {
-            const { data: masterProfile } = await db
-              .from('profiles')
-              .select('telegram_id, full_name, username')
-              .eq('id', bid.master_id)
-              .single() as unknown as { data: { telegram_id: number; full_name: string | null; username: string | null } | null };
+        if (bids?.length) {
+          const masterIds = (bids as { master_id: string }[]).map((b) => b.master_id);
 
-            if (masterProfile) {
-              const { data: existingBal } = await db
-                .from('master_balances')
-                .select('bid_balance')
-                .eq('telegram_id', masterProfile.telegram_id)
-                .maybeSingle();
+          const { data: masters } = await db
+            .from('profiles')
+            .select('id, telegram_id, full_name, username')
+            .in('id', masterIds);
 
-              const current = (existingBal as { bid_balance: number } | null)?.bid_balance ?? 0;
+          const { data: balances } = await db
+            .from('master_balances')
+            .select('master_id, response_credits')
+            .in('master_id', masterIds);
 
-              await db
-                .from('master_balances')
-                .upsert(
-                  { telegram_id: masterProfile.telegram_id, bid_balance: current + 1 },
-                  { onConflict: 'telegram_id' },
-                );
+          const balMap = new Map((balances ?? []).map((b: any) => [b.master_id, b.response_credits]));
+          const profMap = new Map((masters ?? []).map((m: any) => [m.id, m]));
 
-              const masterName = masterProfile.full_name ?? masterProfile.username ?? 'Мастер';
-              void sendRefundNotification(masterProfile.telegram_id, masterName, orderId);
-            }
-          }
+          await Promise.allSettled(
+            (bids as { master_id: string }[]).map(async (bid) => {
+              const cur = (balMap.get(bid.master_id) as number | undefined) ?? 0;
+              await db.from('master_balances').upsert(
+                { master_id: bid.master_id, response_credits: cur + 1 },
+                { onConflict: 'master_id' },
+              );
+
+              const mp = profMap.get(bid.master_id) as { telegram_id: number; full_name: string | null; username: string | null } | undefined;
+              if (mp) {
+                void sendRefundNotification(mp.telegram_id, mp.full_name ?? mp.username ?? 'Мастер', orderId);
+              }
+            })
+          );
         }
       }
     }

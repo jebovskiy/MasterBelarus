@@ -131,20 +131,12 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
       p_lng: lng,
       p_radius: radius,
       p_category: category ?? null,
+      p_city: city ?? null,
     });
 
     if (error) throw error;
 
-    let result = data ?? [];
-    if (city) {
-      const cityPrefix = `г. ${city}`;
-      result = (result as Record<string, unknown>[]).filter((o) => {
-        const addr = o.address_text as string | undefined;
-        return addr?.startsWith(cityPrefix) ?? false;
-      });
-    }
-
-    return res.json(result);
+    return res.json(data ?? []);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'orders/nearby failed');

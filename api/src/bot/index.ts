@@ -29,7 +29,7 @@ async function getStatusText(tgId: number): Promise<string> {
   const db = getSupabaseAdmin();
   const { data: profile } = await db
     .from('profiles')
-    .select('full_name, role, current_role, is_master, master_status, phone, avg_rating, review_count')
+    .select('id, full_name, role, current_role, is_master, master_status, phone, avg_rating, review_count')
     .eq('telegram_id', tgId)
     .maybeSingle();
 
@@ -54,12 +54,12 @@ async function getStatusText(tgId: number): Promise<string> {
   if (profile.is_master && profile.master_status === 'approved') {
     const { data: bal } = await db
       .from('master_balances')
-      .select('bid_balance, total_earned')
-      .eq('telegram_id', tgId)
+      .select('response_credits, total_spent')
+      .eq('master_id', profile.id)
       .maybeSingle();
 
-    const bb = (bal as { bid_balance?: number } | null)?.bid_balance ?? 0;
-    const te = (bal as { total_earned?: number } | null)?.total_earned ?? 0;
+    const bb = (bal as { response_credits?: number } | null)?.response_credits ?? 0;
+    const te = (bal as { total_spent?: number } | null)?.total_spent ?? 0;
     lines.push(`💰 Откликов: ${bb} | Заработано: ${te} BYN`);
   }
 
