@@ -73,6 +73,13 @@ async function getStatusText(tgId: number): Promise<string> {
 export function createBot(env: AppEnv): Telegraf<Context> {
   const bot = new Telegraf<Context>(env.BOT_TOKEN);
 
+  bot.telegram.setMyCommands([
+    { command: 'start', description: '🛠 Открыть МастерБай' },
+    { command: 'menu', description: '📋 Меню (статус, правила)' },
+    { command: 'status', description: '📊 Мой статус и баланс' },
+    { command: 'help', description: '❓ Правила сервиса' },
+  ]).catch((err) => logger.warn({ err }, 'setMyCommands failed'));
+
   initNotificationService(bot);
 
   // ── /start ──
