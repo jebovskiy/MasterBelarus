@@ -633,7 +633,7 @@ MasterBelarus/
 
 ## TODO
 1. ~~Set CI — `.github/workflows/ci.yml`~~ — отложено
-2. `npm install` в корне → sanity check
+2. ~~`npm install` в корне → sanity check~~ — OK (works)
 3. ~~Railway deploy~~ — DONE
 4. Hover scale(1.02) на кнопках
 5. ~~API-валидация городов на бэкенде~~ — DONE
