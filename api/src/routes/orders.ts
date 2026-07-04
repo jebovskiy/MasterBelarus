@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
-import { authRequired } from '../middleware/auth.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { isValidCity } from '../data/belarus-cities.js';
 
 const orderLimiter = rateLimit({
@@ -12,7 +11,7 @@ const orderLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
   message: { error: 'too many orders, try later' },
 });
 
@@ -46,30 +45,27 @@ const QueryNearby = z.object({
 
 export const ordersRouter = Router();
 
-ordersRouter.use(authRequired);
+ordersRouter.use(jwtRequired);
 ordersRouter.post('/', orderLimiter);
 
 /**
  * POST /orders — создать заказ (только клиент)
  */
-ordersRouter.post('/', async (req: AuthedRequest, res) => {
+ordersRouter.post('/', async (req: JwtRequest, res) => {
   const parsed = BodyCreate.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
   }
 
   const b = parsed.data;
-
-  // Only clients can create orders
-  const profile = req.telegram!;
-  if (!profile) return res.status(401).json({ error: 'unauthorized' });
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
     const { data: order, error } = await db
       .from('orders')
       .insert({
-        client_id: (await getProfileId(db, profile.user.id))!,
+        client_id: profileId,
         category: b.category,
         description: b.description,
         price: b.price,
@@ -97,23 +93,14 @@ ordersRouter.post('/', async (req: AuthedRequest, res) => {
 /**
  * GET /orders/my — заказы текущего пользователя
  */
-ordersRouter.get('/my', async (req: AuthedRequest, res) => {
+ordersRouter.get('/my', async (req: JwtRequest, res) => {
   try {
-    const db = getSupabaseAdmin();
-    const { data: profile } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', req.telegram!.user.id)
-      .single();
-
-    if (!profile) return res.status(404).json({ error: 'profile not found' });
-
+    const db = getUserClient(req.jwtToken!);
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
 
     const { data: orders, error } = await db
       .from('orders')
       .select('*')
-      .eq('client_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -129,7 +116,7 @@ ordersRouter.get('/my', async (req: AuthedRequest, res) => {
 /**
  * GET /orders/nearby — заказы рядом с мастером (PostGIS RPC)
  */
-ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
+ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
   const q = QueryNearby.safeParse(req.query);
   if (!q.success) {
     return res.status(400).json({ error: 'invalid query', detail: q.error.flatten() });
@@ -138,10 +125,10 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
   const { lat, lng, radius, category, city } = q.data;
 
   try {
-    const db = getSupabaseAdmin();
+    const dbAdmin = getSupabaseAdmin();
     const limit = Math.min(Number(req.query.limit ?? 100), 500);
 
-    const { data, error } = await db.rpc('find_orders_nearby', {
+    const { data, error } = await dbAdmin.rpc('find_orders_nearby', {
       p_lat: lat,
       p_lng: lng,
       p_radius: radius,
@@ -163,28 +150,22 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
 /**
  * GET /orders/:id — детали заказа (только владелец, мастер с откликом или админ)
  */
-ordersRouter.get('/:id', async (req: AuthedRequest, res) => {
+ordersRouter.get('/:id', async (req: JwtRequest, res) => {
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
     const id = req.params.id;
-
-    const { data: profile } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', req.telegram!.user.id)
-      .single();
-    if (!profile) return res.status(404).json({ error: 'profile not found' });
+    const profileId = req.jwtPayload!.profile_id;
 
     const { data: order, error } = await db.from('orders').select('*').eq('id', id).single();
     if (error || !order) return res.status(404).json({ error: 'not found' });
 
-    const ownOrder = (order as { client_id: string }).client_id === profile.id;
+    const ownOrder = (order as { client_id: string }).client_id === profileId;
 
     const { data: myBid } = await db
       .from('bids')
       .select('id')
       .eq('order_id', id)
-      .eq('master_id', profile.id)
+      .eq('master_id', profileId)
       .maybeSingle();
 
     if (!ownOrder && !myBid) return res.status(403).json({ error: 'forbidden' });
@@ -207,21 +188,15 @@ ordersRouter.get('/:id', async (req: AuthedRequest, res) => {
 /**
  * GET /orders/in-progress — заказы в работе у текущего мастера
  */
-ordersRouter.get('/in-progress', async (req: AuthedRequest, res) => {
+ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
   try {
-    const db = getSupabaseAdmin();
-    const { data: profile } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', req.telegram!.user.id)
-      .single();
-
-    if (!profile) return res.status(404).json({ error: 'profile not found' });
+    const db = getUserClient(req.jwtToken!);
+    const profileId = req.jwtPayload!.profile_id;
 
     const { data: myBids } = await db
       .from('bids')
       .select('order_id')
-      .eq('master_id', profile.id);
+      .eq('master_id', profileId);
 
     const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
     if (orderIds.length === 0) return res.json({ orders: [] });
@@ -244,8 +219,3 @@ ordersRouter.get('/in-progress', async (req: AuthedRequest, res) => {
     return res.status(500).json({ error: 'in-progress failed', detail: msg });
   }
 });
-
-async function getProfileId(db: ReturnType<typeof getSupabaseAdmin>, telegramId: number): Promise<string | null> {
-  const { data } = await db.from('profiles').select('id').eq('telegram_id', telegramId).maybeSingle();
-  return (data as { id: string } | null)?.id ?? null;
-}

@@ -3,6 +3,12 @@ import { apiPost } from '@/lib/api';
 import { initTelegramSDK } from '@/lib/telegram';
 import { useAuthStore, type UserProfile } from '@/stores/auth';
 
+type LoginResponse = {
+  profile: UserProfile;
+  jwt: string;
+  publicWebUrl: string;
+};
+
 export function useTelegramAuth() {
   const { isAuthed, isAuthenticating, setProfile, clear } = useAuthStore();
   const attempted = useRef(false);
@@ -13,15 +19,20 @@ export function useTelegramAuth() {
 
     initTelegramSDK();
 
-    const result = await apiPost<{ profile: UserProfile }>('/auth/telegram');
+    try {
+      const result = await apiPost<LoginResponse>('/auth/telegram');
 
-    if ('error' in result) {
+      if ('error' in result) {
+        clear();
+        console.warn('[auth] failed:', result.error);
+        return;
+      }
+
+      setProfile(result.data.profile, result.data.jwt);
+    } catch (err) {
+      console.warn('[auth] network error:', err);
       clear();
-      console.warn('[auth] failed:', result.error);
-      return;
     }
-
-    setProfile(result.data.profile);
   }, [setProfile, clear]);
 
   useEffect(() => {

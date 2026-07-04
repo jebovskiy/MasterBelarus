@@ -1,6 +1,6 @@
 import { Telegraf, Markup, type Context } from 'telegraf';
 import type { AppEnv } from '../config/env.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { initNotificationService, sendBidNotification, notifyMasterApproved, notifyComplaintToModerator } from '../services/notifications.js';
 

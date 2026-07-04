@@ -1,21 +1,20 @@
 import { Router } from 'express';
-import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
-import { authRequired } from '../middleware/auth.js';
+import { getUserClient } from '../lib/user-client.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
 export const mastersRouter = Router();
 
-mastersRouter.use(authRequired);
+mastersRouter.use(jwtRequired);
 
 /**
  * GET /masters/:masterId/profile — публичный профиль мастера с агрегатами.
  * Доступ: любой авторизованный пользователь.
  */
-mastersRouter.get('/:masterId/profile', async (req: AuthedRequest, res) => {
+mastersRouter.get('/:masterId/profile', async (req: JwtRequest, res) => {
   const masterId = req.params.masterId;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
     const { data: profile, error: profileErr } = await db
       .from('profiles')

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import type { AdminRequest } from '../middleware/admin.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { adminRequired } from '../middleware/admin.js';
 import { notifyMasterApproved } from '../services/notifications.js';

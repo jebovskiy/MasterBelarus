@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { authRequired, type AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getUserClient } from '../lib/user-client.js';
 import { notifyComplaintToModerator } from '../services/notifications.js';
 import { logger } from '../lib/logger.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
 const complaintLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
   message: { error: 'too many complaints, try tomorrow' },
 });
 
@@ -22,28 +22,28 @@ const BodyCreate = z.object({
 });
 
 export const complaintsRouter = Router();
-complaintsRouter.use(authRequired);
+complaintsRouter.use(jwtRequired);
 complaintsRouter.post('/', complaintLimiter);
 
 /**
  * POST /complaints — подать жалобу
  */
-complaintsRouter.post('/', async (req: AuthedRequest, res) => {
+complaintsRouter.post('/', async (req: JwtRequest, res) => {
   const parsed = BodyCreate.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
   }
 
   const { text, user_role, accused_telegram_id } = parsed.data;
-  const tgUser = req.telegram?.user;
+  const telegramId = req.jwtPayload!.telegram_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
     const { data: profile } = await db
       .from('profiles')
       .select('id, full_name')
-      .eq('telegram_id', tgUser!.id)
+      .eq('id', req.jwtPayload!.profile_id)
       .single();
 
     if (!profile) return res.status(404).json({ error: 'profile not found' });
@@ -51,7 +51,7 @@ complaintsRouter.post('/', async (req: AuthedRequest, res) => {
     const { data: complaint, error } = await db
       .from('complaints')
       .insert({
-        user_name: profile.full_name ?? `User#${tgUser!.id}`,
+        user_name: profile.full_name ?? `User#${telegramId}`,
         user_role,
         text,
         status: 'pending',

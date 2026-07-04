@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
-import { authRequired } from '../middleware/auth.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { sendBidNotification, sendMasterAcceptedNotification } from '../services/notifications.js';
 
 const bidLimiter = rateLimit({
@@ -12,7 +11,7 @@ const bidLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
   message: { error: 'too many bids, try later' },
 });
 
@@ -23,25 +22,26 @@ const BodyCreate = z.object({
 
 export const bidsRouter = Router();
 
-bidsRouter.use(authRequired);
+bidsRouter.use(jwtRequired);
 bidsRouter.post('/:orderId/bids', bidLimiter);
 
-bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
+bidsRouter.post('/:orderId/bids', async (req: JwtRequest, res) => {
   const parsed = BodyCreate.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
   }
 
   const orderId = req.params.orderId;
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const dbAdmin = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
     const { data: profile, error: profileErr } = await db
       .from('profiles')
       .select('id, is_master, master_status')
-      .eq('telegram_id', telegramId)
+      .eq('id', profileId)
       .single();
 
     if (profileErr || !profile) {
@@ -52,9 +52,9 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
       return res.status(403).json({ error: 'only approved masters can bid' });
     }
 
-    const { data: deductOk, error: deductErr } = await db.rpc('deduct_response', { p_master_id: profile.id });
+    const { data: deductOk, error: deductErr } = await dbAdmin.rpc('deduct_response', { p_master_id: profileId });
     if (deductErr || deductOk === false) {
-      logger.warn({ masterId: profile.id, err: deductErr?.message, result: deductOk }, 'deduct_response failed');
+      logger.warn({ masterId: profileId, err: deductErr?.message, result: deductOk }, 'deduct_response failed');
       return res.status(402).json({ error: 'Недостаточно откликов. Пополните баланс.' });
     }
 
@@ -62,7 +62,7 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
       .from('bids')
       .insert({
         order_id: orderId,
-        master_id: profile.id,
+        master_id: profileId,
         proposed_price: parsed.data.proposed_price ?? null,
         comment: parsed.data.comment ?? null,
       })
@@ -78,12 +78,12 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
     }
 
     const [{ data: masterProfile }, { data: order }] = await Promise.all([
-      db.from('profiles').select('full_name, username, avg_rating').eq('id', profile.id).single(),
+      db.from('profiles').select('full_name, username, avg_rating').eq('id', profileId).single(),
       db.from('orders').select('category, description, client_id').eq('id', orderId).single(),
     ]);
 
     if (order && masterProfile) {
-      const { data: clientProfile } = await db
+      const { data: clientProfile } = await dbAdmin
         .from('profiles')
         .select('telegram_id')
         .eq('id', (order as { client_id: string }).client_id)
@@ -110,7 +110,7 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
       }
     }
 
-    logger.info({ orderId, masterId: profile.id }, 'bid created');
+    logger.info({ orderId, masterId: profileId }, 'bid created');
     return res.status(201).json(bid);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
@@ -119,12 +119,12 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
   }
 });
 
-bidsRouter.get('/:orderId/bids', async (req: AuthedRequest, res) => {
+bidsRouter.get('/:orderId/bids', async (req: JwtRequest, res) => {
   const orderId = req.params.orderId;
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -136,13 +136,7 @@ bidsRouter.get('/:orderId/bids', async (req: AuthedRequest, res) => {
       return res.status(404).json({ error: 'order not found' });
     }
 
-    const { data: clientProfile, error: cpErr } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', telegramId)
-      .single();
-
-    if (cpErr || !clientProfile || clientProfile.id !== (order as { client_id: string }).client_id) {
+    if (profileId !== (order as { client_id: string }).client_id) {
       return res.status(403).json({ error: 'forbidden' });
     }
 
@@ -161,12 +155,12 @@ bidsRouter.get('/:orderId/bids', async (req: AuthedRequest, res) => {
   }
 });
 
-bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: AuthedRequest, res) => {
+bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
   const { orderId, bidId } = req.params;
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -176,13 +170,7 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: AuthedRequest, res) =
 
     if (orderErr || !order) return res.status(404).json({ error: 'order not found' });
 
-    const { data: clientProfile } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', telegramId)
-      .single();
-
-    if (!clientProfile || clientProfile.id !== (order as { client_id: string }).client_id) {
+    if (profileId !== (order as { client_id: string }).client_id) {
       return res.status(403).json({ error: 'forbidden' });
     }
 
@@ -210,7 +198,9 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: AuthedRequest, res) =
 
     if (bidErr || !bid) return res.status(404).json({ error: 'bid not found' });
 
-    const { data: masterProfile } = await db
+    const dbAdmin = getSupabaseAdmin();
+
+    const { data: masterProfile } = await dbAdmin
       .from('profiles')
       .select('telegram_id')
       .eq('id', (bid as { master_id: string }).master_id)

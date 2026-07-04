@@ -1,13 +1,15 @@
+import { randomBytes } from 'node:crypto';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { fileTypeFromBuffer } from 'file-type';
+import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { z } from 'zod';
-import { getSupabaseAdmin, type DBProfile } from '../lib/supabase.js';
+import { getSupabaseAdmin, getUserClient, type DBProfile } from '../lib/user-client.js';
 import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
-import { authRequired, type AuthedRequest } from '../middleware/auth.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { isValidCity } from '../data/belarus-cities.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -85,26 +87,39 @@ authRouter.post('/telegram', async (req, res) => {
       profile.avatar_url = photoUrl;
     }
 
-    // Generate a Supabase service-role session for the user. We use
-    // signInWithIdToken mock: since v2 has no admin login-by-telegram, we hand
-    // back a short-lived access token issued with service-role scope restricted
-    // by RLS. The client uses username/password-less access via custom header.
-    //
-    // NOTE: real RLS-bound tokens for Telegram users are out of scope for Sprint
-    // 1. Sprint 3 will swap this for a permanent Supabase session created via
-    // the admin API and a `signed_access_token` flow.
-    const session = {
-      type: 'service' as const,
-      issuedAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 60 * 12,
-      profile,
-    };
+    // Create/link Supabase Auth user
+    let authUserId = profile.auth_user_id;
+    if (!authUserId) {
+      const email = `tg_${telegramId}@mb.internal`;
+      const password = randomBytes(24).toString('hex');
+      const { data: authUser, error: createErr } = await db.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { telegram_id: telegramId },
+      });
+      if (createErr) {
+        logger.warn({ msg: createErr.message }, 'auth user creation failed');
+      }
+      if (authUser?.user?.id) {
+        authUserId = authUser.user.id;
+        await db.from('profiles').update({ auth_user_id: authUserId }).eq('id', profile.id);
+        profile.auth_user_id = authUserId;
+      }
+    }
+
+    // Sign JWT
+    const jwtToken = jwt.sign(
+      { sub: authUserId ?? profile.id, profile_id: profile.id, telegram_id: telegramId },
+      env.JWT_SECRET,
+      { expiresIn: '7d' },
+    );
 
     logger.info({ telegram_id: telegramId }, 'auth/telegram ok');
 
     return res.json({
       profile,
-      session,
+      jwt: jwtToken,
       publicWebUrl: env.PUBLIC_WEB_URL,
     });
   } catch (err) {
@@ -117,7 +132,7 @@ authRouter.post('/telegram', async (req, res) => {
 /**
  * POST /auth/avatar — загрузить аватарку
  */
-authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: AuthedRequest, res) => {
+authRouter.post('/avatar', jwtRequired, upload.single('avatar'), async (req: JwtRequest, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'file missing' });
   if (!file.mimetype.startsWith('image/')) {
@@ -130,31 +145,26 @@ authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: Au
   }
 
   try {
-    const db = getSupabaseAdmin();
-    const { data: existing } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', req.telegram!.user.id)
-      .maybeSingle();
-    if (!existing) return res.status(404).json({ error: 'profile not found' });
+    const profileId = req.jwtPayload!.profile_id;
+    const dbAdmin = getSupabaseAdmin();
 
     const extMap: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
     const ext = extMap[file.mimetype] ?? 'jpg';
     const timestamp = Date.now();
-    const filePath = `u_${existing.id}_${timestamp}.${ext}`;
+    const filePath = `u_${profileId}_${timestamp}.${ext}`;
 
-    const { error: uploadErr } = await db.storage.from('avatars').upload(filePath, file.buffer, {
+    const { error: uploadErr } = await dbAdmin.storage.from('avatars').upload(filePath, file.buffer, {
       contentType: file.mimetype,
       upsert: false,
     });
     if (uploadErr) throw uploadErr;
 
-    const { data: publicUrl } = db.storage.from('avatars').getPublicUrl(filePath);
+    const { data: publicUrl } = dbAdmin.storage.from('avatars').getPublicUrl(filePath);
 
-    const { error: updateErr } = await db
+    const { error: updateErr } = await dbAdmin
       .from('profiles')
       .update({ avatar_url: publicUrl.publicUrl })
-      .eq('id', existing.id);
+      .eq('id', profileId);
     if (updateErr) throw updateErr;
 
     return res.json({ avatar_url: publicUrl.publicUrl });
@@ -168,7 +178,7 @@ authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: Au
 /**
  * POST /auth/become-master — подать заявку на статус мастера
  */
-authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) => {
+authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
   const Schema = z.object({
     full_name: z.string().min(1).max(200),
     phone: z.string().min(5).max(20),
@@ -179,11 +189,15 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
   if (!parsed.success) return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
 
   try {
-    const db = getSupabaseAdmin();
+    const profileId = req.jwtPayload!.profile_id;
+    const telegramId = req.jwtPayload!.telegram_id;
+    const dbAdmin = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
+
     const { data: existing } = await db
       .from('profiles')
       .select('id, master_status')
-      .eq('telegram_id', req.telegram!.user.id)
+      .eq('id', profileId)
       .maybeSingle();
     if (!existing) return res.status(404).json({ error: 'profile not found' });
     if (existing.master_status === 'pending') return res.status(400).json({ error: 'already pending' });
@@ -198,7 +212,7 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
         category: parsed.data.category,
         master_status: 'pending',
       })
-      .eq('id', existing.id);
+      .eq('id', profileId);
     if (updateErr) throw updateErr;
 
     // Notify moderator chat
@@ -206,28 +220,34 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
     const bot = getBot();
     const chatId = env.MODERATOR_CHAT_ID;
     if (chatId) {
-      const user = req.telegram!.user;
+      const { data: profile } = await dbAdmin
+        .from('profiles')
+        .select('username, full_name')
+        .eq('id', profileId)
+        .single();
+
+      const uname = (profile as { username: string | null; full_name: string | null } | null)?.username ?? '—';
       await bot.telegram.sendMessage(chatId, [
         `👤 Новая заявка на статус мастера`,
         `Имя: ${parsed.data.full_name}`,
         `Телефон: ${parsed.data.phone}`,
         `Город: ${parsed.data.city}`,
         `Специализация: ${parsed.data.category}`,
-        `Telegram ID: ${user.id}`,
-        `Username: @${user.username ?? '—'}`,
+        `Telegram ID: ${telegramId}`,
+        `Username: @${uname}`,
       ].join('\n'), {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '✅ Принять', callback_data: `approve_master:${user.id}` },
-              { text: '❌ Отклонить', callback_data: `reject_master:${user.id}` },
+              { text: '✅ Принять', callback_data: `approve_master:${telegramId}` },
+              { text: '❌ Отклонить', callback_data: `reject_master:${telegramId}` },
             ],
           ],
         },
       });
     }
 
-    logger.info({ telegram_id: req.telegram!.user.id }, 'auth/become-master submitted');
+    logger.info({ telegram_id: telegramId }, 'auth/become-master submitted');
     return res.json({ master_status: 'pending' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
@@ -239,13 +259,15 @@ authRouter.post('/become-master', authRequired, async (req: AuthedRequest, res) 
 /**
  * POST /auth/switch-role — переключить current_role (только если is_master)
  */
-authRouter.post('/switch-role', authRequired, async (req: AuthedRequest, res) => {
+authRouter.post('/switch-role', jwtRequired, async (req: JwtRequest, res) => {
   try {
-    const db = getSupabaseAdmin();
+    const profileId = req.jwtPayload!.profile_id;
+    const db = getUserClient(req.jwtToken!);
+
     const { data: existing } = await db
       .from('profiles')
       .select('id, is_master, current_role')
-      .eq('telegram_id', req.telegram!.user.id)
+      .eq('id', profileId)
       .maybeSingle();
     if (!existing) return res.status(404).json({ error: 'profile not found' });
     if (!existing.is_master) return res.status(403).json({ error: 'not a master' });
@@ -254,7 +276,7 @@ authRouter.post('/switch-role', authRequired, async (req: AuthedRequest, res) =>
     const { error: updateErr } = await db
       .from('profiles')
       .update({ current_role: newRole })
-      .eq('id', existing.id);
+      .eq('id', profileId);
     if (updateErr) throw updateErr;
 
     return res.json({ current_role: newRole });
@@ -268,13 +290,15 @@ authRouter.post('/switch-role', authRequired, async (req: AuthedRequest, res) =>
 /**
  * GET /auth/master-status — текущий статус мастера
  */
-authRouter.get('/master-status', authRequired, async (req: AuthedRequest, res) => {
+authRouter.get('/master-status', jwtRequired, async (req: JwtRequest, res) => {
   try {
-    const db = getSupabaseAdmin();
+    const profileId = req.jwtPayload!.profile_id;
+    const db = getUserClient(req.jwtToken!);
+
     const { data } = await db
       .from('profiles')
       .select('is_master, current_role, master_status')
-      .eq('telegram_id', req.telegram!.user.id)
+      .eq('id', profileId)
       .maybeSingle();
     if (!data) return res.status(404).json({ error: 'profile not found' });
     return res.json(data);
@@ -296,21 +320,15 @@ const ProfileUpdate = z.object({
 /**
  * PATCH /auth/profile — обновить профиль пользователя
  */
-authRouter.patch('/profile', authRequired, async (req: AuthedRequest, res) => {
+authRouter.patch('/profile', jwtRequired, async (req: JwtRequest, res) => {
   const parsed = ProfileUpdate.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
   }
 
   try {
-    const db = getSupabaseAdmin();
-    const { data: existing } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', req.telegram!.user.id)
-      .maybeSingle();
-
-    if (!existing) return res.status(404).json({ error: 'profile not found' });
+    const profileId = req.jwtPayload!.profile_id;
+    const db = getUserClient(req.jwtToken!);
 
     const { categories, ...profileFields } = parsed.data;
     const updates: Record<string, unknown> = {};
@@ -321,21 +339,21 @@ authRouter.patch('/profile', authRequired, async (req: AuthedRequest, res) => {
     if (profileFields.radius_km !== undefined) updates.radius_km = profileFields.radius_km;
 
     if (Object.keys(updates).length > 0) {
-      const { error: updateErr } = await db.from('profiles').update(updates).eq('id', existing.id);
+      const { error: updateErr } = await db.from('profiles').update(updates).eq('id', profileId);
       if (updateErr) throw updateErr;
     }
 
     if (categories) {
-      await db.from('master_categories').delete().eq('master_id', existing.id);
+      await db.from('master_categories').delete().eq('master_id', profileId);
       if (categories.length > 0) {
         const { error: catErr } = await db.from('master_categories').insert(
-          categories.map((cat) => ({ master_id: existing.id, category: cat })),
+          categories.map((cat) => ({ master_id: profileId, category: cat })),
         );
         if (catErr) throw catErr;
       }
     }
 
-    const { data: updated } = await db.from('profiles').select('*').eq('id', existing.id).single();
+    const { data: updated } = await db.from('profiles').select('*').eq('id', profileId).single();
     return res.json(updated);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';

@@ -1,17 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getUserClient } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
-import { authRequired } from '../middleware/auth.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
 const reviewLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
   message: { error: 'too many reviews, try later' },
 });
 
@@ -22,26 +21,25 @@ const BodyCreate = z.object({
 
 export const reviewsRouter = Router();
 
-reviewsRouter.use(authRequired);
+reviewsRouter.use(jwtRequired);
 reviewsRouter.post('/:orderId/review', reviewLimiter);
 
 /**
  * POST /orders/:orderId/review — оставить отзыв о мастере
  * Доступен только клиенту, владеющему заказом, и только для заказов 'in_progress' или 'completed'.
  */
-reviewsRouter.post('/:orderId/review', async (req: AuthedRequest, res) => {
+reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
   const parsed = BodyCreate.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
   }
 
   const orderId = req.params.orderId;
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
 
-    // Verify client owns the order
     const { data: order, error: orderErr } = await db
       .from('orders')
       .select('client_id, master_id, status')
@@ -52,13 +50,7 @@ reviewsRouter.post('/:orderId/review', async (req: AuthedRequest, res) => {
       return res.status(404).json({ error: 'order not found' });
     }
 
-    const { data: clientProfile } = await db
-      .from('profiles')
-      .select('id, role')
-      .eq('telegram_id', telegramId)
-      .single();
-
-    if (!clientProfile || clientProfile.id !== (order as { client_id: string }).client_id) {
+    if (profileId !== (order as { client_id: string }).client_id) {
       return res.status(403).json({ error: 'forbidden' });
     }
 
@@ -82,7 +74,7 @@ reviewsRouter.post('/:orderId/review', async (req: AuthedRequest, res) => {
       .from('reviews')
       .insert({
         order_id: orderId,
-        client_id: (clientProfile as { id: string }).id,
+        client_id: profileId,
         master_id: (order as { master_id: string }).master_id,
         rating: parsed.data.rating,
         comment: parsed.data.comment ?? '',

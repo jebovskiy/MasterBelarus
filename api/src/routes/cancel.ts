@@ -1,17 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin } from '../lib/supabase.js';
+import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
-import { authRequired } from '../middleware/auth.js';
+import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
 const cancelLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
   message: { error: 'too many cancellations, try later' },
 });
 import { checkCancelRate } from '../services/cancelTracker.js';
@@ -28,10 +27,10 @@ const BodyCancel = z.object({
 
 export const cancelRouter = Router();
 
-cancelRouter.use(authRequired);
+cancelRouter.use(jwtRequired);
 cancelRouter.post('/:id/cancel', cancelLimiter);
 
-cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
+cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
   const parsed = BodyCancel.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({ error: 'invalid body', detail: parsed.error.flatten() });
@@ -39,15 +38,17 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
 
   const { cancelled_by, cancellation_reason_id, cancellation_reason_text } = parsed.data;
   const orderId = req.params.id ?? '';
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
+  const telegramId = req.jwtPayload!.telegram_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const db = getUserClient(req.jwtToken!);
+    const dbAdmin = getSupabaseAdmin();
 
     const { data: profile } = await db
       .from('profiles')
       .select('id')
-      .eq('telegram_id', telegramId)
+      .eq('id', profileId)
       .single();
 
     if (!profile) return res.status(404).json({ error: 'profile not found' });
@@ -70,7 +71,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
     if (o.status === 'cancelled') return res.status(400).json({ error: 'already cancelled' });
 
     if (cancelled_by === 'client') {
-      if (profile.id !== o.client_id) return res.status(403).json({ error: 'not your order' });
+      if (profileId !== o.client_id) return res.status(403).json({ error: 'not your order' });
       if (o.status !== 'open') return res.status(400).json({ error: 'can only cancel open orders' });
 
       const validIds: number[] = CLIENT_REASONS.map(r => r.id);
@@ -83,8 +84,8 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
 
       const rate = checkCancelRate(telegramId);
       if (!rate.allowed) {
-        await db.from('profiles').update({ suspicious: true }).eq('telegram_id', telegramId);
-        await db.from('complaints').insert({
+        await dbAdmin.from('profiles').update({ suspicious: true }).eq('id', profileId);
+        await dbAdmin.from('complaints').insert({
           user_name: `user_${telegramId}`,
           user_role: 'client',
           text: `Автоматический тикет: превышение лимита отмен (${rate.count} за 24ч).`,
@@ -96,7 +97,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
         (Date.now() - new Date(o.created_at).getTime()) < REFUND_WINDOW_MS;
 
       if (isEarlyCancel) {
-        const { data: bids } = await db
+        const { data: bids } = await dbAdmin
           .from('bids')
           .select('master_id')
           .eq('order_id', orderId);
@@ -104,12 +105,12 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
         if (bids?.length) {
           const masterIds = (bids as { master_id: string }[]).map((b) => b.master_id);
 
-          const { data: masters } = await db
+          const { data: masters } = await dbAdmin
             .from('profiles')
             .select('id, telegram_id, full_name, username')
             .in('id', masterIds);
 
-          const { data: balances } = await db
+          const { data: balances } = await dbAdmin
             .from('master_balances')
             .select('master_id, response_credits')
             .in('master_id', masterIds);
@@ -120,7 +121,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
           await Promise.allSettled(
             (bids as { master_id: string }[]).map(async (bid) => {
               const cur = (balMap.get(bid.master_id) as number | undefined) ?? 0;
-              await db.from('master_balances').upsert(
+              await dbAdmin.from('master_balances').upsert(
                 { master_id: bid.master_id, response_credits: cur + 1 },
                 { onConflict: 'master_id' },
               );
@@ -140,7 +141,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
         .from('bids')
         .select('master_id')
         .eq('order_id', orderId)
-        .eq('master_id', profile.id)
+        .eq('master_id', profileId)
         .maybeSingle();
 
       if (!bid) return res.status(403).json({ error: 'you are not assigned to this order' });
@@ -155,7 +156,7 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
       const reasonObj = MASTER_REASONS.find(r => r.id === cancellation_reason_id);
       const reasonLabel = reasonObj?.label ?? 'Другое';
 
-      const { data: clientProfile } = await db
+      const { data: clientProfile } = await dbAdmin
         .from('profiles')
         .select('telegram_id')
         .eq('id', o.client_id)
@@ -166,14 +167,14 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
       }
     }
 
-    const { error: statusErr } = await db
+    const { error: statusErr } = await dbAdmin
       .from('orders')
       .update({ status: 'cancelled' })
       .eq('id', orderId);
     if (statusErr) throw statusErr;
 
     // try to persist cancellation details (columns may not exist yet — ignore if so)
-    const { error: detailErr } = await db
+    const { error: detailErr } = await dbAdmin
       .from('orders')
       .update({
         cancelled_by,
@@ -198,22 +199,14 @@ cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
  * POST /orders/:id/reactivate — вернуть отменённый заказ в статус open
  * Только клиент, только если статус cancelled и cancelled_by === 'master'
  */
-cancelRouter.post('/:id/reactivate', async (req: AuthedRequest, res) => {
+cancelRouter.post('/:id/reactivate', async (req: JwtRequest, res) => {
   const orderId = req.params.id ?? '';
-  const telegramId = req.telegram!.user.id;
+  const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getSupabaseAdmin();
+    const dbAdmin = getSupabaseAdmin();
 
-    const { data: profile } = await db
-      .from('profiles')
-      .select('id')
-      .eq('telegram_id', telegramId)
-      .single();
-
-    if (!profile) return res.status(404).json({ error: 'profile not found' });
-
-    const { data: order, error: orderErr } = await db
+    const { data: order, error: orderErr } = await dbAdmin
       .from('orders')
       .select('id, client_id, status, cancelled_by')
       .eq('id', orderId)
@@ -223,11 +216,11 @@ cancelRouter.post('/:id/reactivate', async (req: AuthedRequest, res) => {
 
     const o = order as { client_id: string; status: string; cancelled_by: string };
 
-    if (profile.id !== o.client_id) return res.status(403).json({ error: 'not your order' });
+    if (profileId !== o.client_id) return res.status(403).json({ error: 'not your order' });
     if (o.status !== 'cancelled') return res.status(400).json({ error: 'order is not cancelled' });
     if (o.cancelled_by !== 'master') return res.status(400).json({ error: 'can only reactivate after master cancellation' });
 
-    const { error: updateErr } = await db
+    const { error: updateErr } = await dbAdmin
       .from('orders')
       .update({ status: 'open' })
       .eq('id', orderId);

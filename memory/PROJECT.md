@@ -728,7 +728,125 @@ pm install + sanity check (api + web)
   - **Profile** (стать мастером): `city` через CitySelector
 - Коммит: `b3474fd`
 - Не начато: API-валидация городов на бэкенде, поиск по городу в ленте мастеров
-- **Profile** (стать мастером): `city` через CitySelector
-- Коммит: `b3474fd`
-- Не начато: API-валидация городов на бэкенде, поиск по городу в ленте мастеров
+
+---
+## STATE — 2026-07-04 12:00 — JWT Auth Migration (service_role → RLS)
+
+### Проблема
+Все user-facing запросы шли через `getSupabaseAdmin()` (service_role key) — Supabase RLS не работала, любой авторизованный пользователь мог читать/писать любые данные.
+
+### Решение
+JWT-аутентификация: `POST /auth/telegram` создает Supabase Auth user, подписывает JWT (7d expiry), клиент шлет `Authorization: Bearer <jwt>`, backend использует `getUserClient(jwt)` — Supabase клиент с anon key + user JWT, RLS enforced.
+
+### Что сделано
+
+**Зависимости + env:**
+- `api/package.json`: добавлен `jsonwebtoken` + `@types/jsonwebtoken`
+- `api/src/config/env.ts`: `JWT_SECRET`, `SUPABASE_ANON_KEY` (валидация на старте)
+- `api/.env.example`: обновлён
+
+**Migration 019 — `20260701000019_jwt_auth.sql`:**
+- `profiles.auth_user_id uuid` (FK → auth.users, ON DELETE SET NULL)
+- RLS policies на 7 таблицах:
+  - `profiles`: read own, update own; админ-фильтры через `admin_access`
+  - `orders`: read own (client) + open (masters); update own; insert own
+  - `bids`: read own (master=me) + order owner (client); insert own; update (client on own order)
+  - `reviews`: read order participants; insert own (client of completed order)
+  - `master_categories`: read all; insert/update own
+  - `master_balances`: read own
+  - `notifications_log`: read own (by telegram_id via RLS helper)
+
+**JWT middleware — `api/src/middleware/jwt.ts`:**
+- `jwtRequired`: верификация `Authorization: Bearer <token>` → `req.jwtPayload` (sub, profile_id, telegram_id) + `req.jwtToken`
+- `JwtRequest` тип
+
+**User-client helper — `api/src/lib/user-client.ts`:**
+- `getUserClient(jwt)` — Supabase клиент с anon key + user JWT (RLS). LRU cache (max 100)
+- `getSupabaseAdmin()` — service_role клиент (RPC, уведомления, админка)
+- Заменил старый `api/src/lib/supabase.ts` (удалён)
+
+**POST /auth/telegram — `api/src/routes/auth.ts`:**
+- HMAC-валидация initData (как было)
+- Upsert профиля
+- Создание Supabase Auth user: email `tg_{telegramId}@mb.internal`, password random 48-char hex, `email_confirm: true`, `auth.admin.createUser()`
+- Линковка `profiles.auth_user_id`
+- Подпись JWT: `{ sub: authUserId, profile_id: profileId, telegram_id }`
+- Ответ: `{ profile, jwt, publicWebUrl }` вместо старого `{ profile }`
+
+**User-facing routes migrated (все):**
+- `orders.ts` (6 эндпоинтов): jwtRequired + getUserClient().
+  - `find_orders_nearby` RPC — всё ещё через dbAdmin для PostGIS
+  - `deduct_response` — dbAdmin
+- `bids.ts` (3 эндпоинта): jwtRequired + getUserClient()
+- `reviews.ts`: jwtRequired + getUserClient()
+- `cancel.ts`: jwtRequired + getUserClient(); refund + notification lookup через dbAdmin
+- `complaints.ts`: jwtRequired + getUserClient()
+- `auth.ts` sub-routes: become-master, switch-role, master-status, PATCH profile, POST avatar
+- `masters.ts`: jwtRequired + getUserClient()
+
+**Cleanup:**
+- `api/src/middleware/auth.ts` — удалён (не используется)
+- `api/src/lib/supabase.ts` — удалён (заменён user-client.ts)
+- Все imports `../lib/supabase.js` → `../lib/user-client.js`
+- Rate limit key generators: `req.telegram.user.id` → `req.jwtPayload.telegram_id`
+
+**Frontend:**
+- `web/src/stores/auth.ts`:
+  - Добавлено поле `jwt: string | null`
+  - `setProfile(p, jwt?)` принимает опциональный JWT
+  - `clear()` сбрасывает jwt
+- `web/src/lib/api.ts`:
+  - `authHeaders()`: если `jwt` есть — `Authorization: Bearer <jwt>`, иначе `x-telegram-init-data` (fallback)
+  - На `401` → `clear()`
+- `web/src/hooks/useTelegramAuth.ts`:
+  - Тип ответа `LoginResponse = { profile, jwt, publicWebUrl }`
+  - Сохраняет `jwt` через `setProfile(result.data.profile, result.data.jwt)`
+
+### Где остался service_role (оправданно)
+- `find_orders_nearby` (PostGIS RPC — не поддерживает RLS)
+- `deduct_response` (RPC)
+- Notification lookups: telegram_id скрыт RLS → нужен dbAdmin
+- Admin routes (cross-user доступ)
+- Storage uploads (avatar bucket)
+- Bot handlers (telegraf)
+
+### Ключевые решения
+- JWT 7d без refresh-токена. На 401 → ре-логин через initData
+- Supabase Auth user создаётся в `POST /auth/telegram`, не при регистрации
+- При ошибке создания Auth user (дубликат email, сеть): профиль возвращается без JWT, фронт показывает ошибку
+- LRU cache для getUserClient: 100 entries, избегает пересоздания клиентов на каждый запрос
+- RLS helper `is_telegram_user()` использует `auth.uid()` → `profiles.auth_user_id`
+
+### Verification
+- API: `tsc --noEmit` → pass
+- Web: `tsc -b && vite build` → pass
+
+### Файлы
+- `api/src/middleware/jwt.ts` — новый
+- `api/src/lib/user-client.ts` — новый (замена supabase.ts)
+- `api/src/config/env.ts` — JWT_SECRET, SUPABASE_ANON_KEY
+- `api/src/routes/auth.ts` — JWT issuance + миграция всех sub-routes
+- `api/src/routes/orders.ts` — 6 endpoints migrated
+- `api/src/routes/bids.ts` — 3 endpoints migrated
+- `api/src/routes/reviews.ts` — migrated
+- `api/src/routes/cancel.ts` — migrated
+- `api/src/routes/complaints.ts` — migrated
+- `api/src/routes/masters.ts` — migrated
+- `api/src/middleware/auth.ts` — деинсталлирован
+- `api/src/lib/supabase.ts` — деинсталлирован
+- `api/src/bot/index.ts` — import fix
+- `api/src/routes/admin.ts` — import fix
+- `web/src/stores/auth.ts` — +jwt field
+- `web/src/lib/api.ts` — Authorization header, 401 clear
+- `web/src/hooks/useTelegramAuth.ts` — JWT из ответа
+- `supabase/migrations/20260701000019_jwt_auth.sql` — RLS policies
+
+---
+## STATE — 2026-07-04 12:40 — Fix infinite loading on network error
+
+### Проблема
+`useTelegramAuth().authenticate()` не перехватывала reject от `fetch`. При сетевой ошибке (API не запущен, CORS, DNS) промис реджектился, `isAuthenticating` оставался `true` навсегда — SplashScreen висел бесконечно.
+
+### Фикс
+- `web/src/hooks/useTelegramAuth.ts`: `apiPost()` обёрнут в try/catch, при любой ошибке сети вызывается `clear()` → `isAuthenticating: false` → экран ошибки вместо бесконечного спиннера
 

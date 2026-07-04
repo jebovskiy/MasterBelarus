@@ -18,16 +18,18 @@ export type UserProfile = {
 
 type AuthState = {
   profile: UserProfile | null;
+  jwt: string | null;
   isAuthed: boolean;
   isAuthenticating: boolean;
-  setProfile: (p: UserProfile) => void;
+  setProfile: (p: UserProfile, jwt?: string) => void;
   clear: () => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
   profile: null,
+  jwt: null,
   isAuthed: false,
   isAuthenticating: true,
-  setProfile: (p) => set({ profile: p, isAuthed: true, isAuthenticating: false }),
-  clear: () => set({ profile: null, isAuthed: false, isAuthenticating: false }),
+  setProfile: (p, jwt) => set({ profile: p, jwt: jwt ?? null, isAuthed: true, isAuthenticating: false }),
+  clear: () => set({ profile: null, jwt: null, isAuthed: false, isAuthenticating: false }),
 }));

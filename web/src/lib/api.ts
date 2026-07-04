@@ -1,4 +1,5 @@
 import { getTelegramInitData } from './telegram.js';
+import { useAuthStore } from '@/stores/auth';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -9,6 +10,9 @@ export function isErrorResult<T>(r: ApiResult<T>): r is { data?: never; error: s
 }
 
 function authHeaders(): Record<string, string> {
+  const jwt = useAuthStore.getState().jwt;
+  if (jwt) return { Authorization: `Bearer ${jwt}` };
+
   const initData = getTelegramInitData();
   return initData ? { 'x-telegram-init-data': initData } : {};
 }
@@ -16,6 +20,9 @@ function authHeaders(): Record<string, string> {
 async function handle<T>(res: Response): Promise<ApiResult<T>> {
   const json = (await res.json()) as Record<string, unknown>;
   if (!res.ok) {
+    if (res.status === 401) {
+      useAuthStore.getState().clear();
+    }
     return { error: (json.error as string) ?? res.statusText, detail: json.detail as string | undefined };
   }
   return { data: json as unknown as T };
