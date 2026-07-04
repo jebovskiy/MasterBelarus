@@ -196,6 +196,44 @@ ordersRouter.patch('/:id/status', async (req: AuthedRequest, res) => {
   }
 });
 
+/**
+ * GET /orders/in-progress — заказы в работе у текущего мастера
+ */
+ordersRouter.get('/in-progress', async (req: AuthedRequest, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const { data: profile } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', req.telegram!.user.id)
+      .single();
+
+    if (!profile) return res.status(404).json({ error: 'profile not found' });
+
+    const { data: myBids } = await db
+      .from('bids')
+      .select('order_id')
+      .eq('master_id', profile.id);
+
+    const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
+    if (orderIds.length === 0) return res.json({ orders: [] });
+
+    const { data: orders, error } = await db
+      .from('orders')
+      .select('*')
+      .in('id', orderIds)
+      .eq('status', 'in_progress')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ orders: orders ?? [] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'orders/in-progress failed');
+    return res.status(500).json({ error: 'in-progress failed', detail: msg });
+  }
+});
+
 async function getProfileId(db: ReturnType<typeof getSupabaseAdmin>, telegramId: number): Promise<string | null> {
   const { data } = await db.from('profiles').select('id').eq('telegram_id', telegramId).maybeSingle();
   return (data as { id: string } | null)?.id ?? null;

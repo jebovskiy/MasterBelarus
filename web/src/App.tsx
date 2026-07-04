@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
 import ClientHome from '@/pages/ClientHome';
 import { MasterHome } from '@/components/screens/MasterHome';
+import { MasterInProgress } from '@/components/screens/MasterInProgress';
 import CreateOrderSheet from '@/components/screens/CreateOrderSheet';
 import OrderDetail from '@/components/screens/OrderDetail';
 import Profile from '@/components/screens/Profile';
@@ -62,11 +63,7 @@ function MasterApp() {
   return (
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'feed' && <MasterHome onNavigate={(s) => setOverlay(s as Overlay)} />}
-      {tab === 'in_progress' && (
-        <div className="px-4 pt-4">
-          <p className="text-slate-400 text-sm text-center py-10">Заказы в работе</p>
-        </div>
-      )}
+      {tab === 'in_progress' && <MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} />}
       {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />

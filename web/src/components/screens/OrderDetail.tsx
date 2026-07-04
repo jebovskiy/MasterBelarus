@@ -18,6 +18,8 @@ type OrderRow = {
   cancelled_by?: string;
   cancellation_reason_id?: number;
   cancellation_reason_text?: string;
+  client_id: string;
+  master_id?: string;
 };
 
 type Bid = {
@@ -148,10 +150,12 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     setOrder((prev) => (prev ? { ...prev, status: 'cancelled', cancelled_by: currentRole === 'master' ? 'master' : 'client', cancellation_reason_id: selectedReason } : prev));
   };
 
+  const profile = useAuthStore((s) => s.profile);
   const role = currentRole ?? 'customer';
   const reasons = role === 'master' ? MASTER_REASONS : CLIENT_REASONS;
   const canCancelClient = role === 'customer' && order?.status === 'open';
   const canCancelMaster = role === 'master' && order?.status === 'in_progress';
+  const isOwner = order !== null && profile !== null && order.client_id === profile.id;
 
   return (
     <AnimatePresence>
@@ -264,7 +268,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                     </div>
                   )}
 
-                  {order.status === 'in_progress' && (
+                  {order.status === 'in_progress' && isOwner && (
                     <div className="bg-[#f4f4f6] rounded-xl p-5 space-y-4">
                       <p className="text-sm font-bold text-slate-800">Оставить отзыв о выполнении</p>
                       <div className="flex gap-1">

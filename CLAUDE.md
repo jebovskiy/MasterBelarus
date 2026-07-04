@@ -480,3 +480,82 @@ MasterBelarus/
   - **Profile** (стать мастером): `city` через CitySelector
 - Коммит: `b3474fd`
 - Не начато: API-валидация городов на бэкенде, поиск по городу в ленте мастеров
+
+---
+
+## STATE — 2026-07-03 12:40 — Order cancellation system (client + master)
+
+### Migration 014
+- `orders`: `cancelled_by`, `cancellation_reason_id`, `cancellation_reason_text`
+- `profiles`: `suspicious` (default false)
+
+### Backend
+- `api/src/routes/cancel.ts` — `POST /orders/:id/cancel` с Zod
+- Клиент (open): 5 причин. Мастер (in_progress): 3 причины
+- Rate-limit: in-memory Map, 3/24ч → suspicious + auto-complaint
+- Refund bid_balance при причине 1 или <5 мин
+- Мастер-отмена: клиенту Telegram + кнопка реактивации
+- `api/src/services/cancelTracker.ts` — in-memory rate limiter
+- `api/src/services/notifications.ts` — sendOrderCancelledToMasters, sendMasterCancelledToClient, sendRefundNotification
+
+### Frontend
+- OrderDetail.tsx — кнопка отмены + bottom sheet причин
+
+### Коммит: `14624d9`
+
+---
+
+## STATE — 2026-07-03 13:00 — API-валидация городов + фильтр по городу в ленте
+
+### Backend
+- `api/src/data/belarus-cities.ts` — плоский Set всех городов, функция `isValidCity()`
+- `POST /auth/become-master`: `city` валидируется через `.refine(isValidCity)`
+- `PATCH /auth/profile`: `city` валидируется (только если передан)
+- `POST /orders`: `address_text` парсится (`г. {city}`), город валидируется
+- `GET /orders/nearby`: опциональный `?city=` — фильтрация по `address_text LIKE 'г. {city}%'`
+
+### Frontend
+- `MasterHome.tsx`: CitySelector между статистикой и кнопкой редактирования, сброс фильтра
+
+### Коммит: `605c1bb`
+
+---
+
+## STATE — 2026-07-03 13:10 — Fix cancel button visibility
+
+### OrderDetail.tsx
+- Убрана избыточная проверка `order?.cancelled_by !== 'client'/'master'` (статус уже гарантирует)
+- Добавлен fallback `role = currentRole ?? 'customer'` (если профиль ещё загружается)
+
+### Коммит: `2800538`
+
+---
+
+## STATE — 2026-07-03 13:20 — Missing onOpenOrder in ClientHome
+
+### App.tsx
+- `ClientHome` не передавался `onOpenOrder` → тап по активному заказу на главной ничего не делал
+- Добавлен: `onOpenOrder={(id) => setSelectedOrderId(id)}`
+
+### Commit: `51763d3`
+
+---
+
+## STATE — 2026-07-03 13:30 — Fix cancel order not moving to archive
+
+### api/src/routes/cancel.ts
+- `.update({status:'cancelled',...})` не проверял `updateErr` — Supabase мог вернуть ошибку, но API отвечал `{ok:true}`
+- Пользователь видел тост «Заказ отменён», заказ UI-локально менялся на cancelled, но при перезагрузке список возвращал старый статус
+- Добавлено `if (updateErr) throw updateErr`
+
+### Commit: `172521c`
+
+---
+
+## STATE — 2026-07-03 13:40 — Fix cancel error after migration 014 not applied
+
+### api/src/routes/cancel.ts
+- После добавления проверки `updateErr` стала вылезать ошибка — колонки `cancelled_by`, `cancellation_reason_id`, `cancellation_reason_text` отсутствуют в БД (миграция 014 не накачена)
+- Фикс: разделён UPDATE на 2 — сначала статус (гарантированно работает), потом детали отмены (игнорируется ошибка если колонок нет)
+
+### Commit: `5009953`
