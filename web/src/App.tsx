@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
@@ -80,17 +80,34 @@ function MasterApp() {
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
   const isMasterMode = profile?.current_role === 'master' && profile?.is_master;
+  const [showOverlay, setShowOverlay] = useState(false);
 
   useStartAppHandler();
 
+  useEffect(() => {
+    setShowOverlay(true);
+    const t = setTimeout(() => setShowOverlay(false), 250);
+    return () => clearTimeout(t);
+  }, [isMasterMode]);
+
   return (
     <>
-      <div className={isMasterMode ? 'hidden' : ''}>
-        <CustomerApp />
-      </div>
-      <div className={isMasterMode ? '' : 'hidden'}>
-        <MasterApp />
-      </div>
+      <div className={isMasterMode ? 'hidden' : ''}><CustomerApp /></div>
+      <div className={isMasterMode ? '' : 'hidden'}><MasterApp /></div>
+
+      <AnimatePresence>
+        {showOverlay && (
+          <motion.div
+            className="fixed inset-0 z-[70] bg-[#f4f4f6] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+          >
+            <div className="w-7 h-7 border-2 border-slate-300 border-t-slate-800 rounded-full animate-spin" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

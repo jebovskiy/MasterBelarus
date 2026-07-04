@@ -206,14 +206,15 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
 
   const switchRole = async () => {
     impact('medium');
+    const next = profile!.current_role === 'master' ? 'customer' : 'master';
+    const prev = profile!.current_role;
+    profile!.current_role = next;
+    setProfile(profile!);
     const result = await apiPost<{ current_role: string }>('/auth/switch-role');
     if (isErrorResult(result)) {
-      showToast(result.error, 'error');
-      return;
-    }
-    if (result.data) {
-      profile!.current_role = result.data.current_role as 'customer' | 'master';
+      profile!.current_role = prev;
       setProfile(profile!);
+      showToast(result.error, 'error');
     }
   };
 
