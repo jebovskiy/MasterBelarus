@@ -619,14 +619,27 @@ MasterBelarus/
 
 ---
 
+## STATE — 2026-07-04 11:40 — Master bid sheet fixes
+
+### Исправлено
+- **z-index**: bid sheet overlay `z-[60]` (было z-50, tabbar перекрывал кнопку)
+- **Не закрывался после отклика**: добавлен `showToast` + `isErrorResult()` — закрывается всегда, toast при ошибке
+- **Нет отметки об отклике**: `bidOrderIds` Set — после успеха карточка показывает «✓ Вы откликнулись»
+- **Кнопка «Передумал»**: добавил в footer bid sheet для закрытия без отправки
+
+### Commits: `7bbe81f`, `e8c417f`
+
+---
+
 ## TODO
 1. ~~Set CI — `.github/workflows/ci.yml`~~ — отложено
 2. `npm install` в корне → sanity check
 3. Railway deploy
 4. Hover scale(1.02) на кнопках
-5. API-валидация городов на бэкенде — DONE
-6. Поиск по городу в ленте мастеров — DONE
-7. ~~Real уведомления: wired telegraf bot~~ — DONE (Sprint 4)
+5. ~~API-валидация городов на бэкенде~~ — DONE
+6. ~~Поиск по городу в ленте мастеров~~ — DONE
+7. ~~Real уведомления: wired telegraf bot~~ — DONE
 8. ~~Seed-скрипт~~ — DONE
 9. ~~Админ: детальный review moderation + жалобы~~ — DONE
-10. **Reactivate cancelled order** — DONE (this session)
+10. ~~Reactivate cancelled order~~ — DONE
+11. ~~Master bid sheet fix~~ — DONE
