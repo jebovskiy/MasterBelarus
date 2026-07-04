@@ -54,5 +54,9 @@ $$;
 -- Add accused_telegram_id to complaints for moderation tracking
 ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS accused_telegram_id bigint;
 
--- Cleanup old hmac_cache entries (TTL)
-DELETE FROM public.hmac_cache WHERE created_at < now() - interval '10 minutes';
+-- Create hmac_cache if migration 017 was skipped
+CREATE TABLE IF NOT EXISTS public.hmac_cache (
+  hash       text PRIMARY KEY,
+  user_id    bigint NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
