@@ -635,7 +635,7 @@ MasterBelarus/
 1. ~~Set CI — `.github/workflows/ci.yml`~~ — отложено
 2. ~~`npm install` в корне → sanity check~~ — OK (works)
 3. ~~Railway deploy~~ — DONE
-4. Hover scale(1.02) на кнопках
+4. ~~Hover scale(1.02) на кнопках~~ — DONE
 5. ~~API-валидация городов на бэкенде~~ — DONE
 6. ~~Поиск по городу в ленте мастеров~~ — DONE
 7. ~~Real уведомления: wired telegraf bot~~ — DONE
