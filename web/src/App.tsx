@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
@@ -87,35 +87,63 @@ function MasterApp() {
 function AppShell() {
   const profile = useAuthStore((s) => s.profile);
   const isMasterMode = profile?.current_role === 'master' && profile?.is_master;
+  const [transitioning, setTransitioning] = useState<'customer' | 'master' | null>(null);
 
   useStartAppHandler();
 
+  useEffect(() => {
+    if (isMasterMode === (transitioning === 'master')) return;
+    const target = isMasterMode ? 'master' : 'customer';
+    setTransitioning(target);
+    const t = setTimeout(() => setTransitioning(null), 500);
+    return () => clearTimeout(t);
+  }, [isMasterMode]);
+
   return (
-    <AnimatePresence mode="wait">
-      {isMasterMode ? (
-        <motion.div
-          key="master"
-          className="min-h-dvh"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          <MasterApp />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="customer"
-          className="min-h-dvh"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          <CustomerApp />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <>
+      <AnimatePresence mode="wait">
+        {isMasterMode ? (
+          <motion.div
+            key="master"
+            className="min-h-dvh"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <MasterApp />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="customer"
+            className="min-h-dvh"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <CustomerApp />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {transitioning && (
+          <motion.div
+            className="fixed inset-0 z-[70] bg-[#f4f4f6] flex flex-col items-center justify-center gap-3"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <div className="w-7 h-7 border-2 border-slate-300 border-t-slate-800 rounded-full animate-spin" />
+            <p className="text-sm text-slate-500 font-medium">
+              {transitioning === 'master' ? 'Переключение в режим мастера...' : 'Переключение в режим клиента...'}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
