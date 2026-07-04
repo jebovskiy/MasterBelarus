@@ -2,22 +2,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
 
-const anonUrl = env.SUPABASE_URL;
-const anonKey = env.SUPABASE_ANON_KEY;
-
-const clientCache = new Map<string, SupabaseClient>();
-
-export function getUserClient(jwt: string): SupabaseClient {
-  const cached = clientCache.get(jwt);
-  if (cached) return cached;
-
-  const client = createClient(anonUrl, anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-  });
-  if (clientCache.size > 100) clientCache.clear();
-  clientCache.set(jwt, client);
-  return client;
+export function getUserClient(_jwt: string): SupabaseClient {
+  return getSupabaseAdmin();
 }
 
 let adminClient: SupabaseClient | null = null;

@@ -96,11 +96,13 @@ ordersRouter.post('/', async (req: JwtRequest, res) => {
 ordersRouter.get('/my', async (req: JwtRequest, res) => {
   try {
     const db = getUserClient(req.jwtToken!);
+    const profileId = req.jwtPayload!.profile_id;
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
 
     const { data: orders, error } = await db
       .from('orders')
       .select('*')
+      .eq('client_id', profileId)
       .order('created_at', { ascending: false })
       .limit(limit);
 

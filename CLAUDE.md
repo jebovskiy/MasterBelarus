@@ -105,30 +105,24 @@ Total:     180 ч  (~4.5 недели full-time)
 
 
 ---
-## STATE — 2026-07-04 12:50
+## STATE — 2026-07-04 13:40
 
-### Latest: JWT Auth Migration (service_role → RLS)
-- Migration 019: `auth_user_id` in profiles + RLS policies on 7 tables
-- JWT middleware (`jwtRequired`) + `getUserClient(jwt)` helper with LRU cache
-- `POST /auth/telegram` creates Supabase Auth user, issues JWT (7d)
-- All user-facing routes migrated from service_role → anon key + user JWT
-- Old `lib/supabase.ts` and `middleware/auth.ts` removed
-- Frontend stores JWT, sends `Authorization` header, clears on 401
+### New: setProfile clears JWT on optimistic updates
+- **Problem**: `setProfile(p)` (no JWT arg) sets `jwt: null` → subsequent API calls lose `Authorization` header → `jwtRequired` returns 401 → `clear()` → "Ошибка авторизации"
+- Triggered by `switchRole()` optimistic update: `setProfile({ ...profile!, current_role: next })`
+- Also affects all partial profile updates (6 call sites): avatar upload, profile edit, master application
+- **Fix**: `setProfile: (p, jwt) => set((state) => ({ ... jwt: jwt ?? state.jwt }))` — preserves existing JWT when not provided
+- Commit: `1e79870`
 
-### Latest: Fix infinite splash on network error
-- `useTelegramAuth.authenticate()` now catches fetch rejections → `clear()` → `isAuthenticating: false`
+### New: CORS fix (production auth error)
+- Commit: `789adf6`
+- CSP in `web/index.html` updated earlier (commit `afe6334`)
 
-### Latest: Migration 019 fix
-- Added missing `CREATE POLICY` keywords (3 policies were DROP-only)
-- Fixed `notifications_log` column: `user_id` → `telegram_id`
-
-### Latest: npm install + typecheck pass
-- `npm install` → ok (added jsonwebtoken dep)
-- API: `tsc --noEmit` → pass
-- Web: `tsc -b && vite build` → pass (418 modules, 1.82s)
+### Latest: JWT Auth Migration (service_role → RLS) — committed
+- Migration 019 + fixes (missing `CREATE POLICY`, `user_id` → `telegram_id`)
+- Typecheck passes for both API and Web
 
 ### Next
-- Railway deploy: set `JWT_SECRET`, `SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BOT_TOKEN` in production
-- Verify RLS end-to-end (master viewing open orders, client viewing bids on own orders)
+- Verify auth + role switch in Telegram Mini App after Railway + Vercel deploy
 - Sentry / PostHog monitoring
 - CI (`.github/workflows/ci.yml`)
