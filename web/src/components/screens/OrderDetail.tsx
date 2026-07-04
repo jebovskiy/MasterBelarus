@@ -157,13 +157,40 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const canCancelMaster = role === 'master' && order?.status === 'in_progress';
   const isOwner = order !== null && profile !== null && order.client_id === profile.id;
 
+  const footerActions = (() => {
+    if (loading || !order) return null;
+    if (error) return (
+      <button onClick={load} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all">Повторить</button>
+    );
+    if (order.status === 'in_progress' && isOwner) return (
+      <div className="space-y-2">
+        <button onClick={submitReview} disabled={reviewSubmitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-50">
+          {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
+        </button>
+        <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+          Отказаться от заказа
+        </button>
+      </div>
+    );
+    if (canCancelClient) return (
+      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+        Отменить заказ
+      </button>
+    );
+    if (canCancelMaster) return (
+      <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300">
+        Отказаться от заказа
+      </button>
+    );
+    return null;
+  })();
+
   return (
     <AnimatePresence>
       {orderId && (
-        <motion.div key={orderId} className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onBack} />
+        <motion.div key={orderId} className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
           <motion.div
-            className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col max-h-[90vh]"
+            className="relative flex max-h-[90vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -177,24 +204,21 @@ export default function OrderDetail({ orderId, onBack }: Props) {
               }
             }}
           >
-            <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
-              <div className="h-1.5 w-10 rounded-full bg-slate-300" />
-            </div>
-            <div className="px-6 pb-6 overflow-auto space-y-5">
-              <div className="flex items-center justify-between pt-1">
-                <h2 className="text-xl font-bold text-slate-800">Детали заказа</h2>
+            <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
+              <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
+              <div className="flex items-center justify-between w-full px-5">
+                <h3 className="text-base font-semibold text-slate-800">Детали заказа</h3>
                 {order && (
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
                     {STATUS_LABEL[order.status] ?? order.status}
                   </span>
                 )}
               </div>
+            </div>
 
+            <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-5">
               {error && (
-                <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm flex items-center justify-between">
-                  <span>{error}</span>
-                  <button onClick={load} className="underline font-semibold ml-2 shrink-0">Повторить</button>
-                </div>
+                <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm">{error}</div>
               )}
 
               {loading && (
@@ -289,23 +313,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                         className={`${inputCls} resize-none`}
                         rows={3}
                       />
-                      <button
-                        onClick={submitReview}
-                        disabled={reviewSubmitting}
-                        className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-all"
-                      >
-                        {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
-                      </button>
                     </div>
-                  )}
-
-                  {(canCancelClient || canCancelMaster) && (
-                    <button
-                      onClick={openCancel}
-                      className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold active:scale-[0.98] transition-all hover:border-rose-300"
-                    >
-                      {currentRole === 'master' ? 'Отказаться от заказа' : 'Отменить заказ'}
-                    </button>
                   )}
 
                   {order.status === 'completed' && (
@@ -324,16 +332,21 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                 </>
               )}
             </div>
+
+            {footerActions && (
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
+                {footerActions}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
 
       <AnimatePresence>
         {showCancelSheet && (
-          <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCancelSheet(false)} />
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
             <motion.div
-              className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col"
+              className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -347,31 +360,27 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                 }
               }}
             >
-              <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
-                <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+              <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
+                <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
+                <h3 className="text-base font-semibold text-slate-800">Причина отмены</h3>
               </div>
-              <div className="px-6 pb-8 space-y-4">
-                <h3 className="text-lg font-bold text-slate-800">Причина отмены</h3>
-                <div className="space-y-2">
-                  {reasons.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => setSelectedReason(r.id)}
-                      className={`w-full text-left p-4 rounded-xl text-sm transition-all ${
-                        selectedReason === r.id
-                          ? 'bg-slate-900 text-white font-semibold'
-                          : 'bg-[#f4f4f6] text-slate-700 active:bg-slate-200'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={submitCancel}
-                  disabled={selectedReason === null || cancelSubmitting}
-                  className="w-full bg-rose-600 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-40 active:scale-[0.98] transition-all"
-                >
+              <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-2">
+                {reasons.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setSelectedReason(r.id)}
+                    className={`w-full text-left p-4 rounded-xl text-sm transition-all ${
+                      selectedReason === r.id
+                        ? 'bg-slate-900 text-white font-semibold'
+                        : 'bg-[#f4f4f6] text-slate-700 active:bg-slate-200'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
+                <button onClick={submitCancel} disabled={selectedReason === null || cancelSubmitting} className="w-full bg-rose-600 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-40">
                   {cancelSubmitting ? 'Отменяю...' : 'Подтвердить отмену'}
                 </button>
               </div>

@@ -50,7 +50,7 @@ export default function WalletScreen({ onBack }: Props) {
         <h1 className="text-lg font-bold text-slate-900">Пополнение баланса</h1>
       </div>
 
-      <div className="flex-1 px-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 px-4 space-y-4 overflow-y-auto pb-32">
 
         <div className="bg-white rounded-2xl p-5 shadow-sm text-center">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Текущий баланс</p>
@@ -109,7 +109,7 @@ export default function WalletScreen({ onBack }: Props) {
 
       </div>
 
-      <div className="px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom,0px))] shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#f4f4f6] via-[#f4f4f6]/95 to-transparent pt-8 pb-[calc(16px+env(safe-area-inset-bottom,0px))] px-4">
         <button
           onClick={pay}
           className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all shadow-md"

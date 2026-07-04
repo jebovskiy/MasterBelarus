@@ -89,10 +89,9 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+        <motion.div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
           <motion.div
-            className="absolute bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-white rounded-t-2xl shadow-lg shadow-slate-200/50 flex flex-col max-h-[90vh]"
+            className="relative flex max-h-[90vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -106,13 +105,12 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               }
             }}
           >
-            <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-grab active:cursor-grabbing">
-              <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+            <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
+              <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
+              <h3 className="text-base font-semibold text-slate-800">Создать заявку</h3>
             </div>
-            <div className="px-6 pb-6 overflow-auto">
-              <h2 className="text-xl font-bold text-slate-800 mb-5">Создать заявку</h2>
 
-            <div className="space-y-5">
+            <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-5">
               <div>
                 <label className={labelCls}>Категория услуг</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -201,7 +199,9 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               {error && (
                 <p className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
               )}
+            </div>
 
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
               <button
                 onClick={submit}
                 disabled={submitting}
@@ -209,7 +209,6 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               >
                 {submitting ? 'Публикую...' : 'Создать заявку'}
               </button>
-            </div>
             </div>
           </motion.div>
         </motion.div>

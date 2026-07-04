@@ -587,7 +587,19 @@ MasterBelarus/
 
 ---
 
-## STATE — 2026-07-04 10:00 — Reactivate cancelled order + MasterInProgress fix
+## STATE — 2026-07-04 11:00 — Global bottom sheet template + layout refactor
+
+### Сделано
+- **WalletScreen**: `pb-32` на scrollable content, футер кнопки → `absolute bottom-0 bg-gradient-to-t`
+- **EditProfileScreen**: та же схема — absolute gradient footer с кнопкой сохранения, `pb-32` контент
+- **CreateOrderSheet**: полный редизайн под шаблон (header + handle, scrollable pb-32, absolute gradient footer)
+- **MasterHome bid-sheet**: редизайн под шаблон (header, scrollable pb-32, footer submit)
+- **MasterInProgress cancel-sheet**: редизайн под шаблон (header, scrollable pb-32 с причинами, footer "Передумал")
+- **OrderDetail**: редизайн под шаблон (header, scrollable pb-32, absolute footer с контекстными кнопками)
+  - Завершить+оценить / Отменить — только когда уместно
+  - Вложенный cancel-sheet тоже refactored под шаблон
+- **SettingsScreen**, **OrderHistoryScreen** — уже имели `flex-col` + safe-area (OK)
+- **CLAUDE.md** обновлён
 
 ### API
 - `POST /orders/:id/reactivate` — возвращает cancelled → open, только если cancelled_by === 'master' и только клиентом-владельцем

@@ -183,24 +183,35 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
 
       <AnimatePresence>
         {selectedId && (
-          <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedId(null)} />
-            <motion.div className="relative w-full max-w-[430px] bg-app-surface rounded-t-3xl p-5 pb-8 shadow-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}>
-              <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-app-border" />
+          <motion.div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            >
+              <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
+                <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
+                <h3 className="text-base font-semibold text-slate-800">Отклик на заказ</h3>
+              </div>
               {selected && (
                 <>
-                  <h3 className="text-lg font-bold text-text-main mb-1">Отклик на заказ</h3>
-                  <p className="text-sm text-text-muted mb-4 line-clamp-2">{selected.description}</p>
-                  {!selected.is_negotiable && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-text-main mb-1.5">Ваша цена, BYN</label>
-                      <input type="number" inputMode="numeric" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)} placeholder={String(selected.price ?? '')} className="w-full rounded-btn border border-app-border bg-white p-3 text-[15px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition" />
-                    </div>
-                  )}
-                  {selected.is_negotiable && <p className="text-sm text-text-muted mb-4">Договорная цена — предложите свои условия в комментарии.</p>}
-                  <button onClick={submitBid} disabled={submitting} className="w-full h-12 rounded-btn bg-primary hover:bg-primary-hover text-white font-semibold shadow-accent-glow transition-all duration-180 disabled:opacity-60 active:scale-[0.98]">
-                    {submitting ? 'Отправляю...' : 'Отправить отклик'}
-                  </button>
+                  <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-4">
+                    <p className="text-sm text-slate-600 line-clamp-2">{selected.description}</p>
+                    {!selected.is_negotiable && (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ваша цена, BYN</label>
+                        <input type="number" inputMode="numeric" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)} placeholder={String(selected.price ?? '')} className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base" />
+                      </div>
+                    )}
+                    {selected.is_negotiable && <p className="text-sm text-slate-500">Договорная цена — предложите свои условия в комментарии.</p>}
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
+                    <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-60">
+                      {submitting ? 'Отправляю...' : 'Отправить отклик'}
+                    </button>
+                  </div>
                 </>
               )}
             </motion.div>
