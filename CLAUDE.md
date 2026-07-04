@@ -584,3 +584,37 @@ MasterBelarus/
 - `/startapp=reactivate_order_{id}` handler в bot/index.ts (после отмены мастером)
 
 ### Commit: `febde51`
+
+---
+
+## STATE — 2026-07-04 10:00 — Reactivate cancelled order + MasterInProgress fix
+
+### API
+- `POST /orders/:id/reactivate` — возвращает cancelled → open, только если cancelled_by === 'master' и только клиентом-владельцем
+
+### Bot
+- `/start` handler: `reactive_order_{id}` — сообщение с кнопкой "Вернуть в поиск"
+
+### Frontend
+- `web/src/hooks/useStartAppHandler.ts` — детектит `startapp=reactive_order_{id}`, confirm(), POST /reactivate
+- `web/src/App.tsx` — подключен хук в AppShell
+- `web/src/lib/telegram.ts` — getStartParam()
+
+### В работе (эта сессия)
+- cancel.ts: убран дубликат catch-блока после вставки reactivate
+
+### Commit: `d8b78ad`
+
+---
+
+## TODO
+1. ~~Set CI — `.github/workflows/ci.yml`~~ — отложено
+2. `npm install` в корне → sanity check
+3. Railway deploy
+4. Hover scale(1.02) на кнопках
+5. API-валидация городов на бэкенде — DONE
+6. Поиск по городу в ленте мастеров — DONE
+7. ~~Real уведомления: wired telegraf bot~~ — DONE (Sprint 4)
+8. ~~Seed-скрипт~~ — DONE
+9. ~~Админ: детальный review moderation + жалобы~~ — DONE
+10. **Reactivate cancelled order** — DONE (this session)
