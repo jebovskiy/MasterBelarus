@@ -116,31 +116,9 @@ function AppShell() {
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        {isMasterMode ? (
-          <motion.div
-            key="master"
-            className="min-h-dvh"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            <MasterApp />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="customer"
-            className="min-h-dvh"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            <CustomerApp />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="min-h-dvh">
+        {isMasterMode ? <MasterApp /> : <CustomerApp />}
+      </div>
 
       <AnimatePresence>
         {showOverlay && (
