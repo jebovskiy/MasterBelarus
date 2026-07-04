@@ -20,7 +20,7 @@ export default function EditProfileScreen({ onBack }: Props) {
   const profile = useAuthStore((s) => s.profile);
   const setProfile = useAuthStore((s) => s.setProfile);
   const showToast = useToastStore((s) => s.showToast);
-  const isMaster = profile?.role === 'master';
+  const isMaster = profile?.is_master === true;
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
