@@ -39,7 +39,7 @@ const { setBot } = await import('./services/botRegistry.js');
 setBot(bot);
 
 const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
-  app.use(`/${env.BOT_TOKEN}`, (req, res, next) => {
+  app.use(webhookPath, (req, res, next) => {
     if (req.method !== 'POST') return next();
     if (env.TELEGRAM_SECRET_TOKEN) {
       const secret = req.header('x-telegram-bot-api-secret-token');
@@ -48,7 +48,7 @@ const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
         return res.status(401).json({ error: 'invalid secret' });
       }
     }
-    bot.webhookCallback(webhookPath)(req as never, res as never, next);
+    bot.webhookCallback()(req as never, res as never, next);
   });
 
   bot.telegram.setWebhook(`${env.PUBLIC_WEB_URL}${webhookPath}`).catch((err: unknown) => {
