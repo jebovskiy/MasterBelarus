@@ -266,10 +266,44 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center gap-2">
-            <span className="text-sm">🛡️</span>
-            <span className="text-xs font-semibold text-emerald-800">Статус: Проверен (Плательщик НПД)</span>
-          </div>
+          {masterStatus === 'approved' ? (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm">✅</span>
+              <span className="text-xs font-semibold text-emerald-800">Верифицирован</span>
+            </div>
+          ) : masterStatus === 'pending' ? (
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm">⏳</span>
+              <span className="text-xs font-semibold text-amber-800">Верификация на модерации</span>
+            </div>
+          ) : masterStatus === 'rejected' ? (
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm">❌</span>
+              <span className="text-xs font-semibold text-rose-800">Верификация отклонена</span>
+            </div>
+          ) : masterStatus === 'blocked' ? (
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm">🚫</span>
+              <span className="text-xs font-semibold text-rose-800">Аккаунт заблокирован</span>
+            </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm">🛡️</span>
+              <span className="text-xs font-semibold text-slate-600">Не верифицирован</span>
+            </div>
+          )}
+
+          {masterStatus !== 'approved' && masterStatus !== 'blocked' && (
+            <button onClick={() => { impact('light'); showToast('Верификация временно недоступна. Скоро вы сможете подтвердить свой статус.', 'info'); }} className="w-full bg-white rounded-2xl p-5 shadow-sm active:scale-[0.98] transition-transform text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-base">✅</div>
+                <div>
+                  <span className="text-sm font-semibold text-slate-800">Пройти верификацию</span>
+                  <p className="text-xs text-slate-400 mt-0.5">Подтвердите свой статус для доверия клиентов</p>
+                </div>
+              </div>
+            </button>
+          )}
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">О мастере</span>
