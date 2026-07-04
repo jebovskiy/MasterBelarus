@@ -10,10 +10,10 @@ let adminClient: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (adminClient) return adminClient;
-  adminClient = createClient(anonUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
+  adminClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  logger.info({ url: anonUrl }, 'Supabase admin client initialized');
+  logger.info({ url: env.SUPABASE_URL }, 'Supabase admin client initialized');
   return adminClient;
 }
 
