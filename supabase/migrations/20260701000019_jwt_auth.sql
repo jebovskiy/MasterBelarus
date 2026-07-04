@@ -76,7 +76,8 @@ CREATE POLICY "mb_master_select" ON public.master_balances
   FOR SELECT USING (
     master_id IN (SELECT id FROM profiles WHERE auth_user_id = auth.uid())
   );
-DROP POLICY IF EXISTS "mb_admin_all" ON public.master_balances
+DROP POLICY IF EXISTS "mb_admin_all" ON public.master_balances;
+CREATE POLICY "mb_admin_all" ON public.master_balances
   FOR ALL USING (
     auth.role() = 'service_role'
   );
@@ -86,7 +87,8 @@ ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "complaints_insert" ON public.complaints;
 CREATE POLICY "complaints_insert" ON public.complaints
   FOR INSERT WITH CHECK (true);
-DROP POLICY IF EXISTS "complaints_admin_all" ON public.complaints
+DROP POLICY IF EXISTS "complaints_admin_all" ON public.complaints;
+CREATE POLICY "complaints_admin_all" ON public.complaints
   FOR ALL USING (
     auth.role() = 'service_role'
   );
@@ -96,9 +98,10 @@ ALTER TABLE public.notifications_log ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "notif_owner_select" ON public.notifications_log;
 CREATE POLICY "notif_owner_select" ON public.notifications_log
   FOR SELECT USING (
-    user_id IN (SELECT id FROM profiles WHERE auth_user_id = auth.uid())
+    telegram_id IN (SELECT telegram_id FROM profiles WHERE auth_user_id = auth.uid())
   );
-DROP POLICY IF EXISTS "notif_admin_all" ON public.notifications_log
+DROP POLICY IF EXISTS "notif_admin_all" ON public.notifications_log;
+CREATE POLICY "notif_admin_all" ON public.notifications_log
   FOR ALL USING (
     auth.role() = 'service_role'
   );
