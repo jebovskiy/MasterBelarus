@@ -44,12 +44,13 @@ export default function WalletScreen({ onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6]">
-      <div className="px-4 pt-4 space-y-4">
-        <div className="flex items-center gap-3 px-1">
-          <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
-          <h1 className="text-lg font-bold text-slate-900">Пополнение баланса</h1>
-        </div>
+    <div className="min-h-dvh bg-[#f4f4f6] flex flex-col">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2 shrink-0">
+        <button onClick={onBack} className="text-slate-600 text-sm font-medium">← Назад</button>
+        <h1 className="text-lg font-bold text-slate-900">Пополнение баланса</h1>
+      </div>
+
+      <div className="flex-1 px-4 space-y-4 overflow-y-auto">
 
         <div className="bg-white rounded-2xl p-5 shadow-sm text-center">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Текущий баланс</p>
@@ -106,14 +107,15 @@ export default function WalletScreen({ onBack }: Props) {
           ))}
         </div>
 
+      </div>
+
+      <div className="px-4 pt-3 pb-[calc(16px+env(safe-area-inset-bottom,0px))] shrink-0">
         <button
           onClick={pay}
           className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm active:scale-[0.98] transition-all shadow-md"
         >
           Перейти к оплате — {finalAmount > 0 ? `${finalAmount} BYN` : 'Сумма не указана'}
         </button>
-
-        <div className="h-8" />
       </div>
     </div>
   );
