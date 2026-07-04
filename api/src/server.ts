@@ -24,15 +24,6 @@ async function bootstrap() {
   app.use('/admin', adminRouter);
   app.use('/complaints', complaintsRouter);
 
-  app.use((req, res) => {
-    res.status(404).json({ error: 'not found', path: req.path });
-  });
-
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    logger.error({ err }, 'unhandled error');
-    res.status(500).json({ error: 'internal' });
-  });
-
 const httpServer = createServer(app);
 const bot = createBot(env);
 const { setBot } = await import('./services/botRegistry.js');
@@ -49,6 +40,15 @@ const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
       }
     }
     bot.webhookCallback()(req as never, res as never, next);
+  });
+
+  app.use((req, res) => {
+    res.status(404).json({ error: 'not found', path: req.path });
+  });
+
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    logger.error({ err }, 'unhandled error');
+    res.status(500).json({ error: 'internal' });
   });
 
   bot.telegram.setWebhook(`${env.PUBLIC_API_URL}${webhookPath}`).catch((err: unknown) => {
