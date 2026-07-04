@@ -83,7 +83,16 @@ function AppShell() {
 
   useStartAppHandler();
 
-  return isMasterMode ? <MasterApp /> : <CustomerApp />;
+  return (
+    <>
+      <div className={isMasterMode ? 'hidden' : ''}>
+        <CustomerApp />
+      </div>
+      <div className={isMasterMode ? '' : 'hidden'}>
+        <MasterApp />
+      </div>
+    </>
+  );
 }
 
 export default function App() {
