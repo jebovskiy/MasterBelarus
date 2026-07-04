@@ -1,9 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import type { AuthedRequest } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { authRequired } from '../middleware/auth.js';
+
+const cancelLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  message: { error: 'too many cancellations, try later' },
+});
 import { checkCancelRate } from '../services/cancelTracker.js';
 import { sendOrderCancelledToMasters, sendMasterCancelledToClient, sendRefundNotification } from '../services/notifications.js';
 import { CLIENT_REASONS, MASTER_REASONS } from '../types/cancel.js';
@@ -19,6 +29,7 @@ const BodyCancel = z.object({
 export const cancelRouter = Router();
 
 cancelRouter.use(authRequired);
+cancelRouter.post('/:id/cancel', cancelLimiter);
 
 cancelRouter.post('/:id/cancel', async (req: AuthedRequest, res) => {
   const parsed = BodyCancel.safeParse(req.body ?? {});

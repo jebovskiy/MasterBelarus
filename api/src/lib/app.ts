@@ -5,6 +5,7 @@ import compression from 'compression';
 import pinoHttp from 'pino-http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { logger } from '../lib/logger.js';
+import { env } from '../config/env.js';
 
 function customLogLevel(_req: IncomingMessage, res: ServerResponse, err?: unknown): string {
   if (err || res.statusCode >= 500) return 'error';
@@ -16,9 +17,19 @@ export function createApp(): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:4173',
+    'https://masterbelarus-psi.vercel.app',
+    'https://t.me',
+    ...(env.PUBLIC_WEB_URL ? [env.PUBLIC_WEB_URL] : []),
+  ];
   app.use(
     cors({
-      origin: true,
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        cb(null, false);
+      },
       credentials: false,
     }),
   );

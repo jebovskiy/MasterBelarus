@@ -41,6 +41,13 @@ setBot(bot);
 const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
   app.use(`/${env.BOT_TOKEN}`, (req, res, next) => {
     if (req.method !== 'POST') return next();
+    if (env.TELEGRAM_SECRET_TOKEN) {
+      const secret = req.header('x-telegram-bot-api-secret-token');
+      if (secret !== env.TELEGRAM_SECRET_TOKEN) {
+        logger.warn({ ip: req.ip }, 'webhook secret mismatch');
+        return res.status(401).json({ error: 'invalid secret' });
+      }
+    }
     bot.webhookCallback(webhookPath)(req as never, res as never, next);
   });
 

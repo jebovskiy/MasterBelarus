@@ -1,9 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { authRequired, type AuthedRequest } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { notifyComplaintToModerator } from '../services/notifications.js';
 import { logger } from '../lib/logger.js';
+
+const complaintLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  message: { error: 'too many complaints, try tomorrow' },
+});
 
 const BodyCreate = z.object({
   text: z.string().min(5, 'Слишком короткий текст жалобы'),
@@ -13,6 +23,7 @@ const BodyCreate = z.object({
 
 export const complaintsRouter = Router();
 complaintsRouter.use(authRequired);
+complaintsRouter.post('/', complaintLimiter);
 
 /**
  * POST /complaints — подать жалобу

@@ -1,10 +1,20 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import type { AuthedRequest } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { authRequired } from '../middleware/auth.js';
 import { sendBidNotification, sendMasterAcceptedNotification } from '../services/notifications.js';
+
+const bidLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  message: { error: 'too many bids, try later' },
+});
 
 const BodyCreate = z.object({
   proposed_price: z.coerce.number().positive().optional().nullable(),
@@ -14,6 +24,7 @@ const BodyCreate = z.object({
 export const bidsRouter = Router();
 
 bidsRouter.use(authRequired);
+bidsRouter.post('/:orderId/bids', bidLimiter);
 
 bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
   const parsed = BodyCreate.safeParse(req.body ?? {});
@@ -41,9 +52,10 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
       return res.status(403).json({ error: 'only approved masters can bid' });
     }
 
-    const { error: deductErr } = await db.rpc('deduct_response', { p_master_id: profile.id });
-    if (deductErr) {
-      logger.warn({ masterId: profile.id, err: deductErr.message }, 'deduct_response rpc issue');
+    const { data: deductOk, error: deductErr } = await db.rpc('deduct_response', { p_master_id: profile.id });
+    if (deductErr || deductOk === false) {
+      logger.warn({ masterId: profile.id, err: deductErr?.message, result: deductOk }, 'deduct_response failed');
+      return res.status(402).json({ error: 'Недостаточно откликов. Пополните баланс.' });
     }
 
     const { data: bid, error: insertErr } = await db
@@ -182,10 +194,13 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: AuthedRequest, res) =
       .from('orders')
       .update({ status: 'in_progress' })
       .eq('id', orderId)
+      .eq('status', 'open')
       .select()
       .single();
 
-    if (updateErr) throw updateErr;
+    if (updateErr || !updatedOrder) {
+      return res.status(409).json({ error: 'Заказ уже принят другим мастером' });
+    }
 
     const { data: bid, error: bidErr } = await db
       .from('bids')

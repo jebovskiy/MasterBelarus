@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
+import { fileTypeFromBuffer } from 'file-type';
 import multer from 'multer';
 import { z } from 'zod';
 import { getSupabaseAdmin, type DBProfile } from '../lib/supabase.js';
@@ -122,6 +123,11 @@ authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: Au
   if (!file.mimetype.startsWith('image/')) {
     return res.status(400).json({ error: 'only images allowed' });
   }
+  const type = await fileTypeFromBuffer(file.buffer);
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!type || !allowedTypes.includes(type.mime)) {
+    return res.status(400).json({ error: 'invalid image format — only JPEG, PNG, WebP allowed' });
+  }
 
   try {
     const db = getSupabaseAdmin();
@@ -132,7 +138,8 @@ authRouter.post('/avatar', authRequired, upload.single('avatar'), async (req: Au
       .maybeSingle();
     if (!existing) return res.status(404).json({ error: 'profile not found' });
 
-    const ext = file.originalname.split('.').pop() ?? 'jpg';
+    const extMap: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const ext = extMap[file.mimetype] ?? 'jpg';
     const timestamp = Date.now();
     const filePath = `u_${existing.id}_${timestamp}.${ext}`;
 

@@ -173,13 +173,13 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     const result = await apiPatch('/auth/profile', body);
     setSavingEdit(false);
     if (isErrorResult(result)) {
-      showToast(result.detail ? `${result.error}: ${result.detail}` : result.error, 'error');
+      showToast(result.error || 'Ошибка', 'error');
       return;
     }
     const updated = result.data as { full_name?: string | null; phone?: string | null } | null;
-    if (updated?.full_name !== undefined) profile!.full_name = updated.full_name;
-    if (updated?.phone !== undefined) profile!.phone = updated.phone;
-    setProfile(profile!);
+    if (updated) {
+      setProfile({ ...profile!, ...updated });
+    }
     setEditing(false);
     showToast('Профиль сохранён', 'success');
   };
@@ -194,8 +194,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     });
     setSavingMaster(false);
     if (isErrorResult(result)) {
-      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
-      showToast(msg, 'error');
+      showToast(result.error || 'Ошибка', 'error');
       return;
     }
     setProfile({ ...profile!, master_status: 'pending' });

@@ -46,7 +46,7 @@ const STORAGE_KEY = 'mb_last_location';
 
 function loadCached(): LocationCoords | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as LocationCoords) : null;
   } catch {
     return null;
@@ -54,7 +54,7 @@ function loadCached(): LocationCoords | null {
 }
 
 function saveCache(loc: LocationCoords) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(loc)); } catch { /* noop */ }
+  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(loc)); } catch { /* noop */ }
 }
 
 export function useLocation() {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAdminStore, adminHeaders } from '@/stores/admin';
 import { useToastStore } from '@/components/shared/Toast';
-import { getTelegramInitData } from '@/lib/telegram';
 
 type Tab = 'stats' | 'orders' | 'masters' | 'moderation' | 'complaints';
 
@@ -52,49 +51,37 @@ function timeAgo(iso: string) {
 }
 
 export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
-  const token = useAdminStore((s) => s.token);
-  const setToken = useAdminStore((s) => s.setToken);
-  const setTelegramAdmin = useAdminStore((s) => s.setTelegramAdmin);
-  const clearToken = useAdminStore((s) => s.clear);
   const isAdmin = useAdminStore((s) => s.isAdmin);
+  const checking = useAdminStore((s) => s.checking);
+  const setTelegramAdmin = useAdminStore((s) => s.setTelegramAdmin);
+  const clear = useAdminStore((s) => s.clear);
+  const setChecking = useAdminStore((s) => s.setChecking);
   const showToast = useToastStore((s) => s.showToast);
-  const [inputToken, setInputToken] = useState('');
   const [tab, setTab] = useState<Tab>('stats');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [masters, setMasters] = useState<AdminMaster[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>(MOCK_COMPLAINTS);
-  const [checkingTg, setCheckingTg] = useState(true);
 
   const [pendingMasters, setPendingMasters] = useState<PendingMaster[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (isAdmin) {
-      setCheckingTg(false);
-      return;
-    }
-    const initData = getTelegramInitData();
-    if (!initData) {
-      setCheckingTg(false);
-      return;
-    }
-    fetch(`${API_BASE}/admin/stats`, {
-      headers: { 'x-telegram-init-data': initData },
-    })
-      .then((res) => {
-        if (res.ok) setTelegramAdmin();
-      })
+    if (isAdmin) { setChecking(false); return; }
+    const initData = adminHeaders();
+    if (!initData['x-telegram-init-data']) { setChecking(false); return; }
+    fetch(`${API_BASE}/admin/stats`, { headers: initData })
+      .then((r) => { if (r.ok) setTelegramAdmin(); })
       .catch(() => {})
-      .finally(() => setCheckingTg(false));
-  }, [isAdmin, setTelegramAdmin]);
+      .finally(() => setChecking(false));
+  }, [isAdmin, setTelegramAdmin, setChecking]);
 
   useEffect(() => {
     if (!isAdmin) return;
     const fetchData = async () => {
-      const h = adminHeaders(token);
+      const h = adminHeaders();
       const fetchWithToken = async <T,>(path: string) => {
         const res = await fetch(`${API_BASE}${path}`, { headers: { ...h } });
         return res.json() as T;
@@ -114,12 +101,12 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
       } catch { setError('Failed to load admin data'); }
     };
     fetchData();
-  }, [token, isAdmin]);
+  }, [isAdmin]);
 
   const fetchPendingMasters = async () => {
     if (!isAdmin) return;
     setLoadingPending(true);
-    const h = adminHeaders(token);
+    const h = adminHeaders();
     try {
       const res = await fetch(`${API_BASE}/admin/masters/pending`, { headers: { ...h } });
       const data = await res.json() as PendingMaster[];
@@ -141,7 +128,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
     const key = `${tgId}_${action}`;
     setActionLoading((prev) => ({ ...prev, [key]: true }));
     try {
-      const h = adminHeaders(token);
+      const h = adminHeaders();
       const res = await fetch(`${API_BASE}/admin/masters/${action}/${tgId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...h },
@@ -162,7 +149,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   };
 
   const handleResolveComplaint = async (id: string, status: 'approved' | 'rejected') => {
-    const h = adminHeaders(token);
+    const h = adminHeaders();
     try {
       const res = await fetch(`${API_BASE}/admin/complaints/${id}/resolve`, {
         method: 'POST',
@@ -178,7 +165,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
   };
 
   if (!isAdmin) {
-    if (checkingTg) {
+    if (checking) {
       return (
         <div className="min-h-screen bg-[#F4F4F6] flex items-center justify-center p-6">
           <p className="text-sm text-slate-400">Проверка доступа...</p>
@@ -189,28 +176,12 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
       <div className="min-h-screen bg-[#F4F4F6] flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-4">
           <h1 className="text-2xl font-bold text-slate-900 text-center">Администрирование</h1>
-          <p className="text-xs text-slate-500 text-center">Введите Admin Token для доступа</p>
-          <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-            <input
-              type="password"
-              value={inputToken}
-              onChange={(e) => setInputToken(e.target.value)}
-              placeholder="Admin Token"
-              className="w-full bg-[#F4F4F6] rounded-xl p-4 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-300 transition-shadow"
-            />
-            <button
-              onClick={() => { setToken(inputToken); setInputToken(''); }}
-              disabled={!inputToken.trim()}
-              className="w-full bg-slate-900 text-white rounded-xl py-4 text-sm font-semibold disabled:opacity-50 hover:scale-[1.02] active:scale-[0.97] transition-all"
-            >
-              Войти
+          <p className="text-xs text-slate-500 text-center">Доступ только для администраторов Telegram</p>
+          {onClose && (
+            <button onClick={onClose} className="w-full text-slate-500 text-xs py-2 hover:scale-[1.02] active:scale-[0.97] transition-transform">
+              Отмена
             </button>
-            {onClose && (
-              <button onClick={onClose} className="w-full text-slate-500 text-xs py-2 hover:scale-[1.02] active:scale-[0.97] transition-transform">
-                Отмена
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     );
@@ -229,7 +200,7 @@ export default function AdminPanelView({ onClose }: { onClose?: () => void }) {
           </button>
           <span className="text-sm font-bold text-slate-900">Администрирование</span>
           <button
-            onClick={clearToken}
+            onClick={clear}
             className="text-xs font-medium text-rose-500 hover:scale-[1.02] active:scale-[0.97] transition-transform"
           >
             Выйти

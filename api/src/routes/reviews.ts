@@ -1,9 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import type { AuthedRequest } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { authRequired } from '../middleware/auth.js';
+
+const reviewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  message: { error: 'too many reviews, try later' },
+});
 
 const BodyCreate = z.object({
   rating: z.coerce.number().int().min(1).max(5),
@@ -13,6 +23,7 @@ const BodyCreate = z.object({
 export const reviewsRouter = Router();
 
 reviewsRouter.use(authRequired);
+reviewsRouter.post('/:orderId/review', reviewLimiter);
 
 /**
  * POST /orders/:orderId/review — оставить отзыв о мастере

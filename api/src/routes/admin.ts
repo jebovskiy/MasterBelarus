@@ -1,14 +1,24 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import type { AdminRequest } from '../middleware/admin.js';
 import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { adminRequired } from '../middleware/admin.js';
 import { notifyMasterApproved } from '../services/notifications.js';
 
+const adminActionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too many admin requests, try later' },
+});
+
 export const adminRouter = Router();
 
 adminRouter.use(adminRequired);
+adminRouter.use(adminActionLimiter);
 
 /**
  * GET /admin/self — проверка доступа (возвращает ok если админ)

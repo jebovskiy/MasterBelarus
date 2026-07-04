@@ -68,12 +68,13 @@ export default function EditProfileScreen({ onBack }: Props) {
     const result = await apiPatch('/auth/profile', body);
     setSaving(false);
     if (isErrorResult(result)) {
-      const msg = result.detail ? `${result.error}: ${result.detail}` : result.error;
-      showToast(msg, 'error');
+      showToast(result.error || 'Ошибка', 'error');
       return;
     }
-    const updated = result.data as Record<string, unknown> | null;
-    if (updated) setProfile({ ...profile!, ...updated });
+    const updated = result.data as { full_name?: string | null; phone?: string | null; avatar_url?: string | null } | null;
+    if (updated) {
+      setProfile({ ...profile!, full_name: updated.full_name ?? profile!.full_name, phone: updated.phone ?? profile!.phone, avatar_url: updated.avatar_url ?? profile!.avatar_url });
+    }
     showToast('✅ Профиль сохранён', 'success');
     onBack();
   };

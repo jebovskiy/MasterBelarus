@@ -1,11 +1,20 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import type { AuthedRequest } from '../middleware/auth.js';
-import { getSupabaseAdmin, type DBOrderStatus } from '../lib/supabase.js';
-import { env } from '../config/env.js';
+import { getSupabaseAdmin } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { authRequired } from '../middleware/auth.js';
 import { isValidCity } from '../data/belarus-cities.js';
+
+const orderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => String((req as AuthedRequest).telegram?.user?.id ?? req.ip),
+  message: { error: 'too many orders, try later' },
+});
 
 function extractCityFromAddress(address: string): string | null {
   // address_text формат: "г. Минск, Московский р-н, ул. Братская 1"
@@ -38,6 +47,7 @@ const QueryNearby = z.object({
 export const ordersRouter = Router();
 
 ordersRouter.use(authRequired);
+ordersRouter.post('/', orderLimiter);
 
 /**
  * POST /orders — создать заказ (только клиент)
@@ -151,16 +161,35 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
 });
 
 /**
- * GET /orders/:id — детали заказа
+ * GET /orders/:id — детали заказа (только владелец, мастер с откликом или админ)
  */
 ordersRouter.get('/:id', async (req: AuthedRequest, res) => {
   try {
     const db = getSupabaseAdmin();
     const id = req.params.id;
-    const { data, error } = await db.from('orders').select('*').eq('id', id).single();
 
-    if (error || !data) return res.status(404).json({ error: 'not found' });
-    return res.json(data);
+    const { data: profile } = await db
+      .from('profiles')
+      .select('id')
+      .eq('telegram_id', req.telegram!.user.id)
+      .single();
+    if (!profile) return res.status(404).json({ error: 'profile not found' });
+
+    const { data: order, error } = await db.from('orders').select('*').eq('id', id).single();
+    if (error || !order) return res.status(404).json({ error: 'not found' });
+
+    const ownOrder = (order as { client_id: string }).client_id === profile.id;
+
+    const { data: myBid } = await db
+      .from('bids')
+      .select('id')
+      .eq('order_id', id)
+      .eq('master_id', profile.id)
+      .maybeSingle();
+
+    if (!ownOrder && !myBid) return res.status(403).json({ error: 'forbidden' });
+
+    return res.json(order);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     return res.status(500).json({ error: msg });
@@ -168,31 +197,12 @@ ordersRouter.get('/:id', async (req: AuthedRequest, res) => {
 });
 
 /**
- * PATCH /orders/:id/status — сменить статус (клиент)
+ * PATCH /orders/:id/status — сменить статус (только владелец)
+ * Удалён из-за IDOR. Для смены статуса используйте:
+ *   POST /orders/:id/cancel — отмена
+ *   POST /orders/:id/accept-bid/:bidId — принятие
+ *   POST /orders/:id/review — завершение + отзыв
  */
-ordersRouter.patch('/:id/status', async (req: AuthedRequest, res) => {
-  const Schema = z.object({ status: z.enum(['open', 'in_progress', 'completed', 'cancelled']) });
-  const parsed = Schema.safeParse(req.body ?? {});
-  if (!parsed.success) return res.status(400).json({ error: 'invalid status' });
-
-  const { status } = parsed.data;
-
-  try {
-    const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('orders')
-      .update({ status: status as DBOrderStatus })
-      .eq('id', req.params.id)
-      .select()
-      .single();
-
-    if (error || !data) return res.status(404).json({ error: 'not found' });
-    return res.json(data);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'unknown';
-    return res.status(500).json({ error: msg });
-  }
-});
 
 /**
  * GET /orders/in-progress — заказы в работе у текущего мастера

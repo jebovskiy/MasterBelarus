@@ -15,7 +15,7 @@ export function Avatar({ size = 40, src, name = '', className = '' }: Props) {
   return (
     <div className={`rounded-full shrink-0 overflow-hidden flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       {src && !imgError ? (
-        <img src={src} alt={name} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-cover" />
+        <img src={src} alt={name} loading="lazy" decoding="async" onError={() => setImgError(true)} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm" style={{ background: gradient }}>
           {initials}

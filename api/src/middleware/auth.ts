@@ -55,10 +55,14 @@ export function authRequired(req: AuthedRequest, res: Response, next: NextFuncti
   const hash = getHashFromInitData(initData);
   if (hash && hmacCache.has(hash)) {
     const cached = hmacCache.get(hash)!;
-    cached.parsed.user!.id;
     if (cached.ts > Date.now() - HMAC_CACHE_TTL) {
       initCacheCleanup();
       const p = cached.parsed;
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (nowSec - p.auth_date > 86400) {
+        hmacCache.delete(hash);
+        return res.status(401).json({ error: 'initData expired' });
+      }
       if (!p.user) {
         return res.status(401).json({ error: 'missing user in initData' });
       }
