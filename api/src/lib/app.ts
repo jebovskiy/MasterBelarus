@@ -17,12 +17,13 @@ export function createApp(): Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet());
+  const publicWebUrl = env.PUBLIC_WEB_URL?.replace(/\/+$/, '');
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:4173',
-    'https://masterbelarus-psi.vercel.app',
+    'https://master-belarus.vercel.app',
     'https://t.me',
-    ...(env.PUBLIC_WEB_URL ? [env.PUBLIC_WEB_URL] : []),
+    ...(publicWebUrl ? [publicWebUrl] : []),
   ];
   app.use(
     cors({
