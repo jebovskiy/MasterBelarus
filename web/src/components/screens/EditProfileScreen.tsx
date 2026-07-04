@@ -28,7 +28,7 @@ export default function EditProfileScreen({ onBack }: Props) {
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [cityValue, setCityValue] = useState<CityValue | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(profile?.description ?? '');
   const [categories, setCategories] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState(30);
   const [saving, setSaving] = useState(false);
@@ -71,9 +71,9 @@ export default function EditProfileScreen({ onBack }: Props) {
       showToast(result.error || 'Ошибка', 'error');
       return;
     }
-    const updated = result.data as { full_name?: string | null; phone?: string | null; avatar_url?: string | null } | null;
+    const updated = result.data as { full_name?: string | null; phone?: string | null; avatar_url?: string | null; description?: string | null } | null;
     if (updated) {
-      setProfile({ ...profile!, full_name: updated.full_name ?? profile!.full_name, phone: updated.phone ?? profile!.phone, avatar_url: updated.avatar_url ?? profile!.avatar_url });
+      setProfile({ ...profile!, full_name: updated.full_name ?? profile!.full_name, phone: updated.phone ?? profile!.phone, avatar_url: updated.avatar_url ?? profile!.avatar_url, description: updated.description ?? profile!.description });
     }
     showToast('✅ Профиль сохранён', 'success');
     onBack();
@@ -129,11 +129,14 @@ export default function EditProfileScreen({ onBack }: Props) {
                 <label className={labelCls}>Описание услуг</label>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
+                  onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
                   placeholder="Расскажите о своём опыте, специализации и условиях работы..."
                   rows={4}
                   className={`${inputCls} resize-none`}
                 />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-[11px] ${description.length >= 1000 ? 'text-rose-500 font-semibold' : 'text-slate-400'}`}>{description.length}/1000</span>
+                </div>
               </div>
 
               <div>

@@ -29,6 +29,7 @@ export type DBProfile = {
   current_role: 'customer' | 'master';
   master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
   phone: string | null;
+  description: string | null;
   auth_user_id: string | null;
   created_at: string;
 };

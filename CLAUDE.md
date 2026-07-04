@@ -105,25 +105,21 @@ Total:     180 ч  (~4.5 недели full-time)
 
 
 ---
-## STATE — 2026-07-04 14:00
+## STATE — 2026-07-04 16:00
 
-### New: Supabase migrated to ECC JWT keys — getUserClient now uses service_role
-- **Problem**: Supabase deprecated legacy HMAC JWT secret, migrated to ECC P-256 signing keys. Our custom JWT (HMAC-SHA256) can't be verified by Supabase → RLS policies block all queries → "profile not found" → "switch failed"
-- **Fix**: `getUserClient(jwt)` now returns `getSupabaseAdmin()` (service_role). All 23 call sites transparently use service_role. RLS bypassed; our Express `jwtRequired` middleware still validates identity.
-- `GET /orders/my` added explicit `.eq('client_id', profileId)` filter (was relying on RLS)
-- `getUserClient` LRU cache removed (single admin client reused)
-- Commit: `7c2ecb7`
+### Session 3: Auth fixes, role switch UX, master verification
 
-### New: setProfile clears JWT on optimistic updates
-- `setProfile(p)` without JWT arg sets `jwt: null` → `Authorization` header lost → 401 → auth cleared
-- Fix: `setProfile` preserves `state.jwt` when not provided
-- Commit: `1e79870`
+#### Fixes deployed
+1. **CORS** — wrong Vercel URL + trailing slash in `PUBLIC_WEB_URL` (`789adf6`)
+2. **setProfile JWT loss** — `setProfile(p)` without JWT cleared `jwt: null` → 401 → auth cleared. Now preserves `state.jwt` (`1e79870`)
+3. **Supabase ECC JWT migration** — `getUserClient(jwt)` now returns `getSupabaseAdmin()` (service_role). Legacy HMAC JWT can't be verified by Supabase RLS. Express `jwtRequired` middleware still validates identity. (`7c2ecb7`, `01f54f1`)
+4. **Role switch overlay** — removed `AnimatePresence mode="wait"` wrapper (conflicted with overlay). Added `initialLoaded` ref to skip effect on first mount. (`aa476d7`, `b86e687`)
+5. **Lazy component without Suspense** — `OrderHistoryScreen` rendered without `<Suspense>` → white screen. Fixed. (`52c7ddc`)
+6. **Master verification status** — replaced hardcoded `"Проверен"` badge with `master_status`-based dynamic badge. Verification CTA shows toast: temporarily unavailable (legal compliance). (`d14e8f8`)
 
-### New: CORS fix
-- Fixed wrong Vercel URL in CORS whitelist, trailing slash in `PUBLIC_WEB_URL`
-- Commit: `789adf6`
+#### Current issues
+- After role switch, overlay may still flash briefly before appearing (effect runs after render)
 
-### Next
-- Verify auth + role switch in Telegram Mini App
+#### Next
 - Sentry / PostHog monitoring
 - CI (`.github/workflows/ci.yml`)

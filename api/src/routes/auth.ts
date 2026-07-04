@@ -58,7 +58,7 @@ authRouter.post('/telegram', async (req, res) => {
     // Upsert profile by telegram_id.
     const { data: existing, error: selectErr } = await db
       .from('profiles')
-      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, created_at')
+      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
@@ -78,7 +78,7 @@ authRouter.post('/telegram', async (req, res) => {
           is_npd: false,
           avatar_url: photoUrl,
         })
-        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, created_at')
+        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, created_at')
         .single();
       if (insertErr) throw insertErr;
       profile = inserted as DBProfile;

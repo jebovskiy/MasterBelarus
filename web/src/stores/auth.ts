@@ -12,6 +12,7 @@ export type UserProfile = {
   is_master: boolean;
   current_role: 'customer' | 'master';
   master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
+  description: string | null;
   avg_rating: number | null;
   review_count: number;
 };

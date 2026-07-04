@@ -307,7 +307,11 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">О мастере</span>
-            <p className="text-sm text-slate-600 leading-relaxed">{MOCK_MASTER.about}</p>
+            {profile?.description ? (
+              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{profile.description}</p>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Описание не добавлено</p>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
