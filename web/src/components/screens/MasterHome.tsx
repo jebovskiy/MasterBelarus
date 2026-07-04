@@ -220,6 +220,9 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md active:scale-[0.98] transition-all disabled:opacity-60">
                       {submitting ? 'Отправляю...' : 'Отправить отклик'}
                     </button>
+                    <button onClick={() => setSelectedId(null)} className="w-full mt-2 py-3 rounded-xl text-sm font-semibold text-slate-500 active:bg-slate-100 transition-colors">
+                      Передумал
+                    </button>
                   </div>
                 </>
               )}
