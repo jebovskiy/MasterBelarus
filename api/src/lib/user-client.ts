@@ -30,6 +30,8 @@ export type DBProfile = {
   master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
   phone: string | null;
   description: string | null;
+  city: string | null;
+  radius_km: number | null;
   auth_user_id: string | null;
   created_at: string;
 };

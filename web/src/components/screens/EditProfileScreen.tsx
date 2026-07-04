@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/components/shared/Toast';
 import { Avatar } from '@/components/shared/Avatar';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
+import { BELARUS_CITIES } from '@/data/belarus-cities';
 import { apiPatch, apiUpload, isErrorResult } from '@/lib/api';
 
 const CATEGORIES = [
@@ -27,11 +28,21 @@ export default function EditProfileScreen({ onBack }: Props) {
   const [avatarSrc, setAvatarSrc] = useState(profile?.avatar_url ?? undefined);
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
-  const [cityValue, setCityValue] = useState<CityValue | null>(null);
   const [description, setDescription] = useState(profile?.description ?? '');
-  const [categories, setCategories] = useState<string[]>([]);
-  const [radiusKm, setRadiusKm] = useState(30);
+  const [categories, setCategories] = useState<string[]>(profile?.categories ?? []);
+  const [radiusKm, setRadiusKm] = useState(profile?.radius_km ?? 30);
   const [saving, setSaving] = useState(false);
+
+  const initialCity = useMemo<CityValue | null>(() => {
+    if (!profile?.city) return null;
+    for (const o of BELARUS_CITIES) {
+      const found = o.cities.find((c) => c.name === profile.city);
+      if (found) return { city: found.name, oblast: o.name, district: undefined };
+    }
+    return null;
+  }, [profile?.city]);
+
+  const [cityValue, setCityValue] = useState<CityValue | null>(initialCity);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,9 +82,9 @@ export default function EditProfileScreen({ onBack }: Props) {
       showToast(result.error || 'Ошибка', 'error');
       return;
     }
-    const updated = result.data as { full_name?: string | null; phone?: string | null; avatar_url?: string | null; description?: string | null } | null;
+    const updated = result.data as { city?: string | null; radius_km?: number | null; full_name?: string | null; phone?: string | null; avatar_url?: string | null; description?: string | null } | null;
     if (updated) {
-      setProfile({ ...profile!, full_name: updated.full_name ?? profile!.full_name, phone: updated.phone ?? profile!.phone, avatar_url: updated.avatar_url ?? profile!.avatar_url, description: updated.description ?? profile!.description });
+      setProfile({ ...profile!, full_name: updated.full_name ?? profile!.full_name, phone: updated.phone ?? profile!.phone, avatar_url: updated.avatar_url ?? profile!.avatar_url, description: updated.description ?? profile!.description, city: updated.city ?? profile!.city, radius_km: updated.radius_km ?? profile!.radius_km, categories });
     }
     showToast('✅ Профиль сохранён', 'success');
     onBack();

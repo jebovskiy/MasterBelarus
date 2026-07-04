@@ -10,7 +10,17 @@ import { getTelegramInitData } from '@/lib/telegram';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
+const CATEGORY_LABELS: Record<string, string> = {
+  plumber: 'Сантехник',
+  electrician: 'Электрик',
+  mover: 'Грузчик',
+  handyman: 'Муж на час',
+  tutor: 'Репетитор',
+  cleaning: 'Уборка',
+};
+
 const SPECIALTIES = ['Сантехника', 'Электрика', 'Мелкий ремонт'];
+
 const MOCK_MASTER = {
   about: 'Работаю сантехником и электриком более 8 лет. Выезжаю по Минску и области. Гарантия на все виды работ.',
   completed: 142,
@@ -259,7 +269,11 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 <span className="text-slate-400 text-xs">• {profile?.review_count ?? 0} отзывов</span>
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {SPECIALTIES.map((s) => (
+                {(profile?.categories ?? []).map((cat) => {
+                  const label = CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat;
+                  return <span key={cat} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{label}</span>;
+                })}
+                {(profile?.categories ?? []).length === 0 && SPECIALTIES.map((s) => (
                   <span key={s} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{s}</span>
                 ))}
               </div>
@@ -303,6 +317,25 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 </div>
               </div>
             </button>
+          )}
+
+          {profile?.city && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Город</span>
+              <p className="text-sm text-slate-600">{profile.city}</p>
+            </div>
+          )}
+
+          {profile?.categories && profile.categories.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Категории</span>
+              <div className="flex flex-wrap gap-2">
+                {profile.categories.map((cat) => {
+                  const label = CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat;
+                  return <span key={cat} className="bg-[#f4f4f6] text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">{label}</span>;
+                })}
+              </div>
+            </div>
           )}
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">

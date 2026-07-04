@@ -13,6 +13,9 @@ export type UserProfile = {
   current_role: 'customer' | 'master';
   master_status: 'none' | 'pending' | 'approved' | 'rejected' | 'blocked';
   description: string | null;
+  city: string | null;
+  radius_km: number | null;
+  categories: string[];
   avg_rating: number | null;
   review_count: number;
 };

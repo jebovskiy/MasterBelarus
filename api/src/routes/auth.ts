@@ -58,7 +58,7 @@ authRouter.post('/telegram', async (req, res) => {
     // Upsert profile by telegram_id.
     const { data: existing, error: selectErr } = await db
       .from('profiles')
-      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, created_at')
+      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
@@ -78,7 +78,7 @@ authRouter.post('/telegram', async (req, res) => {
           is_npd: false,
           avatar_url: photoUrl,
         })
-        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, created_at')
+        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, created_at')
         .single();
       if (insertErr) throw insertErr;
       profile = inserted as DBProfile;
@@ -86,6 +86,10 @@ authRouter.post('/telegram', async (req, res) => {
       await db.from('profiles').update({ avatar_url: photoUrl }).eq('id', profile.id);
       profile.avatar_url = photoUrl;
     }
+
+    // Fetch master categories
+    const { data: cats } = await db.from('master_categories').select('category').eq('master_id', profile.id);
+    const categories: string[] = (cats ?? []).map((r: { category: string }) => r.category);
 
     // Create/link Supabase Auth user
     let authUserId = profile.auth_user_id;
@@ -118,7 +122,7 @@ authRouter.post('/telegram', async (req, res) => {
     logger.info({ telegram_id: telegramId }, 'auth/telegram ok');
 
     return res.json({
-      profile,
+      profile: { ...profile, categories },
       jwt: jwtToken,
       publicWebUrl: env.PUBLIC_WEB_URL,
     });
