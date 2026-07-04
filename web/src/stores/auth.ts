@@ -30,6 +30,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   jwt: null,
   isAuthed: false,
   isAuthenticating: true,
-  setProfile: (p, jwt) => set({ profile: p, jwt: jwt ?? null, isAuthed: true, isAuthenticating: false }),
+  setProfile: (p, jwt) => set((state) => ({ profile: p, jwt: jwt ?? state.jwt, isAuthed: true, isAuthenticating: false })),
   clear: () => set({ profile: null, jwt: null, isAuthed: false, isAuthenticating: false }),
 }));
