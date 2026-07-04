@@ -105,24 +105,25 @@ Total:     180 ч  (~4.5 недели full-time)
 
 
 ---
-## STATE — 2026-07-04 13:40
+## STATE — 2026-07-04 14:00
+
+### New: Supabase migrated to ECC JWT keys — getUserClient now uses service_role
+- **Problem**: Supabase deprecated legacy HMAC JWT secret, migrated to ECC P-256 signing keys. Our custom JWT (HMAC-SHA256) can't be verified by Supabase → RLS policies block all queries → "profile not found" → "switch failed"
+- **Fix**: `getUserClient(jwt)` now returns `getSupabaseAdmin()` (service_role). All 23 call sites transparently use service_role. RLS bypassed; our Express `jwtRequired` middleware still validates identity.
+- `GET /orders/my` added explicit `.eq('client_id', profileId)` filter (was relying on RLS)
+- `getUserClient` LRU cache removed (single admin client reused)
+- Commit: `7c2ecb7`
 
 ### New: setProfile clears JWT on optimistic updates
-- **Problem**: `setProfile(p)` (no JWT arg) sets `jwt: null` → subsequent API calls lose `Authorization` header → `jwtRequired` returns 401 → `clear()` → "Ошибка авторизации"
-- Triggered by `switchRole()` optimistic update: `setProfile({ ...profile!, current_role: next })`
-- Also affects all partial profile updates (6 call sites): avatar upload, profile edit, master application
-- **Fix**: `setProfile: (p, jwt) => set((state) => ({ ... jwt: jwt ?? state.jwt }))` — preserves existing JWT when not provided
+- `setProfile(p)` without JWT arg sets `jwt: null` → `Authorization` header lost → 401 → auth cleared
+- Fix: `setProfile` preserves `state.jwt` when not provided
 - Commit: `1e79870`
 
-### New: CORS fix (production auth error)
+### New: CORS fix
+- Fixed wrong Vercel URL in CORS whitelist, trailing slash in `PUBLIC_WEB_URL`
 - Commit: `789adf6`
-- CSP in `web/index.html` updated earlier (commit `afe6334`)
-
-### Latest: JWT Auth Migration (service_role → RLS) — committed
-- Migration 019 + fixes (missing `CREATE POLICY`, `user_id` → `telegram_id`)
-- Typecheck passes for both API and Web
 
 ### Next
-- Verify auth + role switch in Telegram Mini App after Railway + Vercel deploy
+- Verify auth + role switch in Telegram Mini App
 - Sentry / PostHog monitoring
 - CI (`.github/workflows/ci.yml`)

@@ -145,6 +145,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const [mfCategory, setMfCategory] = useState('plumber');
   const [savingMaster, setSavingMaster] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   useEffect(() => {
     const initData = getTelegramInitData();
@@ -204,14 +205,16 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
 
   const switchRole = async () => {
     impact('medium');
+    if (isSwitchingRole) return;
     const next = profile!.current_role === 'master' ? 'customer' : 'master';
-    const prev = profile!.current_role;
-    setProfile({ ...profile!, current_role: next });
+    setIsSwitchingRole(true);
     const result = await apiPost<{ current_role: string }>('/auth/switch-role');
+    setIsSwitchingRole(false);
     if (isErrorResult(result)) {
-      setProfile({ ...profile!, current_role: prev });
       showToast(result.error, 'error');
+      return;
     }
+    setProfile({ ...profile!, current_role: next });
   };
 
   return (
@@ -225,19 +228,21 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
         <div className="bg-slate-200/60 rounded-xl p-1 flex w-full">
           <button
             onClick={switchRole}
+            disabled={isSwitchingRole}
             className={`flex-1 text-center text-xs py-2.5 rounded-lg transition-all ${
               currentRole === 'customer' ? 'bg-white text-slate-800 font-semibold shadow-sm' : 'text-slate-500 font-medium'
-            }`}
+            } ${isSwitchingRole ? 'opacity-50' : ''}`}
           >
-            Режим Клиента
+            {isSwitchingRole ? '⟳' : 'Режим Клиента'}
           </button>
           <button
             onClick={switchRole}
+            disabled={isSwitchingRole}
             className={`flex-1 text-center text-xs py-2.5 rounded-lg transition-all ${
               currentRole === 'master' ? 'bg-white text-slate-800 font-semibold shadow-sm' : 'text-slate-500 font-medium'
-            }`}
+            } ${isSwitchingRole ? 'opacity-50' : ''}`}
           >
-            Режим Мастера
+            {isSwitchingRole ? '⟳' : 'Режим Мастера'}
           </button>
         </div>
       )}

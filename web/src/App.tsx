@@ -95,7 +95,7 @@ function AppShell() {
     if (isMasterMode === (transitioning === 'master')) return;
     const target = isMasterMode ? 'master' : 'customer';
     setTransitioning(target);
-    const t = setTimeout(() => setTransitioning(null), 500);
+    const t = setTimeout(() => setTransitioning(null), 2000);
     return () => clearTimeout(t);
   }, [isMasterMode]);
 
