@@ -187,13 +187,15 @@ adminRouter.get('/masters', async (req: AdminRequest, res) => {
 /**
  * GET /admin/complaints — список жалоб
  */
-adminRouter.get('/complaints', async (_req, res) => {
+adminRouter.get('/complaints', async (req, res) => {
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
   try {
     const db = getSupabaseAdmin();
     const { data, error } = await db
       .from('complaints')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (error) throw error;
     return res.json(data ?? []);
   } catch (err) {

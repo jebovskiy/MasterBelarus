@@ -98,11 +98,14 @@ ordersRouter.get('/my', async (req: AuthedRequest, res) => {
 
     if (!profile) return res.status(404).json({ error: 'profile not found' });
 
+    const limit = Math.min(Number(req.query.limit ?? 20), 100);
+
     const { data: orders, error } = await db
       .from('orders')
       .select('*')
       .eq('client_id', profile.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
     return res.json({ orders: orders ?? [] });
@@ -126,12 +129,15 @@ ordersRouter.get('/nearby', async (req: AuthedRequest, res) => {
 
   try {
     const db = getSupabaseAdmin();
+    const limit = Math.min(Number(req.query.limit ?? 100), 500);
+
     const { data, error } = await db.rpc('find_orders_nearby', {
       p_lat: lat,
       p_lng: lng,
       p_radius: radius,
       p_category: category ?? null,
       p_city: city ?? null,
+      p_limit: limit,
     });
 
     if (error) throw error;
@@ -210,12 +216,15 @@ ordersRouter.get('/in-progress', async (req: AuthedRequest, res) => {
     const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
     if (orderIds.length === 0) return res.json({ orders: [] });
 
+    const limit = Math.min(Number(req.query.limit ?? 20), 100);
+
     const { data: orders, error } = await db
       .from('orders')
       .select('*')
       .in('id', orderIds)
       .eq('status', 'in_progress')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
     return res.json({ orders: orders ?? [] });
