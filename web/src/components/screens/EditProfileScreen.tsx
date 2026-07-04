@@ -45,8 +45,7 @@ export default function EditProfileScreen({ onBack }: Props) {
     }
     if ('data' in result && result.data) {
       setAvatarSrc(result.data.avatar_url);
-      profile!.avatar_url = result.data.avatar_url;
-      setProfile(profile!);
+      setProfile({ ...profile!, avatar_url: result.data.avatar_url });
       showToast('Фото обновлено', 'success');
     }
   };
@@ -73,9 +72,8 @@ export default function EditProfileScreen({ onBack }: Props) {
       showToast(msg, 'error');
       return;
     }
-    const updated = result.data as { full_name?: string | null; phone?: string | null; city?: string | null } | null;
-    if (updated?.full_name !== undefined) profile!.full_name = updated.full_name;
-    setProfile(profile!);
+    const updated = result.data as Record<string, unknown> | null;
+    if (updated) setProfile({ ...profile!, ...updated });
     showToast('✅ Профиль сохранён', 'success');
     onBack();
   };

@@ -68,7 +68,13 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   }, [location.latitude, location.longitude, filterCity]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id); }, [load]);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const id = setInterval(() => { if (!document.hidden) void load(); }, 30000);
+    const onVis = () => { if (document.hidden) clearInterval(id); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+  }, [load]);
 
   const openOrder = (order: NearbyOrder) => {
     setSelectedId(order.id);

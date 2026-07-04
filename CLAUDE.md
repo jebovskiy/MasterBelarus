@@ -77,6 +77,16 @@ MasterBelarus/
 | GET /admin/* | Админка (проверка adminRequired) |
 | POST /complaints | Жалоба от клиента |
 
+## Performance (см. memory/PERF-AUDIT-2026-07-04.md)
+
+1. **Zustand mutation bug** — `setProfile({ ...profile!, ... })`, не мутировать in-place
+2. **PostGIS geometry→geography** — ST_DWithin для geometry(4326) = градусы; cast в geography
+3. **Условный рендеринг** — не держать оба CustomerApp+MasterApp в DOM
+4. **Пагинация** — все list-эндпоинты с ?limit=20
+5. **Partial GIST** — `idx_orders_open_geo WHERE status='open'`
+6. **code splitting** — React.lazy на оверлеи
+7. **Polling visibility** — `document.hidden` check в MasterHome
+
 ## Ключевые решения (ADR-lite)
 
 1. **Нет эквайринга на MVP** — расчёты наличные/ЕРИП напрямую. Приложение = доска объявлений.

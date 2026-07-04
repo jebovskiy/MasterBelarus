@@ -198,8 +198,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
       showToast(msg, 'error');
       return;
     }
-    profile!.master_status = 'pending';
-    setProfile(profile!);
+    setProfile({ ...profile!, master_status: 'pending' });
     setMasterFormOpen(false);
     showToast('Заявка отправлена на модерацию', 'success');
   };
@@ -208,12 +207,10 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
     impact('medium');
     const next = profile!.current_role === 'master' ? 'customer' : 'master';
     const prev = profile!.current_role;
-    profile!.current_role = next;
-    setProfile(profile!);
+    setProfile({ ...profile!, current_role: next });
     const result = await apiPost<{ current_role: string }>('/auth/switch-role');
     if (isErrorResult(result)) {
-      profile!.current_role = prev;
-      setProfile(profile!);
+      setProfile({ ...profile!, current_role: prev });
       showToast(result.error, 'error');
     }
   };

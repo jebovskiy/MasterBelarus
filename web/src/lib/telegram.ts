@@ -13,10 +13,14 @@ export function initTelegramSDK(): void {
   }
 }
 
+let _initDataCache: string | null = null;
+
 export function getTelegramInitData(): string {
+  if (_initDataCache !== null) return _initDataCache;
   try {
     const lp = retrieveLaunchParams();
-    return (lp as unknown as { initDataRaw?: string }).initDataRaw ?? '';
+    _initDataCache = (lp as unknown as { initDataRaw?: string }).initDataRaw ?? '';
+    return _initDataCache;
   } catch {
     return '';
   }
