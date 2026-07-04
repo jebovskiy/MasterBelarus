@@ -51,7 +51,7 @@ const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
     bot.webhookCallback()(req as never, res as never, next);
   });
 
-  bot.telegram.setWebhook(`${env.PUBLIC_WEB_URL}${webhookPath}`).catch((err: unknown) => {
+  bot.telegram.setWebhook(`${env.PUBLIC_API_URL}${webhookPath}`).catch((err: unknown) => {
     logger.warn({ err }, 'setWebhook failed (will retry on first message)');
   });
 

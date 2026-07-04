@@ -13,7 +13,8 @@ dotenv.config({ path: path.join(root, 'api/.env.local') });
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  PUBLIC_WEB_URL: z.string().url().default('http://localhost:5173'),
+  PUBLIC_WEB_URL: z.string().trim().url().default('http://localhost:5173'),
+  PUBLIC_API_URL: z.string().trim().url().default('http://localhost:3000'),
   BOT_TOKEN: z.string().min(20, 'Telegram bot token is required'),
   TELEGRAM_SECRET_TOKEN: z.string().optional(),
   SUPABASE_URL: z.string().url(),
