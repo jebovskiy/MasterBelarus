@@ -29,7 +29,7 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
 
     const { data: profile, error: profileErr } = await db
       .from('profiles')
-      .select('id, role')
+      .select('id, is_master, master_status')
       .eq('telegram_id', telegramId)
       .single();
 
@@ -37,8 +37,8 @@ bidsRouter.post('/:orderId/bids', async (req: AuthedRequest, res) => {
       return res.status(404).json({ error: 'profile not found' });
     }
 
-    if (profile.role !== 'master') {
-      return res.status(403).json({ error: 'only masters can bid' });
+    if (!profile.is_master || profile.master_status !== 'approved') {
+      return res.status(403).json({ error: 'only approved masters can bid' });
     }
 
     const { error: deductErr } = await db.rpc('deduct_response', { p_master_id: profile.id });
