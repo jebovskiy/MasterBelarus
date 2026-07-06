@@ -134,7 +134,16 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
 
   try {
     const dbAdmin = getSupabaseAdmin();
+    const profileId = req.jwtPayload!.profile_id;
     const limit = Math.min(Number(req.query.limit ?? 100), 500);
+
+    // Get master's categories to filter orders
+    const { data: masterCats } = await dbAdmin
+      .from('master_categories')
+      .select('category')
+      .eq('profile_id', profileId);
+
+    const masterCategories = (masterCats ?? []).map((c: { category: string }) => c.category);
 
     const { data, error } = await dbAdmin.rpc('find_orders_nearby', {
       p_lat: lat,
@@ -147,7 +156,13 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
 
     if (error) throw error;
 
-    return res.json(data ?? []);
+    // If master has categories, filter orders to only show matching ones
+    let orders = data ?? [];
+    if (masterCategories.length > 0) {
+      orders = (orders as any[]).filter((o) => masterCategories.includes(o.category));
+    }
+
+    return res.json(orders);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'orders/nearby failed');
