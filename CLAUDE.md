@@ -435,3 +435,23 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 #### Остаётся
 - CI workflow
 - Проверить деплой в Telegram Mini App
+
+---
+## STATE — 2026-07-06 19:30
+
+### Session 15: Fix master price on bid accept + cancelled bids hidden + chats fix
+
+#### Changes
+1. **`bids.ts`** — при `accept-bid` цена заказа теперь устанавливается из `bid.proposed_price` мастера, а не остаётся ценой клиента. (`5ffc6b9`)
+2. **`bids.ts`** — `GET /:orderId/bids` исключает ставки со статусом `cancelled` (`.neq('status', 'cancelled')`). После реактивации заказа отменённый мастер не виден в списке ставок. (`5bf1a78`)
+3. **`orders.ts` `/orders/chats`** — теперь включает заказы `in_progress` даже без сообщений (убрал `.filter(id => latestMap.has(id))`). Мастер ищет только `accepted` bids, не все. (`82d32af`)
+4. **ChatScreen** — добавлен `initialOrderId` prop для открытия конкретного чата при переходе. (`82d32af`)
+5. **OrderDetail** — добавлен `onOpenChat` prop, кнопка 💬 Чат в хедере для `in_progress`. (`82d32af`)
+6. **MasterInProgress** — добавлен `onOpenChat` prop, кнопка 💬 Чат на карточке заказа. (`82d32af`)
+7. **App.tsx** — `onOpenChat` прокинут в оба режима (CustomerApp/MasterApp), ChatScreen получает `initialOrderId`. (`82d32af`)
+8. **i18n** — добавлен ключ `chat.chat_btn`. (`82d32af`)
+
+#### Коммиты
+- `5ffc6b9` — fix: set order price to master's proposed_price on bid accept
+- `5bf1a78` — fix: hide cancelled bids from order bids list on reactivate
+- `82d32af` — fix: chats not showing — include in_progress orders without messages + Chat buttons

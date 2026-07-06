@@ -157,48 +157,49 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
 
 /**
  * GET /orders/chats — список чатов для текущего пользователя
- * Включает заказы в работе (in_progress) даже без сообщений.
+ * Показывает заказы in_progress даже без сообщений.
+ * Возвращает описание заказа + имя собеседника.
  */
 ordersRouter.get('/chats', async (req: JwtRequest, res) => {
   try {
     const db = getUserClient(req.jwtToken!);
     const profileId = req.jwtPayload!.profile_id;
 
-    // Клиент: заказы где client_id = profileId
-    const { data: myOrders } = await db
+    // Заказы пользователя (как клиент + как принятый мастер)
+    const { data: asClient } = await db
       .from('orders')
-      .select('id, category')
+      .select('id, category, description, price, client_id, status')
       .eq('client_id', profileId)
       .in('status', ['in_progress', 'completed', 'cancelled']);
 
-    // Мастер с accepted bid
-    const { data: myAcceptedBids } = await db
+    const { data: acceptedBids } = await db
       .from('bids')
       .select('order_id')
       .eq('master_id', profileId)
       .eq('status', 'accepted');
 
-    const biddedOrderIds = (myAcceptedBids ?? []).map((b: { order_id: string }) => b.order_id);
-    let masterOrders: { id: string; category: string }[] = [];
-    if (biddedOrderIds.length > 0) {
+    const bidIds = (acceptedBids ?? []).map((b: { order_id: string }) => b.order_id);
+    let asMaster: { id: string; category: string; description: string; price: number | null; client_id: string; status: string }[] = [];
+    if (bidIds.length > 0) {
       const { data: mo } = await db
         .from('orders')
-        .select('id, category')
-        .in('id', biddedOrderIds)
+        .select('id, category, description, price, client_id, status')
+        .in('id', bidIds)
         .in('status', ['in_progress', 'completed', 'cancelled']);
-      masterOrders = (mo ?? []) as { id: string; category: string }[];
+      asMaster = (mo ?? []) as typeof asMaster;
     }
 
+    // Merge + dedup
     const seen = new Set<string>();
-    const allOrders = [...(myOrders ?? []), ...masterOrders].filter((o) => {
+    const allOrders = [...(asClient ?? []), ...asMaster].filter((o) => {
       if (seen.has(o.id)) return false;
       seen.add(o.id);
       return true;
     });
+    if (allOrders.length === 0) return res.json({ conversations: [] });
 
-    const orderIds = allOrders.map((o: { id: string }) => o.id);
-    if (orderIds.length === 0) return res.json({ conversations: [] });
-
+    // Последние сообщения
+    const orderIds = allOrders.map((o) => o.id);
     const { data: latestMessages } = await db
       .from('messages')
       .select('order_id, text, created_at')
@@ -210,29 +211,73 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       if (!latestMap.has(m.order_id)) latestMap.set(m.order_id, { text: m.text, created_at: m.created_at });
     }
 
-    // Fetch in_progress orders to get accepted master profile for the other participant's name
-    const { data: inProgOrders } = await db
-      .from('orders')
-      .select('id')
-      .in('id', orderIds)
-      .eq('status', 'in_progress');
+    // Собираем ID собеседников: для заказов-клиента → accepted master, для заказов-мастера → client
+    const clientIds = new Set<string>();
+    const masterNeeded = new Set<string>();
+    for (const o of allOrders) {
+      if (o.client_id === profileId) {
+        masterNeeded.add(o.id);
+      } else {
+        clientIds.add(o.client_id);
+      }
+    }
 
-    const inProgIds = new Set((inProgOrders ?? []).map((o: { id: string }) => o.id));
+    // Получаем accepted мастеров для заказов клиента
+    const masterMap = new Map<string, string>(); // order_id → master_name
+    if (masterNeeded.size > 0) {
+      const { data: mastersBids } = await db
+        .from('bids')
+        .select('order_id, master_id')
+        .in('order_id', [...masterNeeded])
+        .eq('status', 'accepted');
 
-    const categoryMap = new Map(allOrders.map((o: { id: string; category: string }) => [o.id, o.category]));
-    const conversations = orderIds
-      .map((id) => {
-        const msg = latestMap.get(id);
-        return {
-          order_id: id,
-          category: categoryMap.get(id) ?? '',
-          last_message: msg?.text ?? '',
-          last_message_at: msg?.created_at ?? new Date(0).toISOString(),
-          unread: 0,
-        };
-      })
-      // in_progress без сообщений должны быть внизу, с сообщениями — сверху
-      .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+      const masterIds = [...new Set((mastersBids ?? []).map((b: { master_id: string }) => b.master_id))];
+      if (masterIds.length > 0) {
+        const { data: mastersProfiles } = await db
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', masterIds);
+
+        const nameMap = new Map((mastersProfiles ?? []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name]));
+        for (const b of (mastersBids ?? []) as { order_id: string; master_id: string }[]) {
+          masterMap.set(b.order_id, nameMap.get(b.master_id) ?? 'Мастер');
+        }
+      }
+    }
+
+    // Получаем имена клиентов
+    const clientNameMap = new Map<string, string>();
+    if (clientIds.size > 0) {
+      const { data: clients } = await db
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', [...clientIds]);
+
+      for (const c of (clients ?? []) as { id: string; full_name: string | null }[]) {
+        clientNameMap.set(c.id, c.full_name ?? 'Клиент');
+      }
+    }
+
+    // Собираем результат
+    const conversations = allOrders.map((o) => {
+      const msg = latestMap.get(o.id);
+      const isClient = o.client_id === profileId;
+      const otherName = isClient
+        ? (masterMap.get(o.id) ?? 'Мастер')
+        : (clientNameMap.get(o.client_id) ?? 'Клиент');
+
+      return {
+        order_id: o.id,
+        category: o.category,
+        description: o.description.slice(0, 80),
+        price: o.price,
+        status: o.status,
+        other_participant_name: otherName,
+        last_message: msg?.text ?? '',
+        last_message_at: msg?.created_at ?? new Date(0).toISOString(),
+        unread: 0,
+      };
+    }).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
     return res.json({ conversations });
   } catch (err) {

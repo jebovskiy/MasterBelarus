@@ -15,6 +15,10 @@ type Message = {
 type Conversation = {
   order_id: string;
   category: string;
+  description: string;
+  price: number | null;
+  status: string;
+  other_participant_name: string;
   last_message: string;
   last_message_at: string;
   unread: number;
@@ -119,7 +123,9 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
                   <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">{c.unread}</span>
                 )}
               </div>
-              <p className="text-sm text-slate-600 line-clamp-1">{c.last_message}</p>
+              <p className="text-sm font-semibold text-slate-800 line-clamp-1">{c.other_participant_name}</p>
+              <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{c.description} — {c.price ? `${c.price} BYN` : t('master.negotiable')}</p>
+              {c.last_message && <p className="text-sm text-slate-600 line-clamp-1 mt-1">{c.last_message}</p>}
             </button>
           ))}
         </div>
@@ -132,7 +138,9 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3 px-5 h-14">
           <button onClick={() => setActiveOrderId(null)} className="text-sm font-semibold text-slate-500">{t('common.back')}</button>
-          <h2 className="text-base font-bold text-slate-800">{t('chat.conversation')}</h2>
+          <h2 className="text-base font-bold text-slate-800 truncate max-w-[180px]">
+            {conversations.find((c) => c.order_id === activeOrderId)?.other_participant_name ?? t('chat.conversation')}
+          </h2>
           {onOpenOrder && (
             <button onClick={() => onOpenOrder(activeOrderId)} className="ml-auto text-xs font-semibold text-slate-500">{t('chat.view_order')}</button>
           )}
