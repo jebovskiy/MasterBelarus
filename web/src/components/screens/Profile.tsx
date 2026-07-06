@@ -1,6 +1,8 @@
 import { useState, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
+import { useSettingsStore } from '@/stores/settings';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
@@ -65,23 +67,29 @@ function parsePhone(display: string): string {
   return d ? '+' + d : '';
 }
 
-function SettingsCard() {
+const LANG_LABELS: Record<string, string> = { ru: 'profile.lang_ru', be: 'profile.lang_be', en: 'profile.lang_en' };
+const THEME_LABELS: Record<string, string> = { system: 'profile.theme_system', light: 'profile.theme_light', dark: 'profile.theme_dark' };
+
+function SettingsCard({ onNavigate }: { onNavigate?: (s: string) => void }) {
+  const { t } = useTranslation();
+  const { language, theme, notifyNearby } = useSettingsStore();
+  const anyNotifOn = notifyNearby;
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3.5">
-      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Настройки</span>
+    <button onClick={() => onNavigate?.('settings')} className="w-full bg-appSurface rounded-2xl p-5 shadow-sm space-y-3.5 active:scale-[0.98] transition-transform text-left">
+      <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">{t('profile.settings')}</span>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-700">Язык</span>
-        <span className="text-sm text-slate-400">Русский</span>
+        <span className="text-sm text-textMain">{t('profile.language')}</span>
+        <span className="text-sm text-textMuted">{t(LANG_LABELS[language] ?? 'profile.lang_ru')}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-700">Тема</span>
-        <span className="text-sm text-slate-400">Системная</span>
+        <span className="text-sm text-textMain">{t('profile.theme')}</span>
+        <span className="text-sm text-textMuted">{t(THEME_LABELS[theme] ?? 'profile.theme_system')}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-slate-700">Уведомления</span>
-        <span className="text-sm text-slate-400">Вкл</span>
+        <span className="text-sm text-textMain">{t('profile.notifications')}</span>
+        <span className="text-sm text-textMuted">{anyNotifOn ? t('profile.notif_on') : t('profile.notif_off')}</span>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -347,7 +355,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
-          <SettingsCard />
+          <SettingsCard onNavigate={onNavigate} />
 
           <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.98] transition-transform">
             Редактировать анкету мастера
@@ -368,7 +376,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             </div>
           </div>
 
-          <SettingsCard />
+          <SettingsCard onNavigate={onNavigate} />
 
           {isAdminUser && (
             <button onClick={() => onNavigate?.('admin')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold active:scale-[0.98] transition-transform">

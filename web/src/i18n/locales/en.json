@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "home": "Home",
+    "feed": "Feed",
+    "orders": "My Orders",
+    "in_progress": "In Progress",
+    "profile": "Profile"
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "← Back",
+    "notifications": "Notifications",
+    "notify_nearby": "New orders nearby",
+    "notify_chat": "Chat messages",
+    "notify_promo": "Promos & updates",
+    "language": "App Language",
+    "lang_ru": "Русский",
+    "lang_be": "Беларуская",
+    "lang_en": "English",
+    "theme": "Theme",
+    "theme_system": "🖥 System",
+    "theme_light": "☀️ Light",
+    "theme_dark": "🌙 Dark"
+  },
+  "profile": {
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "lang_ru": "Russian",
+    "lang_be": "Belarusian",
+    "lang_en": "English",
+    "theme_system": "System",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "notif_on": "On",
+    "notif_off": "Off"
+  }
+}

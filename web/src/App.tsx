@@ -9,6 +9,7 @@ import Profile from '@/components/screens/Profile';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
 import { useStartAppHandler } from '@/hooks/useStartAppHandler';
+import { useTheme } from '@/hooks/useTheme';
 
 const CreateOrderSheet = lazy(() => import('@/components/screens/CreateOrderSheet'));
 const OrderDetail = lazy(() => import('@/components/screens/OrderDetail'));
@@ -23,7 +24,7 @@ type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin
 function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: () => void }) {
   if (!overlay) return null;
   return (
-    <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[60] bg-[#f4f4f6] overflow-y-auto">
+    <motion.div key={overlay} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-[60] bg-appBg overflow-y-auto">
       <Suspense fallback={null}>
         {overlay === 'settings' && <SettingsScreen onBack={onClose} />}
         {overlay === 'edit_profile' && <EditProfileScreen onBack={onClose} />}
@@ -43,7 +44,7 @@ function CustomerApp() {
   const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-screen bg-appBg pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'home' && <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} onOpenOrder={(id) => setSelectedOrderId(id)} />}
       {tab === 'orders' && <Suspense fallback={null}><OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
       {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
@@ -67,7 +68,7 @@ function MasterApp() {
   const [overlay, setOverlay] = useState<Overlay | null>(null);
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-screen bg-appBg pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'feed' && <MasterHome onNavigate={(s) => setOverlay(s as Overlay)} />}
       {tab === 'in_progress' && <MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} />}
       {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
@@ -99,6 +100,7 @@ function AppShell() {
   const prevMode = usePrevious(isMasterMode);
 
   useStartAppHandler();
+  useTheme();
 
   useEffect(() => {
     if (!profile) return;
@@ -123,7 +125,7 @@ function AppShell() {
       <AnimatePresence>
         {showOverlay && (
           <motion.div
-            className="fixed inset-0 z-[70] bg-[#f4f4f6] flex flex-col items-center justify-center gap-3"
+            className="fixed inset-0 z-[70] bg-appBg flex flex-col items-center justify-center gap-3"
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

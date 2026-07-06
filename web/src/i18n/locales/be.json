@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "home": "Галоўная",
+    "feed": "Стужка",
+    "orders": "Мае заказы",
+    "in_progress": "У працы",
+    "profile": "Профіль"
+  },
+  "settings": {
+    "title": "Налады",
+    "back": "← Назад",
+    "notifications": "Апавяшчэнні",
+    "notify_nearby": "Новыя заказы побач",
+    "notify_chat": "Паведамленні ў чаце",
+    "notify_promo": "Акцыі і абнаўленні",
+    "language": "Мова інтэрфейсу",
+    "lang_ru": "Русский",
+    "lang_be": "Беларуская",
+    "lang_en": "English",
+    "theme": "Тэма",
+    "theme_system": "🖥 Сістэмная",
+    "theme_light": "☀️ Светлая",
+    "theme_dark": "🌙 Цёмная"
+  },
+  "profile": {
+    "settings": "Налады",
+    "language": "Мова",
+    "theme": "Тэма",
+    "notifications": "Апавяшчэнні",
+    "lang_ru": "Руская",
+    "lang_be": "Беларуская",
+    "lang_en": "Англійская",
+    "theme_system": "Сістэмная",
+    "theme_light": "Светлая",
+    "theme_dark": "Цёмная",
+    "notif_on": "Укл",
+    "notif_off": "Выкл"
+  }
+}

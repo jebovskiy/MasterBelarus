@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "home": "Главная",
+    "feed": "Лента",
+    "orders": "Мои заказы",
+    "in_progress": "В работе",
+    "profile": "Профиль"
+  },
+  "settings": {
+    "title": "Настройки",
+    "back": "← Назад",
+    "notifications": "Уведомления",
+    "notify_nearby": "Новые заказы поблизости",
+    "notify_chat": "Сообщения в чате",
+    "notify_promo": "Акции и обновления",
+    "language": "Язык приложения",
+    "lang_ru": "Русский",
+    "lang_be": "Беларуская",
+    "lang_en": "English",
+    "theme": "Тема",
+    "theme_system": "🖥 Системная",
+    "theme_light": "☀️ Светлая",
+    "theme_dark": "🌙 Тёмная"
+  },
+  "profile": {
+    "settings": "Настройки",
+    "language": "Язык",
+    "theme": "Тема",
+    "notifications": "Уведомления",
+    "lang_ru": "Русский",
+    "lang_be": "Беларуская",
+    "lang_en": "English",
+    "theme_system": "Системная",
+    "theme_light": "Светлая",
+    "theme_dark": "Тёмная",
+    "notif_on": "Вкл",
+    "notif_off": "Выкл"
+  }
+}
