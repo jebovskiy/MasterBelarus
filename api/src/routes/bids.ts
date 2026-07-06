@@ -193,9 +193,23 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
       return res.status(400).json({ error: 'order is not open' });
     }
 
+    const { data: bid, error: bidErr } = await db
+      .from('bids')
+      .select('master_id, proposed_price')
+      .eq('id', bidId)
+      .single();
+
+    if (bidErr || !bid) return res.status(404).json({ error: 'bid not found' });
+
+    const b = bid as { master_id: string; proposed_price: number | null };
+
+    // Update order: status + price (master's proposed price)
+    const orderUpdate: Record<string, unknown> = { status: 'in_progress' };
+    if (b.proposed_price != null) orderUpdate.price = b.proposed_price;
+
     const { data: updatedOrder, error: updateErr } = await db
       .from('orders')
-      .update({ status: 'in_progress' })
+      .update(orderUpdate)
       .eq('id', orderId)
       .eq('status', 'open')
       .select()
@@ -204,14 +218,6 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
     if (updateErr || !updatedOrder) {
       return res.status(409).json({ error: 'Заказ уже принят другим мастером' });
     }
-
-    const { data: bid, error: bidErr } = await db
-      .from('bids')
-      .select('master_id, proposed_price')
-      .eq('id', bidId)
-      .single();
-
-    if (bidErr || !bid) return res.status(404).json({ error: 'bid not found' });
 
     // Mark the winning bid as accepted
     await db.from('bids').update({ status: 'accepted' }).eq('id', bidId);
