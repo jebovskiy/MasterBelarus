@@ -5,6 +5,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
+import { getCityCoords } from '@/data/belarus-cities';
 
 type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
@@ -67,12 +68,16 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
     if (street.trim()) addrParts.push(street.trim());
     const address_text = addrParts.join(', ');
 
+    const coords = getCityCoords(cityValue.city);
+
     const result = await apiPost<{ id: string }>('/orders', {
       category,
       description: description.trim(),
       price: negotiable ? null : Number(price || 0),
       is_negotiable: negotiable,
       address_text,
+      lat: coords?.lat,
+      lng: coords?.lng,
       images: [],
     });
 
