@@ -159,6 +159,7 @@ bidsRouter.get('/:orderId/bids', async (req: JwtRequest, res) => {
       .from('bids')
       .select('id, master_id, proposed_price, comment, created_at')
       .eq('order_id', orderId)
+      .neq('status', 'cancelled')
       .order('created_at', { ascending: true });
 
     if (bidsErr) throw bidsErr;
