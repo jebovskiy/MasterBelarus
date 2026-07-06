@@ -72,7 +72,7 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
 
     if (cancelled_by === 'client') {
       if (profileId !== o.client_id) return res.status(403).json({ error: 'not your order' });
-      if (o.status !== 'open') return res.status(400).json({ error: 'can only cancel open orders' });
+      if (o.status !== 'open' && o.status !== 'in_progress') return res.status(400).json({ error: 'can only cancel open or in-progress orders' });
 
       const validIds: number[] = CLIENT_REASONS.map(r => r.id);
       if (!validIds.includes(cancellation_reason_id)) {
@@ -134,6 +134,15 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
           );
         }
       }
+
+      // if client cancels an in-progress order, mark the accepted bid as cancelled
+      if (o.status === 'in_progress') {
+        await dbAdmin
+          .from('bids')
+          .update({ status: 'cancelled' })
+          .eq('order_id', orderId)
+          .eq('status', 'accepted');
+      }
     }
 
     if (cancelled_by === 'master') {
@@ -190,8 +199,9 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
     return res.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
-    logger.warn({ orderId, msg }, 'cancel failed');
-    return res.status(500).json({ error: 'cancel failed', detail: msg });
+    const stack = err instanceof Error ? err.stack : undefined;
+    logger.error({ orderId, msg, stack }, 'cancel failed');
+    return res.status(500).json({ error: msg, detail: stack });
   }
 });
 
