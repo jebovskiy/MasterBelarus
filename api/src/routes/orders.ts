@@ -5,6 +5,7 @@ import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { isValidCity } from '../data/belarus-cities.js';
+import { captureEvent } from '../lib/analytics.js';
 
 const orderLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -81,6 +82,11 @@ ordersRouter.post('/', async (req: JwtRequest, res) => {
       .single();
 
     if (error) throw error;
+    captureEvent(`tg_${req.jwtPayload!.telegram_id}`, 'order_created', {
+      order_id: order.id,
+      category: b.category,
+      has_price: b.price != null,
+    });
     logger.info({ orderId: order.id }, 'order created');
     return res.status(201).json(order);
   } catch (err) {

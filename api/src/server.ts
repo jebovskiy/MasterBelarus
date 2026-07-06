@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import type { NextFunction, Request, Response } from 'express';
+import * as Sentry from '@sentry/node';
 import { env } from './config/env.js';
 import { createApp } from './lib/app.js';
 import { logger } from './lib/logger.js';
@@ -12,8 +13,19 @@ import { reviewsRouter } from './routes/reviews.js';
 import { adminRouter } from './routes/admin.js';
 import { complaintsRouter } from './routes/complaints.js';
 import { cancelRouter } from './routes/cancel.js';
+import { captureEvent, identifyUser, shutdownAnalytics } from './lib/analytics.js';
 
 async function bootstrap() {
+  if (env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: env.SENTRY_DSN,
+      environment: env.NODE_ENV,
+      tracesSampleRate: 0.1,
+    });
+    logger.info('Sentry initialized');
+  } else {
+    logger.warn('SENTRY_DSN not set — error monitoring disabled');
+  }
   const app = createApp();
   app.use('/auth', authRouter);
   app.use('/orders', ordersRouter);
@@ -46,7 +58,11 @@ const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
     res.status(404).json({ error: 'not found', path: req.path });
   });
 
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+    Sentry.withScope((scope) => {
+      scope.setSDKProcessingMetadata({ request: req });
+      Sentry.captureException(err);
+    });
     logger.error({ err }, 'unhandled error');
     res.status(500).json({ error: 'internal' });
   });
@@ -58,6 +74,15 @@ const webhookPath = `/telegraf/${env.BOT_TOKEN}`;
   httpServer.listen(env.PORT, () => {
     logger.info({ port: env.PORT, webhookPath }, 'masterby-api listening');
   });
+
+  const shutdown = async () => {
+    logger.info('shutting down...');
+    await shutdownAnalytics();
+    await Sentry.close(2000);
+    httpServer.close(() => process.exit(0));
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 bootstrap().catch((err) => {

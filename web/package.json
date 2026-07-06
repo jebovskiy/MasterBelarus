@@ -24,9 +24,12 @@
     },
     "type": "module",
     "dependencies": {
+        "@sentry/react": "^10.63.0",
+        "@sentry/vite-plugin": "^5.3.0",
         "@telegram-apps/sdk": "^2.11.0",
         "framer-motion": "^11.11.1",
         "i18next": "^26.3.4",
+        "posthog-js": "^1.396.7",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-i18next": "^17.0.8",

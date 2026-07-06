@@ -25,6 +25,9 @@ const EnvSchema = z.object({
   ADMIN_TOKEN: z.string().optional(),
   ADMIN_TELEGRAM_ID: z.coerce.number().optional(),
   MODERATOR_CHAT_ID: z.coerce.number().optional(),
+  SENTRY_DSN: z.string().url().optional(),
+  POSTHOG_KEY: z.string().optional(),
+  POSTHOG_HOST: z.string().url().default('https://app.posthog.com'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

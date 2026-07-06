@@ -10,6 +10,7 @@ import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js'
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { captureEvent, identifyUser } from '../lib/analytics.js';
 import { isValidCity } from '../data/belarus-cities.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -118,6 +119,16 @@ authRouter.post('/telegram', async (req, res) => {
       env.JWT_SECRET,
       { expiresIn: '7d' },
     );
+
+    identifyUser(`tg_${telegramId}`, {
+      role: profile.role,
+      is_master: profile.is_master,
+      is_npd: profile.is_npd,
+    });
+    captureEvent(`tg_${telegramId}`, 'user_login', {
+      is_new: !existing,
+      role: profile.role,
+    });
 
     logger.info({ telegram_id: telegramId }, 'auth/telegram ok');
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import * as Sentry from '@sentry/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth';
 import { AuthGuard } from '@/components/screens/SplashScreen';
@@ -146,11 +147,28 @@ function AppShell() {
   );
 }
 
+const FallbackComponent = () => (
+  <div className="min-h-screen bg-[#f4f4f6] flex items-center justify-center p-6">
+    <div className="text-center">
+      <p className="text-lg font-semibold text-slate-800 mb-2">Что-то пошло не так</p>
+      <p className="text-sm text-slate-500 mb-4">Попробуйте перезапустить приложение</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-6 py-2 bg-[#7C3AED] text-white rounded-xl text-sm font-medium"
+      >
+        Перезагрузить
+      </button>
+    </div>
+  </div>
+);
+
 export default function App() {
   return (
-    <AuthGuard>
-      <AppShell />
-      <Toast />
-    </AuthGuard>
+    <Sentry.ErrorBoundary fallback={FallbackComponent}>
+      <AuthGuard>
+        <AppShell />
+        <Toast />
+      </AuthGuard>
+    </Sentry.ErrorBoundary>
   );
 }

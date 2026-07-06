@@ -5,6 +5,7 @@ import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { sendBidNotification, sendMasterAcceptedNotification } from '../services/notifications.js';
+import { captureEvent } from '../lib/analytics.js';
 
 const bidLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -110,6 +111,10 @@ bidsRouter.post('/:orderId/bids', async (req: JwtRequest, res) => {
       }
     }
 
+    captureEvent(`tg_${req.jwtPayload!.telegram_id}`, 'bid_placed', {
+      order_id: orderId,
+      has_price: parsed.data.proposed_price != null,
+    });
     logger.info({ orderId, masterId: profileId }, 'bid created');
     return res.status(201).json(bid);
   } catch (err) {
