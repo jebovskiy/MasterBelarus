@@ -17,12 +17,14 @@ export function BottomTabBar({ active, onTab }: Props) {
   const CUSTOMER_TABS: { key: TabKey; label: string; icon: string }[] = [
     { key: 'home', label: t('nav.home'), icon: '🏠' },
     { key: 'orders', label: t('nav.orders'), icon: '📋' },
+    { key: 'chat', label: t('nav.chat'), icon: '💬' },
     { key: 'profile', label: t('nav.profile'), icon: '👤' },
   ];
 
   const MASTER_TABS: { key: TabKey; label: string; icon: string }[] = [
     { key: 'feed', label: t('nav.feed'), icon: '📋' },
     { key: 'in_progress', label: t('nav.in_progress'), icon: '🔧' },
+    { key: 'chat', label: t('nav.chat'), icon: '💬' },
     { key: 'profile', label: t('nav.profile'), icon: '👤' },
   ];
 

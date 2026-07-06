@@ -156,6 +156,115 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
 });
 
 /**
+ * GET /orders/chats — список чатов (заказов с сообщениями) для текущего пользователя
+ */
+ordersRouter.get('/chats', async (req: JwtRequest, res) => {
+  try {
+    const db = getUserClient(req.jwtToken!);
+    const profileId = req.jwtPayload!.profile_id;
+
+    // Клиент: заказы где client_id = profileId
+    const { data: myOrders } = await db
+      .from('orders')
+      .select('id, category')
+      .eq('client_id', profileId)
+      .in('status', ['in_progress', 'completed', 'cancelled']);
+
+    // Мастер: заказы где есть отклик мастера
+    const { data: myBids } = await db
+      .from('bids')
+      .select('order_id')
+      .eq('master_id', profileId);
+
+    const biddedOrderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
+    let masterOrders: { id: string; category: string }[] = [];
+    if (biddedOrderIds.length > 0) {
+      const { data: mo } = await db
+        .from('orders')
+        .select('id, category')
+        .in('id', biddedOrderIds)
+        .in('status', ['in_progress', 'completed', 'cancelled']);
+      masterOrders = (mo ?? []) as { id: string; category: string }[];
+    }
+
+    const seen = new Set<string>();
+    const allOrders = [...(myOrders ?? []), ...masterOrders].filter((o) => {
+      if (seen.has(o.id)) return false;
+      seen.add(o.id);
+      return true;
+    });
+
+    const orderIds = allOrders.map((o: { id: string }) => o.id);
+    if (orderIds.length === 0) return res.json({ conversations: [] });
+
+    const { data: latestMessages } = await db
+      .from('messages')
+      .select('order_id, text, created_at')
+      .in('order_id', orderIds)
+      .order('created_at', { ascending: false });
+
+    const latestMap = new Map<string, { text: string; created_at: string }>();
+    for (const m of (latestMessages ?? []) as { order_id: string; text: string; created_at: string }[]) {
+      if (!latestMap.has(m.order_id)) latestMap.set(m.order_id, { text: m.text, created_at: m.created_at });
+    }
+
+    const categoryMap = new Map(allOrders.map((o: { id: string; category: string }) => [o.id, o.category]));
+    const conversations = orderIds
+      .filter((id) => latestMap.has(id))
+      .map((id) => ({
+        order_id: id,
+        category: categoryMap.get(id) ?? '',
+        last_message: latestMap.get(id)!.text,
+        last_message_at: latestMap.get(id)!.created_at,
+        unread: 0,
+      }))
+      .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+
+    return res.json({ conversations });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'orders/chats failed');
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
+ * GET /orders/in-progress — заказы в работе у текущего мастера
+ * MUST be before /:id to avoid route conflict
+ */
+ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
+  try {
+    const db = getUserClient(req.jwtToken!);
+    const profileId = req.jwtPayload!.profile_id;
+
+    const { data: myBids } = await db
+      .from('bids')
+      .select('order_id')
+      .eq('master_id', profileId);
+
+    const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
+    if (orderIds.length === 0) return res.json({ orders: [] });
+
+    const limit = Math.min(Number(req.query.limit ?? 20), 100);
+
+    const { data: orders, error } = await db
+      .from('orders')
+      .select('*')
+      .in('id', orderIds)
+      .eq('status', 'in_progress')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return res.json({ orders: orders ?? [] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'orders/in-progress failed');
+    return res.status(500).json({ error: 'in-progress failed', detail: msg });
+  }
+});
+
+/**
  * GET /orders/:id — детали заказа (только владелец, мастер с откликом или админ)
  */
 ordersRouter.get('/:id', async (req: JwtRequest, res) => {
@@ -192,38 +301,3 @@ ordersRouter.get('/:id', async (req: JwtRequest, res) => {
  *   POST /orders/:id/accept-bid/:bidId — принятие
  *   POST /orders/:id/review — завершение + отзыв
  */
-
-/**
- * GET /orders/in-progress — заказы в работе у текущего мастера
- */
-ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
-  try {
-    const db = getUserClient(req.jwtToken!);
-    const profileId = req.jwtPayload!.profile_id;
-
-    const { data: myBids } = await db
-      .from('bids')
-      .select('order_id')
-      .eq('master_id', profileId);
-
-    const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
-    if (orderIds.length === 0) return res.json({ orders: [] });
-
-    const limit = Math.min(Number(req.query.limit ?? 20), 100);
-
-    const { data: orders, error } = await db
-      .from('orders')
-      .select('*')
-      .in('id', orderIds)
-      .eq('status', 'in_progress')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return res.json({ orders: orders ?? [] });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'unknown';
-    logger.warn({ msg }, 'orders/in-progress failed');
-    return res.status(500).json({ error: 'in-progress failed', detail: msg });
-  }
-});

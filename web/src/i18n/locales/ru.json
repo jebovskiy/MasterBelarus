@@ -4,7 +4,8 @@
     "feed": "Лента",
     "orders": "Мои заказы",
     "in_progress": "В работе",
-    "profile": "Профиль"
+    "profile": "Профиль",
+    "chat": "Чаты"
   },
   "settings": {
     "title": "Настройки",
@@ -183,6 +184,14 @@
     "no_in_progress": "Нет заказов в работе",
     "cancel": "Отменить",
     "changed_mind": "Передумал"
+  },
+  "chat": {
+    "title": "Чаты",
+    "no_chats": "У вас пока нет чатов",
+    "conversation": "Чат",
+    "view_order": "Заказ",
+    "no_messages": "Сообщений пока нет. Напишите что-нибудь!",
+    "input_placeholder": "Сообщение..."
   },
   "common": {
     "back": "← Назад",

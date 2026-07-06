@@ -4,7 +4,8 @@
     "feed": "Feed",
     "orders": "My Orders",
     "in_progress": "In Progress",
-    "profile": "Profile"
+    "profile": "Profile",
+    "chat": "Chats"
   },
   "settings": {
     "title": "Settings",
@@ -183,6 +184,14 @@
     "no_in_progress": "No orders in progress",
     "cancel": "Cancel",
     "changed_mind": "Changed my mind"
+  },
+  "chat": {
+    "title": "Chats",
+    "no_chats": "No chats yet",
+    "conversation": "Chat",
+    "view_order": "Order",
+    "no_messages": "No messages yet. Write something!",
+    "input_placeholder": "Message..."
   },
   "common": {
     "back": "← Back",

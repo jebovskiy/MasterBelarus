@@ -4,7 +4,8 @@
     "feed": "Стужка",
     "orders": "Мае заказы",
     "in_progress": "У працы",
-    "profile": "Профіль"
+    "profile": "Профіль",
+    "chat": "Чаты"
   },
   "settings": {
     "title": "Налады",
@@ -183,6 +184,14 @@
     "no_in_progress": "Няма заказаў у працы",
     "cancel": "Адмяніць",
     "changed_mind": "Передумаў"
+  },
+  "chat": {
+    "title": "Чаты",
+    "no_chats": "У вас пакуль няма чатаў",
+    "conversation": "Чат",
+    "view_order": "Заказ",
+    "no_messages": "Паведамленняў пакуль няма. Напішыце што-небудзь!",
+    "input_placeholder": "Паведамленне..."
   },
   "common": {
     "back": "← Назад",

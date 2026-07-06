@@ -13,6 +13,7 @@ import { reviewsRouter } from './routes/reviews.js';
 import { adminRouter } from './routes/admin.js';
 import { complaintsRouter } from './routes/complaints.js';
 import { cancelRouter } from './routes/cancel.js';
+import { messagesRouter } from './routes/messages.js';
 import { captureEvent, identifyUser, shutdownAnalytics } from './lib/analytics.js';
 
 async function bootstrap() {
@@ -32,6 +33,7 @@ async function bootstrap() {
   app.use('/orders', bidsRouter);
   app.use('/orders', reviewsRouter);
   app.use('/orders', cancelRouter);
+  app.use('/orders', messagesRouter);
   app.use('/masters', mastersRouter);
   app.use('/admin', adminRouter);
   app.use('/complaints', complaintsRouter);

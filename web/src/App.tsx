@@ -20,6 +20,7 @@ const EditProfileScreen = lazy(() => import('@/components/screens/EditProfileScr
 const WalletScreen = lazy(() => import('@/components/screens/WalletScreen'));
 const OrderHistoryScreen = lazy(() => import('@/components/screens/OrderHistoryScreen'));
 const AdminPanelView = lazy(() => import('@/components/screens/AdminPanelView'));
+const ChatScreen = lazy(() => import('@/components/screens/ChatScreen'));
 
 type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin';
 
@@ -49,6 +50,7 @@ function CustomerApp() {
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'home' && <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} onOpenOrder={(id) => setSelectedOrderId(id)} />}
       {tab === 'orders' && <Suspense fallback={null}><OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
+      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); setTab('home'); }} /></Suspense>}
       {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
@@ -73,6 +75,7 @@ function MasterApp() {
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'feed' && <MasterHome onNavigate={(s) => setOverlay(s as Overlay)} />}
       {tab === 'in_progress' && <MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} />}
+      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => setTab('feed')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
       {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
