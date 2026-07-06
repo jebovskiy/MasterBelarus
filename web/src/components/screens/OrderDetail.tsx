@@ -162,7 +162,7 @@ export default function OrderDetail({ orderId, onBack, onOpenChat }: Props) {
       cancellation_reason_id: selectedReason,
     });
     setCancelSubmitting(false);
-    if ('error' in res) { notification('error'); console.warn('[cancel]', res.error, res.detail); showToast(res.error ?? t('toast.cancel_error'), 'error'); return; }
+    if ('error' in res) { notification('error'); showToast(res.error ?? t('toast.cancel_error'), 'error'); return; }
     notification('warning');
     showToast(t('toast.order_cancelled'), 'warning');
     setShowCancelSheet(false);
