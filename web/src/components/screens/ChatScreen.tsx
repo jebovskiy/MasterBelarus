@@ -36,8 +36,10 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingConv, setLoadingConv] = useState(true);
-  const [loadingMsg, setLoadingMsg] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const msgCountRef = useRef(0);
+  const firstLoadRef = useRef(true);
 
   const loadConversations = useCallback(async () => {
     if (!profile) return;
@@ -50,24 +52,38 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
 
-  const loadMessages = useCallback(async (orderId: string) => {
-    setLoadingMsg(true);
+  const loadMessages = useCallback(async (orderId: string, isPoll = false) => {
+    if (!isPoll) setLoadingMsg(true);
     const res = await apiGet<Message[]>(`/orders/${orderId}/messages`);
     if ('data' in res && res.data) {
       setMessages(res.data);
     }
-    setLoadingMsg(false);
+    if (!isPoll) setLoadingMsg(false);
+    firstLoadRef.current = false;
   }, []);
 
   useEffect(() => {
     if (activeOrderId) {
       void loadMessages(activeOrderId);
-      const interval = setInterval(() => void loadMessages(activeOrderId), 3000);
+      const interval = setInterval(() => void loadMessages(activeOrderId, true), 3000);
       return () => clearInterval(interval);
     }
   }, [activeOrderId, loadMessages]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Scroll to bottom on new messages (not on poll if count unchanged)
+  useEffect(() => {
+    if (messages.length > msgCountRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    msgCountRef.current = messages.length;
+  }, [messages]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (!loadingMsg && messages.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [loadingMsg, messages.length]);
 
   const sendMessage = async () => {
     if (!input.trim() || !activeOrderId) return;
