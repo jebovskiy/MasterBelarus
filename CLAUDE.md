@@ -409,7 +409,15 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 - `App.tsx` — ChatScreen подключён
 - `locales/*.json` — переводы чата
 
+---
+## STATE — 2026-07-06 12:30
+
+### Session 13: Review fix + OrderDetail back button
+
+#### Изменения
+1. **review fix** — `reviews.ts` читал `master_id` из `orders` (колонки нет). Переписан: ищет принятый отклик через `bids WHERE order_id = $1 AND status = 'accepted'`. (`a809f77`)
+2. **OrderDetail back button** — добавлена кнопка `← Назад` в хедер, чтобы закрыть окно без завершения/отмены. (`cdecde9`)
+
 #### Остаётся
-- Деплой миграции в Supabase
-- Проверить: чаты появляются, сообщения отправляются, список обновляется
+- Деплой миграции чата в Supabase
 - Проверить деплой в Telegram Mini App
