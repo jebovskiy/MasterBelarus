@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { apiGet } from '@/lib/api';
-import { useToastStore } from '@/components/shared/Toast';
 
 type Tab = 'active' | 'archive';
 
@@ -43,7 +42,6 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
   const [tab, setTab] = useState<Tab>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const showToast = useToastStore((s) => s.showToast);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,17 +109,13 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
           <div className="space-y-3">
             {displayed.map((order, idx) => {
               const statusInfo = STATUS_MAP[order.status] ?? { label: order.status, cls: 'bg-slate-50 text-slate-600' };
-              const isActive = order.status === 'open' || order.status === 'in_progress';
               return (
                 <motion.button
                   key={order.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(idx * 0.03, 0.5) }}
-                  onClick={() => {
-                    if (isActive && onOpenOrder) onOpenOrder(order.id);
-                    else showToast('Заказ завершён. Детали доступны в архиве', 'info');
-                  }}
+                  onClick={() => { if (onOpenOrder) onOpenOrder(order.id); }}
                   className="w-full bg-white rounded-2xl p-5 shadow-sm text-left hover:scale-[1.02] active:scale-[0.99] transition-transform"
                 >
                   <div className="flex items-center justify-between mb-1">
