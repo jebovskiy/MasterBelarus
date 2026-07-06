@@ -48,7 +48,39 @@ messagesRouter.get('/:orderId/messages', async (req: JwtRequest, res) => {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return res.json(messages ?? []);
+
+    // Fetch other participant's last_read_at for read receipts
+    let otherReadAt: string | null = null;
+    try {
+      const isClient = (order as { client_id: string }).client_id === profileId;
+      let otherId: string | null = null;
+
+      if (isClient) {
+        const { data: acceptedBid } = await db
+          .from('bids')
+          .select('master_id')
+          .eq('order_id', orderId)
+          .eq('status', 'accepted')
+          .single();
+        otherId = (acceptedBid as { master_id: string } | null)?.master_id ?? null;
+      } else {
+        otherId = (order as { client_id: string }).client_id;
+      }
+
+      if (otherId) {
+        const { data: readState } = await getSupabaseAdmin()
+          .from('chat_read_state')
+          .select('last_read_at')
+          .eq('order_id', orderId)
+          .eq('profile_id', otherId)
+          .maybeSingle();
+        otherReadAt = (readState as { last_read_at: string } | null)?.last_read_at ?? null;
+      }
+    } catch {
+      // non-critical: read receipts are best-effort
+    }
+
+    return res.json({ messages: messages ?? [], other_read_at: otherReadAt });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';
     logger.warn({ msg }, 'messages get failed');

@@ -12,6 +12,11 @@ type Message = {
   created_at: string;
 };
 
+type MessagesResponse = {
+  messages: Message[];
+  other_read_at: string | null;
+};
+
 type Conversation = {
   order_id: string;
   category: string;
@@ -33,13 +38,18 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(initialOrderId ?? null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingConv, setLoadingConv] = useState(true);
   const [loadingMsg, setLoadingMsg] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const msgCountRef = useRef(0);
-  const firstLoadRef = useRef(true);
+  const convLoadedRef = useRef(false);
+
+  const markRead = useCallback(async (orderId: string) => {
+    await apiPost(`/orders/${orderId}/read`, {});
+  }, []);
 
   const loadConversations = useCallback(async () => {
     if (!profile) return;
@@ -52,22 +62,22 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
 
-  const markRead = useCallback(async (orderId: string) => {
-    await apiPost(`/orders/${orderId}/read`, {});
-  }, []);
-
   const loadMessages = useCallback(async (orderId: string, isPoll = false) => {
     if (!isPoll) {
       setLoadingMsg(true);
-      void markRead(orderId);
+      await markRead(orderId);
+      if (!convLoadedRef.current) {
+        convLoadedRef.current = true;
+        void loadConversations();
+      }
     }
-    const res = await apiGet<Message[]>(`/orders/${orderId}/messages`);
+    const res = await apiGet<MessagesResponse>(`/orders/${orderId}/messages`);
     if ('data' in res && res.data) {
-      setMessages(res.data);
+      setMessages(res.data.messages);
+      setOtherReadAt(res.data.other_read_at);
     }
     if (!isPoll) setLoadingMsg(false);
-    firstLoadRef.current = false;
-  }, [markRead]);
+  }, [markRead, loadConversations]);
 
   useEffect(() => {
     if (activeOrderId) {
@@ -77,20 +87,15 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
     }
   }, [activeOrderId, loadMessages]);
 
-  // Scroll to bottom on new messages (not on poll if count unchanged)
+  // Scroll to bottom on new messages or initial load
   useEffect(() => {
-    if (messages.length > msgCountRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (messages.length === 0) return;
+    const isNew = messages.length > msgCountRef.current;
     msgCountRef.current = messages.length;
-  }, [messages]);
-
-  // Scroll to bottom on initial load
-  useEffect(() => {
-    if (!loadingMsg && messages.length > 0) {
-      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
-    }
-  }, [loadingMsg, messages.length]);
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: isNew ? 'smooth' : 'instant' });
+    });
+  }, [messages, loadingMsg]);
 
   const sendMessage = async () => {
     if (!input.trim() || !activeOrderId) return;
@@ -101,6 +106,7 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
     if ('error' in res) { notification('error'); return; }
     setInput('');
     void loadMessages(activeOrderId);
+    void loadConversations();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -160,7 +166,7 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
     <div className="min-h-screen bg-[#f4f4f6] flex flex-col">
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3 px-5 h-14">
-          <button onClick={() => setActiveOrderId(null)} className="text-sm font-semibold text-slate-500">{t('common.back')}</button>
+          <button onClick={() => { setActiveOrderId(null); void loadConversations(); }} className="text-sm font-semibold text-slate-500">{t('common.back')}</button>
           <h2 className="text-base font-bold text-slate-800 truncate max-w-[180px]">
             {conversations.find((c) => c.order_id === activeOrderId)?.other_participant_name ?? t('chat.conversation')}
           </h2>
@@ -183,13 +189,21 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
         )}
         {messages.map((m) => {
           const isMine = m.sender_id === profile?.id;
+          const isRead = isMine && otherReadAt && new Date(m.created_at) <= new Date(otherReadAt);
           return (
             <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isMine ? 'bg-slate-800 text-white rounded-br-md' : 'bg-white text-slate-800 shadow-sm border border-slate-100 rounded-bl-md'}`}>
                 <p className="text-sm leading-relaxed">{m.text}</p>
-                <p className={`text-[10px] mt-1 ${isMine ? 'text-slate-400' : 'text-slate-400'}`}>
-                  {new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <span className={`text-[10px] ${isMine ? 'text-slate-400' : 'text-slate-400'}`}>
+                    {new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {isMine && (
+                    <span className={`text-[10px] ${isRead ? 'text-sky-400' : 'text-slate-500'}`}>
+                      {isRead ? '✓✓' : '✓'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
