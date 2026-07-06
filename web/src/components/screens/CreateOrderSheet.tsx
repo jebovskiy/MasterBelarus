@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
@@ -8,12 +9,12 @@ import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
 const CATEGORIES = [
-  { key: 'plumber', label: 'Сантехник', emoji: '🔧' },
-  { key: 'electrician', label: 'Электрик', emoji: '⚡' },
-  { key: 'mover', label: 'Грузчик', emoji: '📦' },
-  { key: 'handyman', label: 'Муж на час', emoji: '🛠' },
-  { key: 'tutor', label: 'Репетитор', emoji: '📚' },
-  { key: 'cleaning', label: 'Уборка', emoji: '🧹' },
+  { key: 'plumber', emoji: '🔧' },
+  { key: 'electrician', emoji: '⚡' },
+  { key: 'mover', emoji: '📦' },
+  { key: 'handyman', emoji: '🛠' },
+  { key: 'tutor', emoji: '📚' },
+  { key: 'cleaning', emoji: '🧹' },
 ];
 
 const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base';
@@ -25,6 +26,7 @@ const swipeVelocityThreshold = 400;
 const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
 export default function CreateOrderSheet({ open, onClose, presetCategory }: Props) {
+  const { t } = useTranslation();
   const [category, setCategory] = useState<string>('');
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
   const submit = async () => {
     if (!category || !description.trim() || !cityValue) {
-      setError('Заполните все обязательные поля');
+      setError(t('orders.fill_required'));
       impact('heavy');
       return;
     }
@@ -78,11 +80,11 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
     if ('error' in result && result.error) {
       setError(result.error);
-      showToast(result.error || 'Ошибка', 'error');
+      showToast(result.error || t('common.error'), 'error');
       return;
     }
 
-    showToast('✅ Заявка создана! Мастера скоро увидят ваш заказ', 'success');
+    showToast(t('toast.order_created_full'), 'success');
     onClose();
   };
 
@@ -107,12 +109,12 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
           >
             <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
               <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
-              <h3 className="text-base font-semibold text-slate-800">Создать заявку</h3>
+              <h3 className="text-base font-semibold text-slate-800">{t('orders.create')}</h3>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-5">
               <div>
-                <label className={labelCls}>Категория услуг</label>
+                <label className={labelCls}>{t('orders.category_label')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {CATEGORIES.map((c) => {
                     const active = category === c.key;
@@ -127,7 +129,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
                         }`}
                       >
                         <span className="text-xl">{c.emoji}</span>
-                        <span className="text-xs font-semibold">{c.label}</span>
+                        <span className="text-xs font-semibold">{t(`home.categories.${c.key}`)}</span>
                       </button>
                     );
                   })}
@@ -135,11 +137,11 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               </div>
 
               <div>
-                <label className={labelCls}>Описание задачи</label>
+                <label className={labelCls}>{t('orders.description')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
-                  placeholder="Опишите кратко, что случилось и какую работу нужно выполнить..."
+                  placeholder={t('orders.description_placeholder')}
                   rows={4}
                   className={`${inputCls} resize-none`}
                 />
@@ -147,14 +149,14 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className={labelCls + ' mb-0'}>Бюджет, BYN</label>
+                  <label className={labelCls + ' mb-0'}>{t('orders.budget')}</label>
                   <button
                     onClick={() => { setNegotiable(!negotiable); impact('light'); }}
                     className={`px-3 h-8 rounded-full text-xs font-semibold transition-all ${
                       negotiable ? 'bg-slate-800 text-white' : 'bg-[#f4f4f6] text-slate-500'
                     }`}
                   >
-                    Договорная
+                    {t('master.negotiable')}
                   </button>
                 </div>
                 {!negotiable && (
@@ -162,7 +164,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
                     type="number"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Сумма в белорусских рублях"
+                    placeholder={t('orders.price_placeholder')}
                     inputMode="numeric"
                     className={inputCls}
                   />
@@ -170,28 +172,28 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
               </div>
 
               <div>
-                <label className={labelCls}>Город</label>
+                <label className={labelCls}>{t('common.city')}</label>
                 <CitySelector value={cityValue} onChange={setCityValue} />
               </div>
 
               <div>
-                <label className={labelCls}>Улица, дом</label>
+                <label className={labelCls}>{t('orders.street')}</label>
                 <input
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value.slice(0, 200))}
-                  placeholder="ул. Братская, 1"
+                  placeholder={t('orders.street_placeholder')}
                   className={inputCls}
                 />
               </div>
 
               <div>
-                <label className={labelCls}>Фото (до 5)</label>
+                <label className={labelCls}>{t('orders.photos')}</label>
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="w-full h-20 rounded-xl border-2 border-dashed border-slate-300 bg-[#f4f4f6] flex items-center justify-center gap-2 text-slate-400 text-sm font-medium hover:border-slate-400 hover:text-slate-500 transition-all"
                 >
-                  <span className="text-lg">+</span> Прикрепить фото
+                  <span className="text-lg">+</span> {t('orders.attach_photo')}
                 </button>
                 <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" />
               </div>
@@ -207,7 +209,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
                 disabled={submitting}
                 className="w-full bg-slate-900 text-white font-semibold text-base py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md disabled:opacity-50"
               >
-                {submitting ? 'Публикую...' : 'Создать заявку'}
+                {submitting ? t('orders.publishing') : t('orders.create')}
               </button>
             </div>
           </motion.div>

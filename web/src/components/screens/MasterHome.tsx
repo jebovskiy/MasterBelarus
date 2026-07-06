@@ -6,6 +6,7 @@ import { useLocation } from '@/hooks/useLocation';
 import { Avatar } from '@/components/shared/Avatar';
 import { apiPost, apiGet, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
+import { useTranslation } from 'react-i18next';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 
 type NearbyOrder = {
@@ -38,6 +39,7 @@ function formatPhone(phone?: string | null): string {
 }
 
 export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => void }) {
+  const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const [orders, setOrders] = useState<NearbyOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,11 +101,11 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
     setSubmitting(false);
     if (isErrorResult(result)) {
       notification('error');
-      showToast('Ошибка: ' + (result.detail ?? result.error), 'error');
+      showToast(t('common.error') + ': ' + (result.detail ?? result.error), 'error');
       return;
     }
     notification('success');
-    showToast('Отклик отправлен!', 'success');
+    showToast(t('toast.bid_placed'), 'success');
     setBidOrderIds((prev) => new Set(prev).add(selectedId));
     setSelectedId(null);
     setBidPrice('');
@@ -116,21 +118,21 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
       <div className="px-4 pt-4 space-y-4">
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <Avatar size={48} name={profile?.full_name ?? 'Мастер'} src={profile?.avatar_url ?? undefined} />
+            <Avatar size={48} name={profile?.full_name ?? t('master.default_name')} src={profile?.avatar_url ?? undefined} />
             <div className="flex-1 min-w-0">
-              <p className="text-base font-bold text-slate-800 truncate">{profile?.full_name ?? 'Мастер'}</p>
+              <p className="text-base font-bold text-slate-800 truncate">{profile?.full_name ?? t('master.default_name')}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-amber-500 text-xs">★</span>
                 <span className="text-slate-600 text-xs font-semibold">{(profile?.avg_rating ?? 5.0).toFixed(1)}</span>
               </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {profile?.is_npd && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">НПД</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">{t('master.npd_badge')}</span>
                 )}
                 {profile?.master_status === 'approved' && (
-                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">✅ Проверен</span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">{t('master.checked_badge')}</span>
                 )}
-                <span className="text-xs text-slate-500 font-medium">Связь: {formatPhone(profile?.phone)}</span>
+                <span className="text-xs text-slate-500 font-medium">{t('master.contact_label')} {formatPhone(profile?.phone)}</span>
               </div>
             </div>
             {balance !== null && <div className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold">💎 {balance}</div>}
@@ -139,28 +141,28 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
 
         <div className="grid grid-cols-3 gap-3">
           <div className="col-span-2 bg-white p-5 rounded-bento shadow-card">
-            <p className="text-sm font-semibold text-text-muted">Баланс откликов</p>
+            <p className="text-sm font-semibold text-text-muted">{t('master.balance_title')}</p>
             <p className="text-4xl font-extrabold text-primary mt-1">{balance ?? '—'}</p>
-            <button onClick={() => onNavigate?.('wallet')} className="mt-2 text-sm font-semibold text-primary">Пополнить</button>
+            <button onClick={() => onNavigate?.('wallet')} className="mt-2 text-sm font-semibold text-primary">{t('master.top_up')}</button>
           </div>
           <div className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between">
-            <p className="text-sm font-semibold text-text-muted">Рейтинг</p>
+            <p className="text-sm font-semibold text-text-muted">{t('master.rating')}</p>
             <p className="text-2xl font-extrabold text-text-main mt-1">{rating ? `${rating.value} ★` : '—'}</p>
-            <p className="text-xs text-text-muted">{rating ? `${rating.count} оценок` : ''}</p>
+            <p className="text-xs text-text-muted">{rating ? `${rating.count} ${t('master.ratings_count')}` : ''}</p>
           </div>
         </div>
 
         <div className="flex items-center justify-between px-4 py-3 bg-white rounded-bento shadow-card text-xs text-text-muted font-medium">
-          <span>✅ Выполнено <strong className="text-text-main">{stats.completed}</strong></span>
+          <span>{t('master.completed_label')} <strong className="text-text-main">{stats.completed}</strong></span>
           <span className="text-app-border">|</span>
-          <span>🔄 В работе <strong className="text-text-main">{stats.inProgress}</strong></span>
+          <span>{t('master.in_progress_label')} <strong className="text-text-main">{stats.inProgress}</strong></span>
           <span className="text-app-border">|</span>
-          <span>📊 Сегодня <strong className="text-primary">{stats.todayBids}</strong></span>
+          <span>{t('master.today_label')} <strong className="text-primary">{stats.todayBids}</strong></span>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Фильтр по городу</label>
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">{t('master.filter_city')}</label>
             <CitySelector value={filterCity} onChange={setFilterCity} />
           </div>
           {filterCity && (
@@ -168,37 +170,37 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
               onClick={() => setFilterCity(null)}
               className="mt-5 shrink-0 text-xs font-semibold text-rose-500 active:text-rose-600"
             >
-              Сбросить
+              {t('master.reset_filter')}
             </button>
           )}
         </div>
 
         <button onClick={() => onNavigate?.('edit_profile')} className="w-full bg-slate-900 text-white rounded-xl py-4 text-center text-sm font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform">
-          Редактировать анкету мастера
+          {t('profile.edit_profile')}
         </button>
 
         <div>
           <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-lg font-bold text-text-main">Заказы рядом</h2>
-            <button onClick={load} className="text-sm font-semibold text-primary">Обновить</button>
+            <h2 className="text-lg font-bold text-text-main">{t('master.orders_nearby_title')}</h2>
+            <button onClick={load} className="text-sm font-semibold text-primary">{t('master.refresh')}</button>
           </div>
           {loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
-          {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">Пока нет заказов рядом</div>}
+          {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">{t('master.no_orders_nearby')}</div>}
           <motion.div layout className="space-y-3">
             {orders.map((order, idx) => (
               <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 40, 500) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{categoryEmoji(order.category)} {order.category}</span>
-                  <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}м</div>
+                  <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
                 </div>
                 <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
                 <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                 <div className="flex items-center justify-between mt-3">
-                  <p className="text-base font-extrabold text-primary">{order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}</p>
+                  <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
                   {bidOrderIds.has(order.id) ? (
-                    <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">✓ Вы откликнулись</span>
+                    <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">{t('master.you_responded')}</span>
                   ) : (
-                    <span className="px-3 h-8 rounded-xl bg-slate-900 text-white text-sm font-semibold flex items-center">Откликнуться</span>
+                    <span className="px-3 h-8 rounded-xl bg-slate-900 text-white text-sm font-semibold flex items-center">{t('master.respond')}</span>
                   )}
                 </div>
               </motion.div>
@@ -221,7 +223,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                 <div className="h-1 w-12 rounded-full bg-slate-300" />
               </div>
               <div className="px-5 pb-3 shrink-0">
-                <h3 className="text-base font-semibold text-slate-800">Отклик на заказ</h3>
+                <h3 className="text-base font-semibold text-slate-800">{t('master.bid_title')}</h3>
               </div>
               {selected && (
                 <div className="flex flex-col flex-1 min-h-0">
@@ -229,18 +231,18 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     <p className="text-sm text-slate-600">{selected.description}</p>
                     {!selected.is_negotiable && (
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ваша цена, BYN</label>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('master.your_price')}</label>
                         <input type="number" inputMode="numeric" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)} placeholder={String(selected.price ?? '')} className="w-full bg-slate-100 text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base" />
                       </div>
                     )}
-                    {selected.is_negotiable && <p className="text-sm text-slate-500">Договорная цена — предложите свои условия в комментарии.</p>}
+                    {selected.is_negotiable && <p className="text-sm text-slate-500">{t('master.negotiable_desc')}</p>}
                   </div>
                   <div className="shrink-0 px-5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] space-y-2 pt-4 border-t border-slate-100">
                     <button onClick={submitBid} disabled={submitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60">
-                      {submitting ? 'Отправляю...' : 'Отправить отклик'}
+                      {submitting ? t('master.sending') : t('master.send_bid')}
                     </button>
                     <button onClick={() => setSelectedId(null)} className="w-full py-3 rounded-xl text-sm font-semibold text-slate-500 active:bg-slate-100 transition-colors">
-                      Передумал
+                      {t('master.cancel_bid')}
                     </button>
                   </div>
                 </div>

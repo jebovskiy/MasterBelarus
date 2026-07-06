@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useToastStore } from '@/components/shared/Toast';
@@ -53,18 +54,19 @@ type ClientHomeProps = {
 
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, t: (k: string) => string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff < 1) return 'только что';
-  if (diff < 60) return `${diff} мин`;
+  if (diff < 1) return t('common.just_now');
+  if (diff < 60) return `${diff} ${t('common.min_ago')}`;
   const h = Math.floor(diff / 60);
-  if (h < 24) return `${h} ч`;
-  return `${Math.floor(h / 24)} дн.`;
+  if (h < 24) return `${h} ${t('common.hour_ago')}`;
+  return `${Math.floor(h / 24)} ${t('common.day_ago')}`;
 }
 
 export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHomeProps) {
   const { impact } = useHaptic();
   const showToast = useToastStore((s) => s.showToast);
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<ClientOrder[]>([]);
   const [masters, setMasters] = useState<RecentMaster[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -100,11 +102,11 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
     <div className="min-h-screen bg-[#f4f4f6]">
       <div className="px-4 pt-4 space-y-4">
         <div className="bg-white p-6 rounded-2xl shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Бытовые услуги</p>
-          <h1 className="text-2xl font-extrabold text-slate-900 mt-1 leading-tight">Нужен мастер сегодня?</h1>
-          <p className="text-[13px] text-slate-500 mt-1">Отклик за 5 минут</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t('home.services')}</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 mt-1 leading-tight">{t('home.need_master_today')}</h1>
+          <p className="text-[13px] text-slate-500 mt-1">{t('home.response_5min')}</p>
           <div className="flex items-center justify-between mt-4">
-            <button onClick={() => onOpenCreateOrder()} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-all mr-3">+ Создать заявку</button>
+            <button onClick={() => onOpenCreateOrder()} className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-[15px] hover:scale-[1.02] active:scale-[0.98] transition-all mr-3">{t('home.create_order')}</button>
             <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl shrink-0">🔨</div>
           </div>
         </div>
@@ -116,7 +118,7 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
           </div>
         ) : activeOrders.length > 0 ? (
           <div className="space-y-3">
-            <h2 className="text-lg font-bold text-slate-800 px-1">Активные заказы</h2>
+            <h2 className="text-lg font-bold text-slate-800 px-1">{t('home.active_orders')}</h2>
             {activeOrders.map((order) => (
               <motion.button
                 key={order.id}
@@ -128,15 +130,15 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{EMOJI[order.category] ?? '📋'}</span>
-                    <span className="text-sm font-semibold text-slate-800">{order.category === 'plumber' ? 'Сантехника' : order.category === 'electrician' ? 'Электрика' : order.category}</span>
+                    <span className="text-sm font-semibold text-slate-800">{t(`home.categories.${order.category}`)}</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${order.status === 'in_progress' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                    {order.status === 'in_progress' ? 'В работе' : 'Поиск мастера'}
+                    {order.status === 'in_progress' ? t('orders.status.in_progress') : t('home.status_searching')}
                   </span>
                 </div>
                 <p className="text-sm text-slate-700 line-clamp-1">{order.title}</p>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-slate-400">{timeAgo(order.created_at)}</span>
+                  <span className="text-xs text-slate-400">{timeAgo(order.created_at, t)}</span>
                   <span className="text-sm font-bold text-slate-800">{order.price ?? 0} BYN</span>
                 </div>
               </motion.button>
@@ -145,12 +147,12 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
         ) : null}
 
         <div>
-          <h2 className="text-lg font-bold text-slate-800 px-1 mb-2">Популярные услуги</h2>
+          <h2 className="text-lg font-bold text-slate-800 px-1 mb-2">{t('home.popular_services')}</h2>
           <div className="grid grid-cols-2 gap-3">
             {CATEGORIES.map((cat) => (
               <button key={cat.key} onClick={() => { impact('light'); onOpenCreateOrder(cat.key); }} className="bg-white p-4 rounded-2xl shadow-sm h-24 flex flex-col justify-between active:scale-[0.98] transition-transform">
                 <span className="text-2xl">{cat.icon}</span>
-                <span className="text-sm font-semibold text-slate-800">{cat.label}</span>
+                <span className="text-sm font-semibold text-slate-800">{t(`home.categories.${cat.key}`)}</span>
               </button>
             ))}
           </div>
@@ -165,14 +167,14 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
           </div>
         ) : masters.length > 0 ? (
           <div className="pb-2">
-            <h2 className="text-lg font-bold text-slate-800 px-1 mb-2">Проверенные мастера</h2>
+            <h2 className="text-lg font-bold text-slate-800 px-1 mb-2">{t('home.verified_masters')}</h2>
             <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-1" style={{ scrollbarWidth: 'none' }}>
               {masters.map((master) => (
                 <motion.button
                   key={master.id}
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
-                  onClick={() => { impact('light'); showToast('Профиль мастера откроется в версии 1.1. Сейчас они получают заказы автоматически!', 'info'); }}
+                  onClick={() => { impact('light'); showToast(t('toast.master_profile_v1_1'), 'info'); }}
                   className="w-44 shrink-0 snap-start bg-white rounded-2xl p-4 shadow-sm text-left active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-center gap-3 mb-2">

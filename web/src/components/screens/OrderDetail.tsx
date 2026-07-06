@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
@@ -30,31 +31,16 @@ type Bid = {
   created_at: string;
 };
 
-const CLIENT_REASONS = [
-  { id: 1, label: 'Создал по ошибке / Тестирую' },
-  { id: 2, label: 'Мастер не выходит на связь' },
-  { id: 3, label: 'Услуга больше не нужна' },
-  { id: 4, label: 'Нашел исполнителя в другом месте' },
-  { id: 5, label: 'Другое' },
-];
-
-const MASTER_REASONS = [
-  { id: 10, label: 'Клиент неадекватен / не отвечает' },
-  { id: 11, label: 'Неверно указан объем работ' },
-  { id: 12, label: 'Форс-мажор / Заболел' },
-];
-
 const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
 const STATUS_BADGE: Record<string, string> = { open: 'bg-amber-50 text-amber-700', in_progress: 'bg-blue-50 text-blue-700', completed: 'bg-emerald-50 text-emerald-700', cancelled: 'bg-rose-50 text-rose-600' };
-const STATUS_LABEL: Record<string, string> = { open: 'Открыт', in_progress: 'В работе', completed: 'Завершён', cancelled: 'Отменён' };
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string, t: (key: string) => string) {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diff < 1) return 'только что';
-  if (diff < 60) return `${diff} мин`;
+  if (diff < 1) return t('common.just_now');
+  if (diff < 60) return `${diff} ${t('common.min_ago')}`;
   const h = Math.floor(diff / 60);
-  if (h < 24) return `${h} ч`;
-  return `${Math.floor(h / 24)} дн.`;
+  if (h < 24) return `${h} ${t('common.hour_ago')}`;
+  return `${Math.floor(h / 24)} ${t('common.day_ago')}`;
 }
 
 const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 rounded-xl p-4 border-transparent focus:ring-2 focus:ring-slate-400 focus:bg-white transition-all outline-none text-base';
@@ -80,6 +66,19 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const { impact, notification } = useHaptic();
   const showToast = useToastStore((s) => s.showToast);
   const currentRole = useAuthStore((s) => s.profile?.current_role);
+  const { t } = useTranslation();
+  const CLIENT_REASONS = [
+    { id: 1, label: t('orders.cancel_reasons.client_1') },
+    { id: 2, label: t('orders.cancel_reasons.client_2') },
+    { id: 3, label: t('orders.cancel_reasons.client_3') },
+    { id: 4, label: t('orders.cancel_reasons.client_4') },
+    { id: 5, label: t('orders.cancel_reasons.client_5') },
+  ];
+  const MASTER_REASONS = [
+    { id: 10, label: t('orders.cancel_reasons.master_10') },
+    { id: 11, label: t('orders.cancel_reasons.master_11') },
+    { id: 12, label: t('orders.cancel_reasons.master_12') },
+  ];
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -110,9 +109,9 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     impact('medium');
     const res = await apiPost(`/orders/${orderId}/accept-bid/${bidId}`, {});
     setAcceptingId(null);
-    if ('error' in res) { notification('error'); showToast('Ошибка при выборе мастера', 'error'); return; }
+    if ('error' in res) { notification('error'); showToast(t('toast.bid_accept_error'), 'error'); return; }
     notification('success');
-    showToast('✅ Мастер выбран!', 'success');
+    showToast(t('toast.master_selected'), 'success');
     setOrder((prev) => (prev ? { ...prev, status: 'in_progress' } : prev));
   };
 
@@ -122,9 +121,9 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     impact('medium');
     const res = await apiPost(`/orders/${orderId}/review`, { rating: reviewRating, comment: reviewComment });
     setReviewSubmitting(false);
-    if ('error' in res) { notification('error'); showToast('Ошибка при отправке', 'error'); return; }
+    if ('error' in res) { notification('error'); showToast(t('toast.review_error'), 'error'); return; }
     notification('success');
-    showToast('✅ Отзыв сохранён!', 'success');
+    showToast(t('toast.review_saved'), 'success');
     setOrder((prev) => (prev ? { ...prev, status: 'completed' } : prev));
   };
 
@@ -143,9 +142,9 @@ export default function OrderDetail({ orderId, onBack }: Props) {
       cancellation_reason_id: selectedReason,
     });
     setCancelSubmitting(false);
-    if ('error' in res) { notification('error'); showToast('Ошибка при отмене', 'error'); return; }
+    if ('error' in res) { notification('error'); showToast(t('toast.cancel_error'), 'error'); return; }
     notification('warning');
-    showToast('Заказ отменён', 'warning');
+    showToast(t('toast.order_cancelled'), 'warning');
     setShowCancelSheet(false);
     setOrder((prev) => (prev ? { ...prev, status: 'cancelled', cancelled_by: currentRole === 'master' ? 'master' : 'client', cancellation_reason_id: selectedReason } : prev));
   };
@@ -160,26 +159,26 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const footerActions = (() => {
     if (loading || !order) return null;
     if (error) return (
-      <button onClick={load} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">Повторить</button>
+      <button onClick={load} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all">{t('orders.retry')}</button>
     );
     if (order.status === 'in_progress' && isOwner) return (
       <div className="space-y-2">
         <button onClick={submitReview} disabled={reviewSubmitting} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50">
-          {reviewSubmitting ? 'Отправляю...' : 'Завершить и оценить'}
+          {reviewSubmitting ? t('orders.submitting_review') : t('orders.complete_and_review')}
         </button>
         <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
-          Отказаться от заказа
+          {t('orders.refuse_order')}
         </button>
       </div>
     );
     if (canCancelClient) return (
       <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
-        Отменить заказ
+        {t('orders.cancel')}
       </button>
     );
     if (canCancelMaster) return (
       <button onClick={openCancel} className="w-full bg-white border-2 border-rose-200 text-rose-600 rounded-xl py-3.5 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all hover:border-rose-300">
-        Отказаться от заказа
+        {t('orders.refuse_order')}
       </button>
     );
     return null;
@@ -207,10 +206,10 @@ export default function OrderDetail({ orderId, onBack }: Props) {
             <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
               <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
               <div className="flex items-center justify-between w-full px-5">
-                <h3 className="text-base font-semibold text-slate-800">Детали заказа</h3>
+                <h3 className="text-base font-semibold text-slate-800">{t('orders.detail_title')}</h3>
                 {order && (
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
-                    {STATUS_LABEL[order.status] ?? order.status}
+                    {t(`orders.status.${order.status}`)}
                   </span>
                 )}
               </div>
@@ -239,7 +238,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{EMOJI[order.category] ?? '📋'}</span>
                       <span className="text-base font-bold text-slate-800">{order.category}</span>
-                      <span className="text-xs text-slate-400 ml-auto">{timeAgo(order.created_at)}</span>
+                      <span className="text-xs text-slate-400 ml-auto">{timeAgo(order.created_at, t)}</span>
                     </div>
                     <p className="text-sm text-slate-600 leading-relaxed">{order.description}</p>
                     <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -248,19 +247,19 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                     </div>
                     <div className="flex items-center justify-between pt-1">
                       <p className="text-2xl font-extrabold text-slate-900">
-                        {order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}
+                        {order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}
                       </p>
                       {order.images.length > 0 && (
-                        <span className="text-xs text-slate-400">📎 {order.images.length} фото</span>
+                        <span className="text-xs text-slate-400">{t('orders.photos_count', { count: order.images.length })}</span>
                       )}
                     </div>
                   </div>
 
                   {order.status === 'open' && (
                     <div className="space-y-3">
-                      <h3 className="text-sm font-bold text-slate-800">Отклики ({bids.length})</h3>
+                      <h3 className="text-sm font-bold text-slate-800">{t('orders.bids_count', { count: bids.length })}</h3>
                       {bids.length === 0 && (
-                        <p className="text-sm text-slate-400">Мастера ещё не откликнулись.</p>
+                        <p className="text-sm text-slate-400">{t('orders.no_bids')}</p>
                       )}
                       {bids.map((bid, idx) => (
                         <motion.div
@@ -272,11 +271,11 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-slate-800">Мастер #{bid.master_id.slice(0, 6)}</p>
-                              <p className="text-xs text-slate-400">{timeAgo(bid.created_at)}</p>
+                              <p className="text-sm font-semibold text-slate-800">{t('orders.master_label', { id: bid.master_id.slice(0, 6) })}</p>
+                              <p className="text-xs text-slate-400">{timeAgo(bid.created_at, t)}</p>
                             </div>
                             <p className="text-lg font-extrabold text-slate-900">
-                              {bid.proposed_price ? `${bid.proposed_price} BYN` : 'Договорная'}
+                              {bid.proposed_price ? `${bid.proposed_price} BYN` : t('master.negotiable')}
                             </p>
                           </div>
                           {bid.comment && <p className="text-sm text-slate-500">{bid.comment}</p>}
@@ -285,7 +284,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                             disabled={acceptingId === bid.id}
                             className="w-full bg-slate-900 text-white rounded-xl py-3.5 text-sm font-semibold disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98] transition-all"
                           >
-                            {acceptingId === bid.id ? 'Принимаю...' : 'Выбрать этого мастера'}
+                            {acceptingId === bid.id ? t('orders.accepting') : t('orders.select_master')}
                           </button>
                         </motion.div>
                       ))}
@@ -294,7 +293,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
 
                   {order.status === 'in_progress' && isOwner && (
                     <div className="bg-[#f4f4f6] rounded-xl p-5 space-y-4">
-                      <p className="text-sm font-bold text-slate-800">Оставить отзыв о выполнении</p>
+                      <p className="text-sm font-bold text-slate-800">{t('orders.leave_review')}</p>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
@@ -309,7 +308,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                       <textarea
                         value={reviewComment}
                         onChange={(e) => setReviewComment(e.target.value.slice(0, 1000))}
-                        placeholder="Ваш отзыв..."
+                        placeholder={t('orders.review_placeholder')}
                         className={`${inputCls} resize-none`}
                         rows={3}
                       />
@@ -319,14 +318,14 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                   {order.status === 'completed' && (
                     <div className="text-center py-8 space-y-2">
                       <span className="text-4xl">✅</span>
-                      <p className="text-sm font-semibold text-slate-700">Заказ завершён</p>
+                      <p className="text-sm font-semibold text-slate-700">{t('orders.completed_status')}</p>
                     </div>
                   )}
 
                   {order.status === 'cancelled' && (
                     <div className="text-center py-8 space-y-2">
                       <span className="text-4xl">❌</span>
-                      <p className="text-sm font-semibold text-slate-700">Заказ отменён</p>
+                      <p className="text-sm font-semibold text-slate-700">{t('orders.cancelled_status')}</p>
                     </div>
                   )}
                 </>
@@ -362,7 +361,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
             >
               <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
                 <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
-                <h3 className="text-base font-semibold text-slate-800">Причина отмены</h3>
+                <h3 className="text-base font-semibold text-slate-800">{t('orders.cancel_reason_title')}</h3>
               </div>
               <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-2">
                 {reasons.map((r) => (
@@ -381,7 +380,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
               </div>
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
                 <button onClick={submitCancel} disabled={selectedReason === null || cancelSubmitting} className="w-full bg-rose-600 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40">
-                  {cancelSubmitting ? 'Отменяю...' : 'Подтвердить отмену'}
+                  {cancelSubmitting ? t('orders.cancelling') : t('orders.confirm_cancel')}
                 </button>
               </div>
             </motion.div>

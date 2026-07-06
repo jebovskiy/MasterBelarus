@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 import { MASTER_REASONS } from '@/data/cancel-reasons';
 
 type InProgressOrder = {
@@ -25,6 +26,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
   const [cancelTarget, setCancelTarget] = useState<InProgressOrder | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { impact, notification } = useHaptic();
+  const { t } = useTranslation();
 
   const load = async () => {
     setLoading(true);
@@ -67,9 +69,9 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
 
   return (
     <div className="px-4 pt-4">
-      <h2 className="text-lg font-bold text-slate-800 mb-3">Заказы в работе</h2>
+      <h2 className="text-lg font-bold text-slate-800 mb-3">{t('master.in_progress_heading')}</h2>
       {orders.length === 0 && (
-        <div className="text-center py-10 text-slate-400 text-sm">Нет заказов в работе</div>
+        <div className="text-center py-10 text-slate-400 text-sm">{t('master.no_in_progress')}</div>
       )}
       <div className="space-y-3">
         {orders.map((order) => (
@@ -81,12 +83,12 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
             <p className="text-sm font-semibold text-slate-800 line-clamp-2">{order.description}</p>
             <p className="text-xs text-slate-500 mt-1 truncate">{order.address_text}</p>
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-              <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? 'Договорная' : `${order.price ?? 0} BYN`}</p>
+              <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
               <button
                 onClick={(e) => { e.stopPropagation(); impact('light'); setCancelTarget(order); }}
                 className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform"
               >
-                Отменить
+                {t('master.cancel')}
               </button>
             </div>
           </div>
@@ -105,7 +107,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
             >
               <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
                 <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
-                <h3 className="text-base font-semibold text-slate-800">Причина отмены</h3>
+                <h3 className="text-base font-semibold text-slate-800">{t('orders.cancel_reason_title')}</h3>
               </div>
               <div className="flex-1 overflow-y-auto px-5 pt-5 pb-32 space-y-2">
                 <p className="text-sm text-slate-500 mb-4 line-clamp-2">{cancelTarget.description}</p>
@@ -116,7 +118,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
                     disabled={submitting}
                     className="w-full text-left px-4 py-3.5 rounded-xl text-sm font-medium text-slate-700 bg-[#f4f4f6] active:bg-slate-200 transition-colors disabled:opacity-60"
                   >
-                    {r.label}
+                    {t(`orders.cancel_reasons.master_${r.id}`)}
                   </button>
                 ))}
               </div>
@@ -125,7 +127,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
                   onClick={() => setCancelTarget(null)}
                   className="w-full py-3 rounded-xl text-sm font-semibold text-slate-500 bg-white shadow-sm active:bg-slate-50 transition-colors"
                 >
-                  Передумал
+                  {t('master.changed_mind')}
                 </button>
               </div>
             </motion.div>
