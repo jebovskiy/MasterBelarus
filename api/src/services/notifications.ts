@@ -87,6 +87,38 @@ export async function sendMasterAcceptedNotification(
   }
 }
 
+export async function sendChatMessageNotification(
+  telegramId: number,
+  senderName: string,
+  text: string,
+  orderId: string,
+): Promise<void> {
+  if (!bot) {
+    logger.info({ telegramId }, '[NOTIFY] stub: no bot wired');
+    return;
+  }
+
+  try {
+    const preview = text.length > 80 ? text.slice(0, 77) + '...' : text;
+    await bot.telegram.sendMessage(telegramId,
+      `💬 Новое сообщение от ${senderName}\n\n${preview}`, {
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: '📬 Ответить',
+              web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${orderId}` },
+            },
+          ]],
+        },
+      },
+    );
+    logger.info({ telegramId, orderId }, 'chat message notification sent');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ telegramId, msg }, 'chat message notification failed');
+  }
+}
+
 export async function notifyMasterApproved(telegramId: number): Promise<void> {
   if (!bot) {
     logger.info({ telegramId }, '[NOTIFY] stub: no bot wired');

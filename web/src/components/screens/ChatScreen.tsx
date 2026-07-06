@@ -52,15 +52,22 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
 
+  const markRead = useCallback(async (orderId: string) => {
+    await apiPost(`/orders/${orderId}/read`, {});
+  }, []);
+
   const loadMessages = useCallback(async (orderId: string, isPoll = false) => {
-    if (!isPoll) setLoadingMsg(true);
+    if (!isPoll) {
+      setLoadingMsg(true);
+      void markRead(orderId);
+    }
     const res = await apiGet<Message[]>(`/orders/${orderId}/messages`);
     if ('data' in res && res.data) {
       setMessages(res.data);
     }
     if (!isPoll) setLoadingMsg(false);
     firstLoadRef.current = false;
-  }, []);
+  }, [markRead]);
 
   useEffect(() => {
     if (activeOrderId) {

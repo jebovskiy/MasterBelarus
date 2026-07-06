@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getUserClient } from '../lib/user-client.js';
+import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { sendChatMessageNotification } from '../services/notifications.js';
 
 const BodySend = z.object({
   text: z.string().min(1).max(2000),
@@ -99,6 +100,57 @@ messagesRouter.post('/:orderId/messages', async (req: JwtRequest, res) => {
 
     if (error) throw error;
     logger.info({ orderId, messageId: message.id }, 'message sent');
+
+    // Send Telegram notification to the other participant (fire-and-forget)
+    void (async () => {
+      try {
+        const o = order as { client_id: string };
+        const isSenderClient = o.client_id === profileId;
+        const dbAdmin = getSupabaseAdmin();
+
+        // Get sender name
+        const { data: senderProfile } = await dbAdmin
+          .from('profiles')
+          .select('full_name')
+          .eq('id', profileId)
+          .single();
+        const senderName = (senderProfile as { full_name: string | null } | null)?.full_name ?? 'Пользователь';
+
+        // Determine other participant's profile_id
+        let otherProfileId: string | null = null;
+        if (isSenderClient) {
+          const { data: acceptedBid } = await dbAdmin
+            .from('bids')
+            .select('master_id')
+            .eq('order_id', orderId)
+            .eq('status', 'accepted')
+            .single();
+          otherProfileId = (acceptedBid as { master_id: string } | null)?.master_id ?? null;
+        } else {
+          otherProfileId = o.client_id;
+        }
+
+        if (otherProfileId) {
+          const { data: otherProfile } = await dbAdmin
+            .from('profiles')
+            .select('telegram_id')
+            .eq('id', otherProfileId)
+            .single();
+
+          if (otherProfile) {
+            await sendChatMessageNotification(
+              (otherProfile as { telegram_id: number }).telegram_id,
+              senderName,
+              parsed.data.text,
+              orderId!,
+            );
+          }
+        }
+      } catch {
+        // non-critical: notification failure should not block message sending
+      }
+    })();
+
     return res.status(201).json(message);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown';

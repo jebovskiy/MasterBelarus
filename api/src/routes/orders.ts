@@ -273,6 +273,45 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       }
     }
 
+    // Получаем состояние прочитанности
+    const { data: readStates } = await db
+      .from('chat_read_state')
+      .select('order_id, last_read_at')
+      .in('order_id', orderIds)
+      .eq('profile_id', profileId);
+
+    const readMap = new Map((readStates ?? []).map((r: { order_id: string; last_read_at: string }) => [r.order_id, r.last_read_at]));
+
+    // Считаем непрочитанные сообщения (только чужие)
+    const { data: allUnread } = await db
+      .from('messages')
+      .select('order_id')
+      .in('order_id', orderIds)
+      .neq('sender_id', profileId);
+
+    const totalByOrder = new Map<string, number>();
+    for (const m of (allUnread ?? []) as { order_id: string }[]) {
+      totalByOrder.set(m.order_id, (totalByOrder.get(m.order_id) ?? 0) + 1);
+    }
+
+    // Отфильтровываем те, что после last_read
+    const unreadCounts = new Map<string, number>();
+    for (const oid of orderIds) {
+      const lastRead = readMap.get(oid);
+      if (!lastRead) {
+        unreadCounts.set(oid, totalByOrder.get(oid) ?? 0);
+      } else {
+        const { count } = await db
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('order_id', oid)
+          .neq('sender_id', profileId)
+          .gt('created_at', lastRead);
+
+        unreadCounts.set(oid, count ?? 0);
+      }
+    }
+
     // Собираем результат
     const conversations = allOrders.map((o) => {
       const msg = latestMap.get(o.id);
@@ -290,7 +329,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
         other_participant_name: otherName,
         last_message: msg?.text ?? '',
         last_message_at: msg?.created_at ?? new Date(0).toISOString(),
-        unread: 0,
+        unread: unreadCounts.get(o.id) ?? 0,
       };
     }).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
