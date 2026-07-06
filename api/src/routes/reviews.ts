@@ -107,3 +107,36 @@ reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
     return res.status(500).json({ error: 'review failed', detail: msg });
   }
 });
+
+/**
+ * GET /orders/:orderId/review — получить отзыв и профиль мастера для заказа
+ */
+reviewsRouter.get('/:orderId/review', async (req: JwtRequest, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const db = getUserClient(req.jwtToken!);
+
+    const { data: review, error: revErr } = await db
+      .from('reviews')
+      .select('*')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    if (revErr) throw revErr;
+
+    if (!review) return res.json(null);
+
+    const r = review as { master_id: string; rating: number; comment: string | null; created_at: string };
+    const { data: master } = await db
+      .from('profiles')
+      .select('id, full_name, phone, avg_rating, review_count')
+      .eq('id', r.master_id)
+      .single();
+
+    return res.json({ ...r, master: master ?? null });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});

@@ -418,6 +418,20 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 1. **review fix** — `reviews.ts` читал `master_id` из `orders` (колонки нет). Переписан: ищет принятый отклик через `bids WHERE order_id = $1 AND status = 'accepted'`. (`a809f77`)
 2. **OrderDetail back button** — добавлена кнопка `← Назад` в хедер, чтобы закрыть окно без завершения/отмены. (`cdecde9`)
 
+---
+## STATE — 2026-07-06 14:00
+
+### Session 14: Archive order details + bot reactivate button
+
+#### Problem
+Завершённые/отменённые заказы в OrderDetail показывали только статус (✅/❌) без деталей: кто отменил, причина, отзыв, мастер.
+
+#### Changes
+1. **API `GET /orders/:orderId/review`** — `reviews.ts` переписан: fetch review + отдельный fetch master profile (supabase join не работал с `*`). Syntax error на строке `return ... });` — исправлен. (`this session`)
+2. **OrderDetail.tsx** — для `completed`: отзыв + мастер (имя, рейтинг) в bento-карточке. Для `cancelled`: `cancelled_by` (мастер/клиент), `cancellation_reason_id` → читаемая причина через i18n. Добавлена кнопка "Вернуть в поиск" (reactivate, если cancelled_by=master и isOwner). (`this session`)
+3. **i18n** — ключи `cancelled_by`, `cancelled_by_master`, `cancelled_by_client`, `cancel_reason` добавлены в ru/en/be. (`this session`)
+4. **Bot reactivate button** — уже существует в `sendMasterCancelledToClient` (notifications.ts) + `useStartAppHandler.ts` обрабатывает `startapp=reactive_order_${orderId}`. Полный цикл: бот → кнопка → Mini App → confirm → API reactivate → заказ открыт. (`existing`)
+
 #### Остаётся
-- Деплой миграции чата в Supabase
+- CI workflow
 - Проверить деплой в Telegram Mini App

@@ -60,9 +60,11 @@ export default function OrderDetail({ orderId, onBack }: Props) {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewData, setReviewData] = useState<{ rating: number; comment: string | null; created_at: string; master: { id: string; full_name: string | null; phone: string | null; avg_rating: number | null; review_count: number | null } | null } | null>(null);
   const [showCancelSheet, setShowCancelSheet] = useState(false);
   const [selectedReason, setSelectedReason] = useState<number | null>(null);
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const { impact, notification } = useHaptic();
   const showToast = useToastStore((s) => s.showToast);
   const currentRole = useAuthStore((s) => s.profile?.current_role);
@@ -91,7 +93,14 @@ export default function OrderDetail({ orderId, onBack }: Props) {
       ]);
       if ('error' in orderRes) throw new Error(orderRes.error);
       if ('error' in bidsRes) throw new Error(bidsRes.error);
-      if (orderRes.data) setOrder(orderRes.data);
+      if (orderRes.data) {
+        setOrder(orderRes.data);
+        const s = orderRes.data.status;
+        if (s === 'completed' || s === 'cancelled') {
+          const revRes = await apiGet<typeof reviewData>(`/orders/${orderId}/review`);
+          if ('data' in revRes && revRes.data) setReviewData(revRes.data);
+        }
+      }
       if (bidsRes.data) setBids(bidsRes.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'unknown');
@@ -131,6 +140,18 @@ export default function OrderDetail({ orderId, onBack }: Props) {
     impact('medium');
     setSelectedReason(null);
     setShowCancelSheet(true);
+  };
+
+  const reactivateOrder = async () => {
+    if (!orderId) return;
+    setReactivating(true);
+    impact('medium');
+    const res = await apiPost(`/orders/${orderId}/reactivate`, {});
+    setReactivating(false);
+    if ('error' in res) { notification('error'); showToast(t('toast.reactivate_error'), 'error'); return; }
+    notification('success');
+    showToast(t('toast.reactivated'), 'success');
+    setOrder((prev) => (prev ? { ...prev, status: 'open' } : prev));
   };
 
   const submitCancel = async () => {
@@ -317,16 +338,60 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                   )}
 
                   {order.status === 'completed' && (
-                    <div className="text-center py-8 space-y-2">
-                      <span className="text-4xl">✅</span>
-                      <p className="text-sm font-semibold text-slate-700">{t('orders.completed_status')}</p>
+                    <div className="space-y-4">
+                      <div className="text-center py-4 space-y-1">
+                        <span className="text-4xl block">✅</span>
+                        <p className="text-sm font-semibold text-slate-700">{t('orders.completed_status')}</p>
+                      </div>
+                      {reviewData && (
+                        <div className="bg-white rounded-xl p-5 border border-slate-100 space-y-3">
+                          {reviewData.master && (
+                            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500">
+                                {(reviewData.master.full_name ?? 'М')[0]}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">{reviewData.master.full_name ?? 'Мастер'}</p>
+                                <p className="text-xs text-slate-400">⭐ {reviewData.master.avg_rating ?? '—'} ({reviewData.master.review_count ?? 0})</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className={`text-lg ${star <= reviewData.rating ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
+                            ))}
+                          </div>
+                          {reviewData.comment && <p className="text-sm text-slate-600">{reviewData.comment}</p>}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {order.status === 'cancelled' && (
-                    <div className="text-center py-8 space-y-2">
-                      <span className="text-4xl">❌</span>
-                      <p className="text-sm font-semibold text-slate-700">{t('orders.cancelled_status')}</p>
+                    <div className="space-y-4">
+                      <div className="text-center py-4 space-y-1">
+                        <span className="text-4xl block">❌</span>
+                        <p className="text-sm font-semibold text-slate-700">{t('orders.cancelled_status')}</p>
+                      </div>
+                      <div className="bg-white rounded-xl p-5 border border-slate-100 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">{t('orders.cancelled_by')}</span>
+                          <span className="font-semibold text-slate-800">
+                            {order.cancelled_by === 'master' ? t('orders.cancelled_by_master') : t('orders.cancelled_by_client')}
+                          </span>
+                        </div>
+                        {order.cancellation_reason_id != null && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">{t('orders.cancel_reason')}</span>
+                            <span className="font-semibold text-slate-800 text-right max-w-[60%]">{t(`orders.cancel_reasons.${order.cancelled_by === 'master' ? `master_${order.cancellation_reason_id}` : `client_${order.cancellation_reason_id}`}` as any)}</span>
+                          </div>
+                        )}
+                      </div>
+                      {order.cancelled_by === 'master' && isOwner && (
+                        <button onClick={reactivateOrder} disabled={reactivating} className="w-full bg-slate-900 text-white rounded-xl py-4 font-semibold text-sm shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50">
+                          {reactivating ? t('orders.reactivating') : t('orders.reactivate')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </>
