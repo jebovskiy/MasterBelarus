@@ -203,6 +203,9 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
 
     if (bidErr || !bid) return res.status(404).json({ error: 'bid not found' });
 
+    // Mark the winning bid as accepted
+    await db.from('bids').update({ status: 'accepted' }).eq('id', bidId);
+
     const dbAdmin = getSupabaseAdmin();
 
     const { data: masterProfile } = await dbAdmin
