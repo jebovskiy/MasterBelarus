@@ -59,7 +59,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
         radius: '5000',
       });
       if (filterCity) params.set('city', filterCity.city);
-      const result = await apiGet<any>(`/orders/nearby?${params}`);
+      const result = await apiGet<NearbyOrder[]>(`/orders/nearby?${params}`);
       if ('data' in result && Array.isArray(result.data)) {
         setOrders(result.data);
       }

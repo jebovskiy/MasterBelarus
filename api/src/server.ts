@@ -15,7 +15,7 @@ import { complaintsRouter } from './routes/complaints.js';
 import { cancelRouter } from './routes/cancel.js';
 import { messagesRouter } from './routes/messages.js';
 import { readRouter } from './routes/read.js';
-import { captureEvent, identifyUser, shutdownAnalytics } from './lib/analytics.js';
+import { shutdownAnalytics } from './lib/analytics.js';
 
 async function bootstrap() {
   if (env.SENTRY_DSN) {

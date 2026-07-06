@@ -159,7 +159,7 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
     // If master has categories, filter orders to only show matching ones
     let orders = data ?? [];
     if (masterCategories.length > 0) {
-      orders = (orders as any[]).filter((o) => masterCategories.includes(o.category));
+      orders = (orders as Record<string, unknown>[]).filter((o) => masterCategories.includes(o.category as string));
     }
 
     return res.json(orders);

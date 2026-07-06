@@ -14,7 +14,7 @@ const cancelLimiter = rateLimit({
   message: { error: 'too many cancellations, try later' },
 });
 import { checkCancelRate } from '../services/cancelTracker.js';
-import { sendOrderCancelledToMasters, sendMasterCancelledToClient, sendRefundNotification } from '../services/notifications.js';
+import { sendMasterCancelledToClient, sendRefundNotification } from '../services/notifications.js';
 import { CLIENT_REASONS, MASTER_REASONS } from '../types/cancel.js';
 
 const REFUND_WINDOW_MS = 5 * 60 * 1000;
@@ -79,9 +79,6 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
         return res.status(400).json({ error: 'invalid reason' });
       }
 
-      const reasonObj = CLIENT_REASONS.find(r => r.id === cancellation_reason_id);
-      const reasonLabel = reasonObj?.label ?? 'Другое';
-
       const rate = checkCancelRate(telegramId);
       if (!rate.allowed) {
         await dbAdmin.from('profiles').update({ suspicious: true }).eq('id', profileId);
@@ -115,8 +112,8 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
             .select('master_id, response_credits')
             .in('master_id', masterIds);
 
-          const balMap = new Map((balances ?? []).map((b: any) => [b.master_id, b.response_credits]));
-          const profMap = new Map((masters ?? []).map((m: any) => [m.id, m]));
+          const balMap = new Map((balances ?? []).map((b: { master_id: string; response_credits: number }) => [b.master_id, b.response_credits]));
+          const profMap = new Map((masters ?? []).map((m: { id: string; telegram_id: number; full_name: string; username: string | null }) => [m.id, m]));
 
           await Promise.allSettled(
             (bids as { master_id: string }[]).map(async (bid) => {

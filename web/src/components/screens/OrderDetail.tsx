@@ -388,7 +388,7 @@ export default function OrderDetail({ orderId, onBack, onOpenChat }: Props) {
                         {order.cancellation_reason_id != null && (
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-500">{t('orders.cancel_reason')}</span>
-                            <span className="font-semibold text-slate-800 text-right max-w-[60%]">{t(`orders.cancel_reasons.${order.cancelled_by === 'master' ? `master_${order.cancellation_reason_id}` : `client_${order.cancellation_reason_id}`}` as any)}</span>
+                            <span className="font-semibold text-slate-800 text-right max-w-[60%]">{t(`orders.cancel_reasons.${order.cancelled_by === 'master' ? `master_${order.cancellation_reason_id}` : `client_${order.cancellation_reason_id}`}` as string)}</span>
                           </div>
                         )}
                       </div>

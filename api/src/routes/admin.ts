@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import type { AdminRequest } from '../middleware/admin.js';
@@ -40,7 +40,7 @@ adminRouter.post('/masters/approve/:telegramId', async (req, res) => {
       .update({ is_master: true, master_status: 'approved', current_role: 'master' })
       .eq('telegram_id', telegramId);
     if (error) throw error;
-    logger.info({ admin: (req as any).admin, telegramId }, 'admin: master approved');
+    logger.info({ admin: (req as Request & { admin?: string }).admin, telegramId }, 'admin: master approved');
 
     await notifyMasterApproved(telegramId);
 
@@ -64,7 +64,7 @@ adminRouter.post('/masters/reject/:telegramId', async (req, res) => {
       .update({ master_status: 'rejected' })
       .eq('telegram_id', telegramId);
     if (error) throw error;
-    logger.info({ admin: (req as any).admin, telegramId }, 'admin: master rejected');
+    logger.info({ admin: (req as Request & { admin?: string }).admin, telegramId }, 'admin: master rejected');
 
     const { getBot } = await import('../services/botRegistry.js');
     const bot = getBot();
