@@ -42,7 +42,7 @@ reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
 
     const { data: order, error: orderErr } = await db
       .from('orders')
-      .select('client_id, master_id, status')
+      .select('client_id, status')
       .eq('id', orderId)
       .single();
 
@@ -70,12 +70,24 @@ reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
       return res.status(409).json({ error: 'review already exists for this order' });
     }
 
+    // Look up the accepted master from bids
+    const { data: acceptedBid } = await db
+      .from('bids')
+      .select('master_id')
+      .eq('order_id', orderId)
+      .eq('status', 'accepted')
+      .maybeSingle();
+
+    if (!acceptedBid) {
+      return res.status(400).json({ error: 'no accepted master found for this order' });
+    }
+
     const { data: review, error: reviewErr } = await db
       .from('reviews')
       .insert({
         order_id: orderId,
         client_id: profileId,
-        master_id: (order as { master_id: string }).master_id,
+        master_id: (acceptedBid as { master_id: string }).master_id,
         rating: parsed.data.rating,
         comment: parsed.data.comment ?? '',
       })
