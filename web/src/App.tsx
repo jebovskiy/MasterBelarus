@@ -8,7 +8,9 @@ import { MasterInProgress } from '@/components/screens/MasterInProgress';
 import Profile from '@/components/screens/Profile';
 import { BottomTabBar, type TabKey } from '@/components/shared/BottomTabBar';
 import { Toast } from '@/components/shared/Toast';
+import { useTranslation } from 'react-i18next';
 import { useStartAppHandler } from '@/hooks/useStartAppHandler';
+import { useSettingsStore } from '@/stores/settings';
 
 const CreateOrderSheet = lazy(() => import('@/components/screens/CreateOrderSheet'));
 const OrderDetail = lazy(() => import('@/components/screens/OrderDetail'));
@@ -100,6 +102,10 @@ function AppShell() {
 
   useStartAppHandler();
 
+  const { t, i18n } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
+  useEffect(() => { if (i18n.language !== language) i18n.changeLanguage(language); }, [language, i18n]);
+
   useEffect(() => {
     if (!profile) return;
     if (!initialLoaded) { setInitialLoaded(true); return; }
@@ -131,7 +137,7 @@ function AppShell() {
           >
             <div className="w-7 h-7 border-2 border-slate-300 border-t-slate-800 rounded-full animate-spin" />
             <p className="text-sm text-slate-500 font-medium">
-              {overlayTarget === 'master' ? 'Переключение в режим мастера...' : 'Переключение в режим клиента...'}
+              {overlayTarget === 'master' ? t('profile.switching_to_master') : t('profile.switching_to_client')}
             </p>
           </motion.div>
         )}

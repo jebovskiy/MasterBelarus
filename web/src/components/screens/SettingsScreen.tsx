@@ -18,6 +18,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
 export default function SettingsScreen({ onBack }: Props) {
   const { t, i18n } = useTranslation();
   const {
+    setLanguage,
     notifyNearby, setNotifyNearby,
     notifyChat, setNotifyChat,
     notifyPromo, setNotifyPromo,
@@ -61,7 +62,7 @@ export default function SettingsScreen({ onBack }: Props) {
             return (
               <button
                 key={value}
-                onClick={() => i18n.changeLanguage(value)}
+                onClick={() => { setLanguage(value); i18n.changeLanguage(value); }}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-[#f4f4f6] hover:scale-[1.02] active:scale-[0.99] transition-transform"
               >
                 <span className="text-sm text-slate-700 font-medium">{label}</span>
