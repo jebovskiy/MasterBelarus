@@ -223,6 +223,17 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
     // Mark the winning bid as accepted
     await db.from('bids').update({ status: 'accepted' }).eq('id', bidId);
 
+    // Send welcome message in chat so conversation appears immediately
+    try {
+      await db.from('messages').insert({
+        order_id: orderId,
+        sender_id: profileId,
+        text: '✅ Мастер принят! Заказ передан в работу. Обсудите детали здесь.',
+      });
+    } catch {
+      // non-critical
+    }
+
     const dbAdmin = getSupabaseAdmin();
 
     const { data: masterProfile } = await dbAdmin

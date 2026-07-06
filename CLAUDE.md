@@ -455,3 +455,18 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 - `5ffc6b9` — fix: set order price to master's proposed_price on bid accept
 - `5bf1a78` — fix: hide cancelled bids from order bids list on reactivate
 - `82d32af` — fix: chats not showing — include in_progress orders without messages + Chat buttons
+
+---
+## STATE — 2026-07-06 20:00
+
+### Session 16: Chat list now shows participant name + order description
+
+#### Problem
+В списке чатов отображалась только категория ("Электрик", "Уборка") — непонятно с кем чат и о каком заказе.
+
+#### Changes
+1. **API `GET /orders/chats`** — переписан: возвращает `description` (80 символов), `price`, `status`, `other_participant_name` (имя мастера для клиента, имя клиента для мастера). Имена подтягиваются из таблицы `profiles`. (`9e21bd7`)
+2. **ChatScreen** — в списке чатов теперь: категория → имя собеседника (жирный) → описание заказа + цена → последнее сообщение. В хедере чата — имя собеседника вместо "Чат". (`9e21bd7`)
+
+#### Коммит
+- `9e21bd7`
