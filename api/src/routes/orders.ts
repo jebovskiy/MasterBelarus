@@ -265,27 +265,15 @@ ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
 });
 
 /**
- * GET /orders/:id — детали заказа (только владелец, мастер с откликом или админ)
+ * GET /orders/:id — детали заказа (доступно всем аутентифицированным)
  */
 ordersRouter.get('/:id', async (req: JwtRequest, res) => {
   try {
     const db = getUserClient(req.jwtToken!);
     const id = req.params.id;
-    const profileId = req.jwtPayload!.profile_id;
 
     const { data: order, error } = await db.from('orders').select('*').eq('id', id).single();
     if (error || !order) return res.status(404).json({ error: 'not found' });
-
-    const ownOrder = (order as { client_id: string }).client_id === profileId;
-
-    const { data: myBid } = await db
-      .from('bids')
-      .select('id')
-      .eq('order_id', id)
-      .eq('master_id', profileId)
-      .maybeSingle();
-
-    if (!ownOrder && !myBid) return res.status(403).json({ error: 'forbidden' });
 
     return res.json(order);
   } catch (err) {
