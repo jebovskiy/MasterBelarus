@@ -43,7 +43,7 @@ describe('validateTelegramWebAppData', () => {
 
   it('rejects tampered data', () => {
     const good = buildInitData({ auth_date: String(Math.floor(Date.now() / 1000)) });
-    const tampered = good.replace('user=nonexistent', 'user=hacker');
+    const tampered = good.replace('auth_date=', 'auth_date=X');
     expect(() => validateTelegramWebAppData(tampered, BOT_TOKEN)).toThrow();
   });
 
