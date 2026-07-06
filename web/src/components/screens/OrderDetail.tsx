@@ -48,9 +48,9 @@ const swipeConfidenceThreshold = 80;
 const swipeVelocityThreshold = 400;
 const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
-type Props = { orderId: string | null; onBack: () => void };
+type Props = { orderId: string | null; onBack: () => void; onOpenChat?: (orderId: string) => void };
 
-export default function OrderDetail({ orderId, onBack }: Props) {
+export default function OrderDetail({ orderId, onBack, onOpenChat }: Props) {
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(false);
@@ -228,11 +228,18 @@ export default function OrderDetail({ orderId, onBack }: Props) {
               <div className="flex items-center justify-between w-full px-5">
                 <button onClick={onBack} className="text-sm font-semibold text-slate-500">{t('common.back')}</button>
                 <h3 className="text-base font-semibold text-slate-800">{t('orders.detail_title')}</h3>
-                {order && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
-                    {t(`orders.status.${order.status}`)}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {order?.status === 'in_progress' && onOpenChat && (
+                    <button onClick={() => onOpenChat(order.id)} className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full hover:bg-slate-200 transition-colors">
+                      💬 {t('chat.chat_btn')}
+                    </button>
+                  )}
+                  {order && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                      {t(`orders.status.${order.status}`)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

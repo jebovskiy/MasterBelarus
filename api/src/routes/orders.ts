@@ -156,7 +156,8 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
 });
 
 /**
- * GET /orders/chats — список чатов (заказов с сообщениями) для текущего пользователя
+ * GET /orders/chats — список чатов для текущего пользователя
+ * Включает заказы в работе (in_progress) даже без сообщений.
  */
 ordersRouter.get('/chats', async (req: JwtRequest, res) => {
   try {
@@ -170,13 +171,14 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       .eq('client_id', profileId)
       .in('status', ['in_progress', 'completed', 'cancelled']);
 
-    // Мастер: заказы где есть отклик мастера
-    const { data: myBids } = await db
+    // Мастер с accepted bid
+    const { data: myAcceptedBids } = await db
       .from('bids')
       .select('order_id')
-      .eq('master_id', profileId);
+      .eq('master_id', profileId)
+      .eq('status', 'accepted');
 
-    const biddedOrderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
+    const biddedOrderIds = (myAcceptedBids ?? []).map((b: { order_id: string }) => b.order_id);
     let masterOrders: { id: string; category: string }[] = [];
     if (biddedOrderIds.length > 0) {
       const { data: mo } = await db
@@ -208,16 +210,28 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       if (!latestMap.has(m.order_id)) latestMap.set(m.order_id, { text: m.text, created_at: m.created_at });
     }
 
+    // Fetch in_progress orders to get accepted master profile for the other participant's name
+    const { data: inProgOrders } = await db
+      .from('orders')
+      .select('id')
+      .in('id', orderIds)
+      .eq('status', 'in_progress');
+
+    const inProgIds = new Set((inProgOrders ?? []).map((o: { id: string }) => o.id));
+
     const categoryMap = new Map(allOrders.map((o: { id: string; category: string }) => [o.id, o.category]));
     const conversations = orderIds
-      .filter((id) => latestMap.has(id))
-      .map((id) => ({
-        order_id: id,
-        category: categoryMap.get(id) ?? '',
-        last_message: latestMap.get(id)!.text,
-        last_message_at: latestMap.get(id)!.created_at,
-        unread: 0,
-      }))
+      .map((id) => {
+        const msg = latestMap.get(id);
+        return {
+          order_id: id,
+          category: categoryMap.get(id) ?? '',
+          last_message: msg?.text ?? '',
+          last_message_at: msg?.created_at ?? new Date(0).toISOString(),
+          unread: 0,
+        };
+      })
+      // in_progress без сообщений должны быть внизу, с сообщениями — сверху
       .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
 
     return res.json({ conversations });

@@ -20,14 +20,14 @@ type Conversation = {
   unread: number;
 };
 
-type Props = { onBack: () => void; onOpenOrder?: (id: string) => void };
+type Props = { onBack: () => void; onOpenOrder?: (id: string) => void; initialOrderId?: string | null };
 
-export default function ChatScreen({ onBack, onOpenOrder }: Props) {
+export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Props) {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
   const { impact, notification } = useHaptic();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(initialOrderId ?? null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);

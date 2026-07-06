@@ -44,18 +44,24 @@ function CustomerApp() {
   const [orderOpen, setOrderOpen] = useState(false);
   const [presetCategory, setPresetCategory] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay | null>(null);
+
+  const openChat = (orderId: string) => {
+    setChatOrderId(orderId);
+    setTab('chat');
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'home' && <ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} onOpenOrder={(id) => setSelectedOrderId(id)} />}
       {tab === 'orders' && <Suspense fallback={null}><OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
-      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); setTab('home'); }} /></Suspense>}
+      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('home'); }} onOpenOrder={(id) => { setSelectedOrderId(id); setTab('home'); }} initialOrderId={chatOrderId} /></Suspense>}
       {tab === 'profile' && <Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
       <Suspense fallback={null}>
-        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} onOpenChat={openChat} />
         <CreateOrderSheet open={orderOpen} onClose={() => { setOrderOpen(false); setPresetCategory(null); }} presetCategory={presetCategory} />
       </Suspense>
 
@@ -69,18 +75,24 @@ function CustomerApp() {
 function MasterApp() {
   const [tab, setTab] = useState<TabKey>('feed');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay | null>(null);
+
+  const openChat = (orderId: string) => {
+    setChatOrderId(orderId);
+    setTab('chat');
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
       {tab === 'feed' && <MasterHome onNavigate={(s) => setOverlay(s as Overlay)} />}
-      {tab === 'in_progress' && <MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} />}
-      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => setTab('feed')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
+      {tab === 'in_progress' && <MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} onOpenChat={openChat} />}
+      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('feed'); }} onOpenOrder={(id) => { setSelectedOrderId(id); }} initialOrderId={chatOrderId} /></Suspense>}
       {tab === 'profile' && <Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} />}
 
       <BottomTabBar active={tab} onTab={setTab} />
       <Suspense fallback={null}>
-        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} />
+        <OrderDetail orderId={selectedOrderId} onBack={() => setSelectedOrderId(null)} onOpenChat={openChat} />
       </Suspense>
 
       <AnimatePresence>

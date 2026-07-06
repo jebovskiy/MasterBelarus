@@ -197,7 +197,8 @@
     "conversation": "Чат",
     "view_order": "Заказ",
     "no_messages": "Сообщений пока нет. Напишите что-нибудь!",
-    "input_placeholder": "Сообщение..."
+    "input_placeholder": "Сообщение...",
+    "chat_btn": "Чат"
   },
   "common": {
     "back": "← Назад",

@@ -20,7 +20,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) => void }) {
+export function MasterInProgress({ onOpenOrder, onOpenChat }: { onOpenOrder?: (id: string) => void; onOpenChat?: (id: string) => void }) {
   const [orders, setOrders] = useState<InProgressOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelTarget, setCancelTarget] = useState<InProgressOrder | null>(null);
@@ -84,12 +84,22 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
             <p className="text-xs text-slate-500 mt-1 truncate">{order.address_text}</p>
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
               <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
-              <button
-                onClick={(e) => { e.stopPropagation(); impact('light'); setCancelTarget(order); }}
-                className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              >
-                {t('master.cancel')}
-              </button>
+              <div className="flex items-center gap-2">
+                {onOpenChat && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onOpenChat(order.id); }}
+                    className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors"
+                  >
+                    💬 {t('chat.chat_btn')}
+                  </button>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); impact('light'); setCancelTarget(order); }}
+                  className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                >
+                  {t('master.cancel')}
+                </button>
+              </div>
             </div>
           </div>
         ))}

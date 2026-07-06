@@ -197,7 +197,8 @@
     "conversation": "Chat",
     "view_order": "Order",
     "no_messages": "No messages yet. Write something!",
-    "input_placeholder": "Message..."
+    "input_placeholder": "Message...",
+    "chat_btn": "Chat"
   },
   "common": {
     "back": "← Back",
