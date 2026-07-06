@@ -273,8 +273,8 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       }
     }
 
-    // Получаем состояние прочитанности
-    const { data: readStates } = await db
+    // Получаем состояние прочитанности (admin client — нет RLS на таблице)
+    const { data: readStates } = await getSupabaseAdmin()
       .from('chat_read_state')
       .select('order_id, last_read_at')
       .in('order_id', orderIds)

@@ -192,7 +192,7 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
           const isRead = isMine && otherReadAt && new Date(m.created_at) <= new Date(otherReadAt);
           return (
             <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isMine ? 'bg-slate-800 text-white rounded-br-md' : 'bg-white text-slate-800 shadow-sm border border-slate-100 rounded-bl-md'}`}>
+              <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${isMine ? 'bg-white text-slate-800 shadow-sm border border-slate-100 rounded-br-md' : 'bg-white text-slate-800 shadow-sm border border-slate-100 rounded-bl-md'}`}>
                 <p className="text-sm leading-relaxed">{m.text}</p>
                 <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <span className={`text-[10px] ${isMine ? 'text-slate-400' : 'text-slate-400'}`}>

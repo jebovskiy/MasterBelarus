@@ -8,3 +8,18 @@ CREATE TABLE IF NOT EXISTS chat_read_state (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_read_state_order_profile ON chat_read_state (order_id, profile_id);
+
+ALTER TABLE chat_read_state ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY chat_read_state_select_policy ON chat_read_state
+  FOR SELECT
+  USING (profile_id = auth.uid());
+
+CREATE POLICY chat_read_state_insert_policy ON chat_read_state
+  FOR INSERT
+  WITH CHECK (profile_id = auth.uid());
+
+CREATE POLICY chat_read_state_update_policy ON chat_read_state
+  FOR UPDATE
+  USING (profile_id = auth.uid())
+  WITH CHECK (profile_id = auth.uid());

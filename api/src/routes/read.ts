@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUserClient } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
@@ -15,9 +15,8 @@ readRouter.post('/:orderId/read', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
-    // Upsert read state
     const { error } = await db
       .from('chat_read_state')
       .upsert(
