@@ -206,6 +206,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
             <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
               <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />
               <div className="flex items-center justify-between w-full px-5">
+                <button onClick={onBack} className="text-sm font-semibold text-slate-500">{t('common.back')}</button>
                 <h3 className="text-base font-semibold text-slate-800">{t('orders.detail_title')}</h3>
                 {order && (
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[order.status] ?? 'bg-slate-100 text-slate-500'}`}>
