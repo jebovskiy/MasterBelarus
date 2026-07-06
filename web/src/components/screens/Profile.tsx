@@ -259,24 +259,29 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
 
       {currentRole === 'master' ? (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
-            <Avatar size={48} name={name} src={profile?.avatar_url ?? undefined} />
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-slate-800 truncate">{name}</h2>
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="text-amber-500 text-xs">★</span>
-                <span className="text-slate-600 text-xs font-semibold">{profile?.avg_rating?.toFixed(1) ?? '5.0'}</span>
-                <span className="text-slate-400 text-xs">• {profile?.review_count ?? 0} отзывов</span>
+          <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <Avatar size={48} name={name} src={profile?.avatar_url ?? undefined} />
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-slate-800 truncate">{name}</h2>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-amber-500 text-xs">★</span>
+                  <span className="text-slate-600 text-xs font-semibold">{profile?.avg_rating?.toFixed(1) ?? '5.0'}</span>
+                  <span className="text-slate-400 text-xs">• {profile?.review_count ?? 0} отзывов</span>
+                </div>
+                {profile?.city && (
+                  <p className="text-[11px] text-slate-400 mt-1">{profile.city}</p>
+                )}
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {(profile?.categories ?? []).map((cat) => {
-                  const label = CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat;
-                  return <span key={cat} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{label}</span>;
-                })}
-                {(profile?.categories ?? []).length === 0 && SPECIALTIES.map((s) => (
-                  <span key={s} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{s}</span>
-                ))}
-              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {(profile?.categories ?? []).map((cat) => {
+                const label = CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat;
+                return <span key={cat} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{label}</span>;
+              })}
+              {(profile?.categories ?? []).length === 0 && SPECIALTIES.map((s) => (
+                <span key={s} className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-medium">{s}</span>
+              ))}
             </div>
           </div>
 
@@ -317,25 +322,6 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
                 </div>
               </div>
             </button>
-          )}
-
-          {profile?.city && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Город</span>
-              <p className="text-sm text-slate-600">{profile.city}</p>
-            </div>
-          )}
-
-          {profile?.categories && profile.categories.length > 0 && (
-            <div className="bg-white rounded-2xl p-5 shadow-sm space-y-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Категории</span>
-              <div className="flex flex-wrap gap-2">
-                {profile.categories.map((cat) => {
-                  const label = CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat;
-                  return <span key={cat} className="bg-[#f4f4f6] text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium">{label}</span>;
-                })}
-              </div>
-            </div>
           )}
 
           <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
