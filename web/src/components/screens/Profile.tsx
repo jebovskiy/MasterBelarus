@@ -67,27 +67,20 @@ function parsePhone(display: string): string {
   return d ? '+' + d : '';
 }
 
-const LANG_LABELS: Record<string, string> = { ru: 'profile.lang_ru', be: 'profile.lang_be', en: 'profile.lang_en' };
-const THEME_LABELS: Record<string, string> = { system: 'profile.theme_system', light: 'profile.theme_light', dark: 'profile.theme_dark' };
-
 function SettingsCard({ onNavigate }: { onNavigate?: (s: string) => void }) {
   const { t } = useTranslation();
-  const { language, theme, notifyNearby } = useSettingsStore();
+  const { language, notifyNearby } = useSettingsStore();
   const anyNotifOn = notifyNearby;
   return (
-    <button onClick={() => onNavigate?.('settings')} className="w-full bg-appSurface rounded-2xl p-5 shadow-sm space-y-3.5 active:scale-[0.98] transition-transform text-left">
-      <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">{t('profile.settings')}</span>
+    <button onClick={() => onNavigate?.('settings')} className="w-full bg-white rounded-2xl p-5 shadow-sm space-y-3.5 active:scale-[0.98] transition-transform text-left">
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{t('profile.settings')}</span>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-textMain">{t('profile.language')}</span>
-        <span className="text-sm text-textMuted">{t(LANG_LABELS[language] ?? 'profile.lang_ru')}</span>
+        <span className="text-sm text-slate-700">{t('profile.language')}</span>
+        <span className="text-sm text-slate-400">{t(`profile.lang_${language}`)}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-textMain">{t('profile.theme')}</span>
-        <span className="text-sm text-textMuted">{t(THEME_LABELS[theme] ?? 'profile.theme_system')}</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-textMain">{t('profile.notifications')}</span>
-        <span className="text-sm text-textMuted">{anyNotifOn ? t('profile.notif_on') : t('profile.notif_off')}</span>
+        <span className="text-sm text-slate-700">{t('profile.notifications')}</span>
+        <span className="text-sm text-slate-400">{anyNotifOn ? t('profile.notif_on') : t('profile.notif_off')}</span>
       </div>
     </button>
   );

@@ -13,40 +13,6 @@
 :root {
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
-
-  --color-appBg: #F8F9FA;
-  --color-appSurface: #FFFFFF;
-  --color-appSurfaceAlt: #F1F3F5;
-  --color-appBorder: #E4E7EB;
-  --color-primary: #7C3AED;
-  --color-primaryHover: #6D28D9;
-  --color-primaryTint: #EDE9FE;
-  --color-success: #059669;
-  --color-successTint: #D1FAE5;
-  --color-warning: #D97706;
-  --color-error: #DC2626;
-  --color-textMain: #111827;
-  --color-textSecondary: #6B7280;
-  --color-textMuted: #6B7280;
-  --color-textTertiary: #9CA3AF;
-}
-
-.dark {
-  --color-appBg: #0F1117;
-  --color-appSurface: #1A1D27;
-  --color-appSurfaceAlt: #242734;
-  --color-appBorder: #2E3240;
-  --color-primary: #9B6EF4;
-  --color-primaryHover: #B08CF7;
-  --color-primaryTint: #2D2250;
-  --color-success: #34D399;
-  --color-successTint: #0D3325;
-  --color-warning: #FBBF24;
-  --color-error: #F87171;
-  --color-textMain: #E8EAF0;
-  --color-textSecondary: #9CA3AF;
-  --color-textMuted: #6B7280;
-  --color-textTertiary: #4B5563;
 }
 
 @layer base {
@@ -55,13 +21,12 @@
   }
 
   body {
-    background-color: var(--color-appBg);
-    color: var(--color-textMain);
+    background-color: #F8F9FA;
+    color: #111827;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'tnum';
-    transition: background-color 0.2s, color 0.2s;
   }
 
   * {
