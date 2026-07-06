@@ -470,3 +470,30 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 
 #### Коммит
 - `9e21bd7`
+
+---
+## STATE — 2026-07-06 20:30
+
+### Session 17: Chat scroll fix + unread refresh + read receipts
+
+#### Проблемы
+1. При открытии чата скролл показывал первую половину первого сообщения — не докручивал до низа
+2. Счётчик непрочитанных не сбрасывался после открытия чата
+3. Не было индикации, прочитал ли собеседник сообщение
+
+#### Изменения
+
+1. **Скролл** (`ChatScreen.tsx`) — два старых `useEffect` заменены на один с `requestAnimationFrame`. `behavior: 'instant'` на первом входе, `'smooth'` на новых сообщениях. DOM гарантированно отрисован до прокрутки.
+
+2. **Непрочитанные** (`ChatScreen.tsx`) — после `markRead` вызывается `loadConversations()` (один раз через `convLoadedRef`). При возврате из чата в список кнопка Back тоже дёргает `loadConversations()`. После отправки сообщения — тоже.
+
+3. **Read receipts** (`messages.ts` + `ChatScreen.tsx`):
+   - API: `GET /:orderId/messages` теперь возвращает `{ messages, other_read_at }` — timestamp последнего прочтения собеседника из `chat_read_state` (через admin client для обхода RLS)
+   - UI: для своих сообщений — `✓` (отправлено, серый) или `✓✓` (прочитано, голубой `text-sky-400`), если `created_at <= other_read_at`
+   - Обновляется каждый поллинг (3 сек)
+
+4. **Чистка lint** — удалены неиспользуемые импорты в `server.ts`, `cancel.ts`; `as any` заменены на конкретные типы в 6 файлах
+
+#### Коммиты
+- `afbdf1a` — fix: chat scroll, unread badge refresh, read receipts
+- `e41be99` — lint: fix unused imports, any types and null safety
