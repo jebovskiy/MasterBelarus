@@ -129,6 +129,8 @@
     "cancelled_by_master": "Майстар",
     "cancelled_by_client": "Кліент",
     "cancel_reason": "Прычына",
+    "reactivate": "🔄 Вярнуць у пошук",
+    "reactivating": "🔄 Вяртаем...",
     "completed_status": "Заказ выкананы",
     "cancelled_status": "Заказ адменены",
     "cancel_reason_title": "Прычына адмены",

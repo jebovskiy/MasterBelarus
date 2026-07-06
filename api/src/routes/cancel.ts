@@ -220,12 +220,20 @@ cancelRouter.post('/:id/reactivate', async (req: JwtRequest, res) => {
     if (o.status !== 'cancelled') return res.status(400).json({ error: 'order is not cancelled' });
     if (o.cancelled_by !== 'master') return res.status(400).json({ error: 'can only reactivate after master cancellation' });
 
+    // clear cancel fields and reopen
     const { error: updateErr } = await dbAdmin
       .from('orders')
-      .update({ status: 'open' })
+      .update({ status: 'open', cancelled_by: null, cancellation_reason_id: null, cancellation_reason_text: null })
       .eq('id', orderId);
 
     if (updateErr) throw updateErr;
+
+    // mark the previously-accepted bid as cancelled so that master won't reappear
+    await dbAdmin
+      .from('bids')
+      .update({ status: 'cancelled' })
+      .eq('order_id', orderId)
+      .eq('status', 'accepted');
 
     logger.info({ orderId }, 'order reactivated');
     return res.json({ ok: true });

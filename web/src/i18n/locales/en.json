@@ -129,6 +129,8 @@
     "cancelled_by_master": "Master",
     "cancelled_by_client": "Client",
     "cancel_reason": "Reason",
+    "reactivate": "🔄 Return to search",
+    "reactivating": "🔄 Returning...",
     "completed_status": "Order completed",
     "cancelled_status": "Order cancelled",
     "cancel_reason_title": "Cancellation reason",
