@@ -142,7 +142,17 @@ bidsRouter.get('/:orderId/bids', async (req: JwtRequest, res) => {
     }
 
     if (profileId !== (order as { client_id: string }).client_id) {
-      return res.status(403).json({ error: 'forbidden' });
+      const { data: myBid } = await db
+        .from('bids')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('master_id', profileId)
+        .eq('status', 'accepted')
+        .maybeSingle();
+
+      if (!myBid) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
     }
 
     const { data: bids, error: bidsErr } = await db
