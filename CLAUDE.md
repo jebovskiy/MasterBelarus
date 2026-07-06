@@ -497,3 +497,23 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 #### Коммиты
 - `afbdf1a` — fix: chat scroll, unread badge refresh, read receipts
 - `e41be99` — lint: fix unused imports, any types and null safety
+
+---
+## STATE — 2026-07-06 21:00
+
+### Session 18: Chat RLS fix + white bubbles + read receipts working
+
+#### Проблема
+После деплоя Session 17 чат не работал: скролл не докручивал, бейдж непрочитанных не сбрасывался, read receipts не появлялись. Сообщения были тёмными.
+
+#### Root cause
+В миграции `20260701000022_chat_read_state.sql` не было RLS-политик. Supabase включает RLS по умолчанию для всех таблиц → `markRead` (upsert) и `readMap` (select) молча возвращали пустой результат.
+
+#### Изменения
+1. **`read.ts`** — `getSupabaseAdmin()` вместо `getUserClient()` для записи `chat_read_state` (обходит отсутствие RLS)
+2. **`orders.ts`** — `getSupabaseAdmin()` для чтения `chat_read_state` в `/orders/chats`
+3. **`20260701000022_chat_read_state.sql`** — добавлены RLS-политики (select/insert/update по `profile_id = auth.uid()`)
+4. **`ChatScreen.tsx`** — свои сообщения теперь `bg-white` вместо `bg-slate-800`
+
+#### Коммиты
+- `435bd71` — fix: chat RLS — use admin client for read_state, white bubbles, migration policies
