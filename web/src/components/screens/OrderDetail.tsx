@@ -31,7 +31,6 @@ type Bid = {
   created_at: string;
 };
 
-const EMOJI: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
 const STATUS_BADGE: Record<string, string> = { open: 'bg-amber-50 text-amber-700', in_progress: 'bg-blue-50 text-blue-700', completed: 'bg-emerald-50 text-emerald-700', cancelled: 'bg-rose-50 text-rose-600' };
 
 function timeAgo(iso: string, t: (key: string) => string) {
@@ -258,8 +257,7 @@ export default function OrderDetail({ orderId, onBack }: Props) {
                 <>
                   <div className="bg-[#f4f4f6] rounded-xl p-5 space-y-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{EMOJI[order.category] ?? '📋'}</span>
-                      <span className="text-base font-bold text-slate-800">{order.category}</span>
+                      <span className="text-lg">{t(`home.categories.${order.category}`)}</span>
                       <span className="text-xs text-slate-400 ml-auto">{timeAgo(order.created_at, t)}</span>
                     </div>
                     <p className="text-sm text-slate-600 leading-relaxed">{order.description}</p>

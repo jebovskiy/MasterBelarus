@@ -20,11 +20,6 @@ type NearbyOrder = {
   created_at: string;
 };
 
-function categoryEmoji(cat: string): string {
-  const map: Record<string, string> = { plumber: '🔧', electrician: '⚡', mover: '📦', handyman: '🛠', tutor: '📚', cleaning: '🧹' };
-  return map[cat] ?? '📋';
-}
-
 function formatPhone(phone?: string | null): string {
   if (!phone) return '+375 (XX) XXX-XX-XX';
   const d = phone.replace(/\D/g, '');
@@ -190,7 +185,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
             {orders.map((order, idx) => (
               <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 40, 500) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{categoryEmoji(order.category)} {order.category}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
                   <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
                 </div>
                 <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>

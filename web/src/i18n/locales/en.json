@@ -64,12 +64,12 @@
     "what_need": "What needs to be done?",
     "all_categories": "All categories",
     "categories": {
-      "plumber": "Plumber",
-      "electrician": "Electrician",
-      "mover": "Mover",
-      "handyman": "Handyman",
-      "tutor": "Tutor",
-      "cleaning": "Cleaning"
+      "plumber": "🔧 Plumber",
+      "electrician": "⚡ Electrician",
+      "mover": "📦 Mover",
+      "handyman": "🛠 Handyman",
+      "tutor": "📚 Tutor",
+      "cleaning": "🧹 Cleaning"
     },
     "services": "Home Services",
     "need_master_today": "Need a master today?",

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { apiGet } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'active' | 'archive';
 
@@ -13,11 +14,6 @@ type OrderItem = {
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   address_text: string;
   created_at: string;
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  plumber: 'Сантехника', electrician: 'Электрика', mover: 'Грузчик',
-  handyman: 'Муж на час', tutor: 'Репетитор', cleaning: 'Уборка',
 };
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -41,6 +37,7 @@ type Props = { onBack: () => void; onOpenOrder?: (id: string) => void };
 export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
   const [tab, setTab] = useState<Tab>('active');
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -120,7 +117,7 @@ export default function OrderHistoryScreen({ onBack, onOpenOrder }: Props) {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-semibold text-slate-800">
-                      {CATEGORY_LABELS[order.category] ?? order.category}
+                      {t(`home.categories.${order.category}`)}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusInfo.cls}`}>
                       {statusInfo.label}

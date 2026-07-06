@@ -114,7 +114,7 @@ export default function ChatScreen({ onBack, onOpenOrder }: Props) {
               className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-left hover:scale-[1.01] active:scale-[0.99] transition-transform"
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">{c.category}</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">{t(`home.categories.${c.category}`)}</span>
                 {c.unread > 0 && (
                   <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">{c.unread}</span>
                 )}

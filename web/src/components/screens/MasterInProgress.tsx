@@ -77,7 +77,7 @@ export function MasterInProgress({ onOpenOrder }: { onOpenOrder?: (id: string) =
         {orders.map((order) => (
           <div key={order.id} onClick={() => onOpenOrder?.(order.id)} className="bg-white rounded-2xl shadow-sm p-4 hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
             <div className="flex items-center justify-between mb-2">
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">{order.category}</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
               <span className="text-[11px] text-slate-400">{formatDate(order.created_at)}</span>
             </div>
             <p className="text-sm font-semibold text-slate-800 line-clamp-2">{order.description}</p>

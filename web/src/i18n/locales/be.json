@@ -64,12 +64,12 @@
     "what_need": "Што трэба зрабіць?",
     "all_categories": "Усе катэгорыі",
     "categories": {
-      "plumber": "Сантэхнік",
-      "electrician": "Электрык",
-      "mover": "Грузчык",
-      "handyman": "Муж на гадзіну",
-      "tutor": "Рэпетытар",
-      "cleaning": "Прыбіранне"
+      "plumber": "🔧 Сантэхнік",
+      "electrician": "⚡ Электрык",
+      "mover": "📦 Грузчык",
+      "handyman": "🛠 Муж на гадзіну",
+      "tutor": "📚 Рэпетытар",
+      "cleaning": "🧹 Прыбіранне"
     },
     "services": "Хатнія паслугі",
     "need_master_today": "Патрэбен майстар сёння?",
