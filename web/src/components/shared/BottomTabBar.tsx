@@ -31,7 +31,7 @@ export function BottomTabBar({ active, onTab }: Props) {
   const tabs = isMasterMode ? MASTER_TABS : CUSTOMER_TABS;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/85 backdrop-blur-lg border-t border-slate-200" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav className="shrink-0 bg-white/85 backdrop-blur-lg border-t border-slate-200" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="max-w-[430px] mx-auto flex items-center justify-around h-16">
         {tabs.map((t) => {
           const isActive = active === t.key;

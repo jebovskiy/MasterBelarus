@@ -54,11 +54,13 @@ function CustomerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
-      {tab === 'home' && <Suspense fallback={null}><ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} onOpenOrder={(id) => setSelectedOrderId(id)} /></Suspense>}
-      {tab === 'orders' && <Suspense fallback={null}><OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
-      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('home'); }} onOpenOrder={(id) => { setSelectedOrderId(id); setTab('home'); }} initialOrderId={chatOrderId} /></Suspense>}
-      {tab === 'profile' && <Suspense fallback={null}><Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} /></Suspense>}
+    <div className="fixed inset-0 bg-[#f4f4f6] flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        {tab === 'home' && <Suspense fallback={null}><ClientHome onOpenCreateOrder={(cat) => { setPresetCategory(cat ?? null); setOrderOpen(true); }} onOpenOrder={(id) => setSelectedOrderId(id)} /></Suspense>}
+        {tab === 'orders' && <Suspense fallback={null}><OrderHistoryScreen onBack={() => setTab('home')} onOpenOrder={(id) => { setSelectedOrderId(id); }} /></Suspense>}
+        {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('home'); }} onOpenOrder={(id) => { setSelectedOrderId(id); setTab('home'); }} initialOrderId={chatOrderId} /></Suspense>}
+        {tab === 'profile' && <Suspense fallback={null}><Profile onBack={() => setTab('home')} onNavigate={(s) => setOverlay(s as Overlay | null)} /></Suspense>}
+      </div>
 
       <BottomTabBar active={tab} onTab={setTab} />
       <Suspense fallback={null}>
@@ -85,11 +87,13 @@ function MasterApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] pb-[calc(64px+env(safe-area-inset-bottom,0px))]">
-      {tab === 'feed' && <Suspense fallback={null}><MasterHome onNavigate={(s) => setOverlay(s as Overlay)} /></Suspense>}
-      {tab === 'in_progress' && <Suspense fallback={null}><MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} onOpenChat={openChat} /></Suspense>}
-      {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('feed'); }} onOpenOrder={(id) => { setSelectedOrderId(id); }} initialOrderId={chatOrderId} /></Suspense>}
-      {tab === 'profile' && <Suspense fallback={null}><Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} /></Suspense>}
+    <div className="fixed inset-0 bg-[#f4f4f6] flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        {tab === 'feed' && <Suspense fallback={null}><MasterHome onNavigate={(s) => setOverlay(s as Overlay)} /></Suspense>}
+        {tab === 'in_progress' && <Suspense fallback={null}><MasterInProgress onOpenOrder={(id) => setSelectedOrderId(id)} onOpenChat={openChat} /></Suspense>}
+        {tab === 'chat' && <Suspense fallback={null}><ChatScreen onBack={() => { setChatOrderId(null); setTab('feed'); }} onOpenOrder={(id) => { setSelectedOrderId(id); }} initialOrderId={chatOrderId} /></Suspense>}
+        {tab === 'profile' && <Suspense fallback={null}><Profile onBack={() => setTab('feed')} onNavigate={(s) => setOverlay(s as Overlay | null)} /></Suspense>}
+      </div>
 
       <BottomTabBar active={tab} onTab={setTab} />
       <Suspense fallback={null}>
@@ -139,9 +143,7 @@ function AppShell() {
 
   return (
     <>
-      <div className="min-h-dvh">
-        {isMasterMode ? <MasterApp /> : <CustomerApp />}
-      </div>
+      {isMasterMode ? <MasterApp /> : <CustomerApp />}
 
       <AnimatePresence>
         {showOverlay && (
