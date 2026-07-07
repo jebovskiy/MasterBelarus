@@ -67,9 +67,9 @@ export async function apiPatch<T>(path: string, body?: Record<string, unknown>, 
   return handle<T>(res);
 }
 
-export async function apiUpload<T>(path: string, file: File, opts?: ApiOptions): Promise<ApiResult<T>> {
+export async function apiUpload<T>(path: string, file: File, fieldName = 'avatar', opts?: ApiOptions): Promise<ApiResult<T>> {
   const form = new FormData();
-  form.append('avatar', file);
+  form.append(fieldName, file);
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { ...authHeaders() },

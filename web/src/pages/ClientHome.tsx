@@ -21,6 +21,7 @@ type ClientOrder = {
   price: number | null;
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   address: string;
+  images?: string[];
   created_at: string;
 };
 
@@ -137,6 +138,13 @@ export default function ClientHome({ onOpenCreateOrder, onOpenOrder }: ClientHom
                   </span>
                 </div>
                 <p className="text-sm text-slate-700 line-clamp-1">{order.title}</p>
+                {order.images && order.images.length > 0 && (
+                  <div className="flex gap-1.5 mt-2">
+                    {order.images.slice(0, 3).map((url, i) => (
+                      <img key={i} src={url} alt="" className="w-10 h-10 rounded-lg object-cover bg-slate-100" loading="lazy" />
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-slate-400">{timeAgo(order.created_at, t)}</span>
                   <span className="text-sm font-bold text-slate-800">{order.price ?? 0} BYN</span>

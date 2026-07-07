@@ -18,6 +18,7 @@ type NearbyOrder = {
   is_negotiable: boolean;
   address_text: string;
   distance_m: number;
+  images?: string[];
   created_at: string;
 };
 
@@ -252,6 +253,13 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                       <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
                     </div>
                     <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
+                    {order.images && order.images.length > 0 && (
+                      <div className="flex gap-1.5 mt-2">
+                        {order.images.slice(0, 3).map((url, i) => (
+                          <img key={i} src={url} alt="" className="w-9 h-9 rounded-lg object-cover bg-slate-100" loading="lazy" />
+                        ))}
+                      </div>
+                    )}
                     <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
@@ -283,6 +291,13 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                       <span className="text-[11px] text-slate-400">✅ {t('master.done')}</span>
                     </div>
                     <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
+                    {order.images && order.images.length > 0 && (
+                      <div className="flex gap-1.5 mt-2">
+                        {order.images.slice(0, 3).map((url, i) => (
+                          <img key={i} src={url} alt="" className="w-9 h-9 rounded-lg object-cover bg-slate-100" loading="lazy" />
+                        ))}
+                      </div>
+                    )}
                     <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                       <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>

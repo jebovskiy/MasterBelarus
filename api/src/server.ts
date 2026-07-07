@@ -15,6 +15,7 @@ import { complaintsRouter } from './routes/complaints.js';
 import { cancelRouter } from './routes/cancel.js';
 import { messagesRouter } from './routes/messages.js';
 import { readRouter } from './routes/read.js';
+import { uploadRouter } from './routes/upload.js';
 import { shutdownAnalytics } from './lib/analytics.js';
 
 async function bootstrap() {
@@ -39,6 +40,7 @@ async function bootstrap() {
   app.use('/masters', mastersRouter);
   app.use('/admin', adminRouter);
   app.use('/complaints', complaintsRouter);
+  app.use('/upload', uploadRouter);
 
 const httpServer = createServer(app);
 const bot = createBot(env);

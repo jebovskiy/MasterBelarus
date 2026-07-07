@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useHaptic } from '@/hooks/useHaptic';
-import { apiPost } from '@/lib/api';
+import { apiPost, apiUpload } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
+import PhotoPicker from '@/components/shared/PhotoPicker';
 import { getCityCoords } from '@/data/belarus-cities';
 import { sheetTransition } from '@/lib/transitions';
 
@@ -40,10 +41,11 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
   const [cityValue, setCityValue] = useState<CityValue | null>(null);
   const [street, setStreet] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const { impact } = useHaptic();
   const showToast = useToastStore((s) => s.showToast);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -71,6 +73,25 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
     const coords = getCityCoords(cityValue.city);
 
+    let images: string[] = [];
+
+    if (photoFiles.length > 0) {
+      for (let i = 0; i < photoFiles.length; i++) {
+        setUploadProgress(t('orders.uploading_photo', { current: i + 1, total: photoFiles.length }));
+        const res = await apiUpload<{ url: string }>('/upload/photo', photoFiles[i]!, 'photo');
+        if ('error' in res) {
+          setError(t('orders.photo_upload_failed'));
+          showToast(t('orders.photo_upload_failed'), 'error');
+          setSubmitting(false);
+          setUploadProgress(null);
+          return;
+        }
+        images.push(res.data.url);
+      }
+    }
+
+    setUploadProgress(null);
+
     const result = await apiPost<{ id: string }>('/orders', {
       category,
       description: description.trim(),
@@ -79,7 +100,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
       address_text,
       lat: coords?.lat,
       lng: coords?.lng,
-      images: [],
+      images,
     });
 
     setSubmitting(false);
@@ -195,13 +216,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
               <div>
                 <label className={labelCls}>{t('orders.photos')}</label>
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="w-full h-20 rounded-xl border-2 border-dashed border-slate-300 bg-[#f4f4f6] flex items-center justify-center gap-2 text-slate-400 text-sm font-medium hover:border-slate-400 hover:text-slate-500 transition-all"
-                >
-                  <span className="text-lg">+</span> {t('orders.attach_photo')}
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" />
+                <PhotoPicker files={photoFiles} onChange={setPhotoFiles} max={3} disabled={submitting} />
               </div>
 
               {error && (
@@ -210,6 +225,9 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50/95 to-transparent pt-8 pb-[calc(24px+env(safe-area-inset-bottom,0px))] px-5">
+              {uploadProgress && (
+                <p className="text-xs text-slate-500 text-center mb-3">{uploadProgress}</p>
+              )}
               <button
                 onClick={submit}
                 disabled={submitting}

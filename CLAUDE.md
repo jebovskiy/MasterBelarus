@@ -675,3 +675,5 @@ MasterHome, Profile, WalletScreen показывали фейковые данн
 
 #### Коммит
 - `93e5999` — feat: master can view reviews with client info by tapping rating card
+- `9edff11` — fix: move reviews endpoint to masters/me/reviews (route conflict with orders/:id)
+- `b87f176` — fix: use Avatar component in review sheet for client photos

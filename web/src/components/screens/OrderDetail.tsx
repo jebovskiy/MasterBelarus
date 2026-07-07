@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
@@ -276,10 +276,20 @@ export default function OrderDetail({ orderId, onBack, onOpenChat }: Props) {
                       <p className="text-2xl font-extrabold text-slate-900">
                         {order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}
                       </p>
-                      {order.images.length > 0 && (
-                        <span className="text-xs text-slate-400">{t('orders.photos_count', { count: order.images.length })}</span>
-                      )}
                     </div>
+                    {order.images.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-none">
+                        {order.images.map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="w-24 h-24 rounded-xl object-cover shrink-0 bg-slate-100"
+                            loading="lazy"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {order.status === 'open' && (
