@@ -205,8 +205,8 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
 
     const b = bid as { master_id: string; proposed_price: number | null };
 
-    // Update order: status + price (master's proposed price)
-    const orderUpdate: Record<string, unknown> = { status: 'in_progress' };
+    // Update order: status + price + master_id
+    const orderUpdate: Record<string, unknown> = { status: 'in_progress', master_id: b.master_id };
     if (b.proposed_price != null) orderUpdate.price = b.proposed_price;
 
     const { data: updatedOrder, error: updateErr } = await db

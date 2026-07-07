@@ -599,3 +599,28 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 
 #### Коммит
 - `b02f170` — sessions 20-20b
+
+---
+## STATE — 2026-07-07 21:00
+
+### Session 21: Remove all hardcoded master stats
+
+#### Проблема
+MasterHome, Profile, WalletScreen показывали фейковые данные вместо реальных: `balance: 15`, `rating: {4.9, 87}`, `stats: {12, 2, 7}`, `MOCK_MASTER {completed: 142, active: 3}`.
+
+#### Изменения
+1. **API `auth.ts:62,82`** — login SELECT теперь включает `avg_rating, review_count`
+2. **API `auth.ts:91-94`** — `response_credits` из `master_balances` в ответе логина
+3. **API `masters.ts:12-65`** — новый `GET /masters/me`: balance + stats (completed, inProgress, todayBids)
+4. **API `user-client.ts:32-33`** — `DBProfile` расширен: `avg_rating, review_count`
+5. **Web `auth.ts` store** — `response_credits: number` в `UserProfile`
+6. **Web `MasterHome.tsx`** — 3 хардкод состояния заменены на fetch `/masters/me` + `profile` данные
+7. **Web `Profile.tsx`** — `MOCK_MASTER` удалён, stats через `/masters/me`, fallback `5.0` на реальные
+8. **Web `WalletScreen.tsx`** — `useState(15)` → init из `profile.response_credits` + fetch
+
+#### Verification
+- `npm run typecheck -w api` — PASS
+- `npm run typecheck -w web` — PASS
+
+#### Коммит
+- `c22460a` — fix: replace all hardcoded master stats with live API data
