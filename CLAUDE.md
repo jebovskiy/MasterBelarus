@@ -677,3 +677,43 @@ MasterHome, Profile, WalletScreen показывали фейковые данн
 - `93e5999` — feat: master can view reviews with client info by tapping rating card
 - `9edff11` — fix: move reviews endpoint to masters/me/reviews (route conflict with orders/:id)
 - `b87f176` — fix: use Avatar component in review sheet for client photos
+
+---
+
+## STATE — 2026-07-07 23:00
+
+### Session 24: Photo upload (up to 3) — end-to-end
+
+#### Проблема
+При создании заказа нельзя было прикрепить фото. Форма имела мёртвый file input без `onChange` и состояния. OrderDetail показывал только текстовый счётчик вместо галереи.
+
+#### Изменения
+1. **`api/src/routes/upload.ts`** — `POST /upload/photo`: multer single-file (10 MB), `file-type` валидация (JPEG/PNG/WebP), rate-limit 10/мин на пользователя. Загружает в Supabase Storage bucket `order-images`. Возвращает `{ url, path }`.
+
+2. **`server.ts`** — монтирование `/upload`.
+
+3. **`web/src/components/shared/PhotoPicker.tsx`** — новый компонент: 3 слота в гриде, превью через `URL.createObjectURL`, кнопка удаления ✕, выбор из галереи. Учитывает `max` (3), `disabled` (во время отправки).
+
+4. **`CreateOrderSheet.tsx`** — мёртвый `fileRef`/`<input>` заменён на `<PhotoPicker>`. При submit: последовательная загрузка каждого фото через `apiUpload('/upload/photo', file, 'photo')` → сбор URL → создание заказа с `images: [url1, ...]`. Прогресс "Загружаю фото 1 из 3..." над кнопкой.
+
+5. **`OrderDetail.tsx`** — текстовый `photos_count` заменён на горизонтальный скролл с `<img>` 96×96, `object-cover`, `rounded-xl`.
+
+6. **`ClientHome.tsx`** / **`MasterHome.tsx`** — типы `ClientOrder`/`NearbyOrder` расширены полем `images?: string[]`. В карточках — ряд миниатюр 36×36 (до 3).
+
+7. **`api.ts`** — `apiUpload` теперь принимает `fieldName` (по умолчанию `'avatar'`).
+
+8. **i18n** — ключи `uploading_photo`, `photo_upload_failed`; подпись `photos` исправлена с "до 5" на "до 3".
+
+#### Защита (anti-spam / overload)
+- **Тип файла**: multer `fileFilter` (mime) + `file-type` (magic bytes) — JPEG/PNG/WebP
+- **Размер**: multer `limits.fileSize` = 10 MB
+- **Rate-limit**: 10 uploads/min per `telegramIdOrIp`
+- **Имя файла**: `{telegramId}/{randomUUID()}.{ext}` — исключает коллизии и перезапись
+- **Max 3 фото**: контролируется на фронтенде (PhotoPicker `max=3`) и на бэке не дублируется (сама БД принимает `text[]`)
+
+#### Коммит
+- `c862d5e` — feat: photo upload (up to 3) with PhotoPicker, validation, rate-limit, gallery
+
+#### Остаётся
+- После деплоя проверить: создание заказа с фото → загрузка в Supabase → отображение в OrderDetail и карточках
+- Орфанные файлы (если пользователь загрузил фото, но не создал заказ) — на MVP не чистим
