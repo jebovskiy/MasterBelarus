@@ -231,7 +231,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
                     <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                     <div className="flex items-center justify-between mt-3">
-                      <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
+                      <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
                       {bidOrderIds.has(order.id) ? (
                         <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">{t('master.you_responded')}</span>
                       ) : (
@@ -262,7 +262,7 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                     <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
                     <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                      <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
+                      <p className="text-base font-extrabold text-slate-800">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
                     </div>
                   </div>
                 ))}
