@@ -368,10 +368,8 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                   return (
                     <div key={r.id} className="bg-slate-50 rounded-xl p-4 space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                            {r.client?.full_name?.charAt(0) ?? r.client?.username?.charAt(0) ?? '?'}
-                          </div>
+                          <div className="flex items-center gap-2">
+                          <Avatar size={32} src={r.client?.avatar_url ?? undefined} name={r.client?.full_name ?? r.client?.username ?? '?'} />
                           <span className="text-sm font-semibold text-slate-800">{r.client?.full_name ?? r.client?.username ?? t('master.anonymous')}</span>
                         </div>
                         <span className="text-[11px] text-slate-400">{new Date(r.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
