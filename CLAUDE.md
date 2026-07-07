@@ -569,3 +569,33 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 - `migrations/25` — update_master_categories RPC
 - `api/.../lib/express-helpers.ts` — centralized rate-limiter key function
 - Various fix commits across both workspaces
+
+---
+## STATE — 2026-07-07 20:00
+
+### Sessions 20-20b: Code splitting + MED/LOW audit cleanup
+
+#### Session 20 — Perf
+1. **Code splitting** — React.lazy + Suspense на ClientHome, MasterHome, MasterInProgress, Profile. Веб-пакет разбит на чанки (ClientHome 6.9 kB, MasterHome 11 kB, Profile 16 kB).
+2. **Parallel notifications** — `sendOrderCancelledToMasters`: for → Promise.allSettled() (`notifications.ts:185`)
+3. **Batch refund** — N individual upserts → batch upsert (`cancel.ts:119-135`)
+4. **Visibility guard** — ChatScreen polling: `if (!document.hidden)` (`ChatScreen.tsx:85`)
+5. **Incremental rating** — O(N) SELECT AVG → O(1) running average trigger (миграция 26)
+
+#### Session 20b — MED/LOW audit
+6. **MED-021** — MasterHome stagger `idx * 40` (ms) → `idx * 0.04` (s) + cap 0.5s
+7. **MED-024** — `web/src/lib/transitions.ts`: shared `sheetTransition` (type: 'tween', ease: [0.4,0,0.2,1]). Импортирован во все 7 bottom sheets, 3 локальные копии удалены, overlay'ы получили transition вместо дефолтного tween
+8. **MED-022** — `index.css`: `@media (prefers-reduced-transparency: reduce)` отключает backdrop-filter на 4 элементах
+9. **MED-018** — `api.ts`: опциональный `signal: AbortSignal` во всех 4 fetch-функциях. `useStartAppHandler.ts`: AbortController + cleanup
+10. **MED-015** — `telegram.ts`: `_cachedSecretKey: Buffer | null`, кешируется на весь lifecycle сервера
+11. **MED-027** — MasterHome: убран мёртвый `layout` prop (список статический), контейнер motion.div → div
+12. **LOW-029** — CLAUDE.md: удалены 3 мёртвые ссылки (decisions.md, ARCHITECTURE.md, API.md)
+13. **TODO.md** — приведён в соответствие (только FEAT, LEGAL, Sentry/PostHog keys)
+14. All 5 MED confirmed done (020, 025, 026, 028), all 6 LOW confirmed done or skip (019-033)
+
+#### Verification
+- `npm run typecheck -w api` — PASS
+- `npm run typecheck -w web` — PASS
+
+#### Коммит
+- `b02f170` — sessions 20-20b
