@@ -110,6 +110,58 @@ reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
 });
 
 /**
+ * GET /reviews/mine — отзывы о текущем мастере (с информацией о клиенте)
+ */
+reviewsRouter.get('/mine', async (req: JwtRequest, res) => {
+  const profileId = req.jwtPayload!.profile_id;
+
+  try {
+    const db = getSupabaseAdmin();
+
+    const { data: reviews, error: revErr } = await db
+      .from('reviews')
+      .select('id, order_id, client_id, rating, comment, created_at')
+      .eq('master_id', profileId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (revErr) throw revErr;
+
+    if (!reviews || reviews.length === 0) {
+      return res.json([]);
+    }
+
+    const clientIds = [...new Set(reviews.map((r: { client_id: string }) => r.client_id))];
+
+    const { data: clients } = await db
+      .from('profiles')
+      .select('id, full_name, username, avatar_url')
+      .in('id', clientIds);
+
+    const clientMap = new Map<string, { full_name: string | null; username: string | null; avatar_url: string | null }>();
+    for (const c of clients ?? []) {
+      const row = c as { id: string; full_name: string | null; username: string | null; avatar_url: string | null };
+      clientMap.set(row.id, row);
+    }
+
+    const result = (reviews ?? []).map((r: { client_id: string; rating: number; comment: string | null; created_at: string; id: string; order_id: string }) => ({
+      id: r.id,
+      order_id: r.order_id,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      client: clientMap.get(r.client_id) ?? null,
+    }));
+
+    return res.json(result);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'reviews/mine failed');
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
  * GET /orders/:orderId/review — получить отзыв и профиль мастера для заказа
  */
 reviewsRouter.get('/:orderId/review', async (req: JwtRequest, res) => {

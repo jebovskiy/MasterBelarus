@@ -194,7 +194,11 @@
     "completed_tab": "Архив",
     "completed_heading": "Выполненные заказы",
     "no_completed": "Нет выполненных заказов",
-    "done": "Готово"
+    "done": "Готово",
+    "reviews_title": "Отзывы",
+    "no_reviews": "Пока нет отзывов",
+    "anonymous": "Клиент",
+    "close": "Закрыть"
   },
   "chat": {
     "title": "Чаты",

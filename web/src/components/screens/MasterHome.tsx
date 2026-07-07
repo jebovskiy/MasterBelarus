@@ -21,6 +21,14 @@ type NearbyOrder = {
   created_at: string;
 };
 
+type ReviewItem = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  client: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
+};
+
 function formatPhone(phone?: string | null): string {
   if (!phone) return '+375 (XX) XXX-XX-XX';
   const d = phone.replace(/\D/g, '');
@@ -49,6 +57,9 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const [tab, setTab] = useState<'nearby' | 'completed'>('nearby');
   const [completedOrders, setCompletedOrders] = useState<NearbyOrder[]>([]);
   const [completedLoading, setCompletedLoading] = useState(false);
+  const [reviewSheet, setReviewSheet] = useState(false);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const { impact, notification } = useHaptic();
   const { location } = useLocation();
   const showToast = useToastStore((s) => s.showToast);
@@ -163,11 +174,21 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
             <p className="text-4xl font-extrabold text-primary mt-1">{balance ?? '—'}</p>
             <button onClick={() => onNavigate?.('wallet')} className="mt-2 text-sm font-semibold text-primary">{t('master.top_up')}</button>
           </div>
-          <div className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between">
+          <button
+            onClick={async () => {
+              impact('light');
+              setReviewSheet(true);
+              setReviewsLoading(true);
+              const res = await apiGet<ReviewItem[]>('/reviews/mine');
+              if ('data' in res && Array.isArray(res.data)) setReviews(res.data);
+              setReviewsLoading(false);
+            }}
+            className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between text-left"
+          >
             <p className="text-sm font-semibold text-text-muted">{t('master.rating')}</p>
             <p className="text-2xl font-extrabold text-text-main mt-1">{profile?.avg_rating ? `${profile.avg_rating.toFixed(1)} ★` : '—'}</p>
             <p className="text-xs text-text-muted">{profile?.review_count ? `${profile.review_count} ${t('master.ratings_count')}` : ''}</p>
-          </div>
+          </button>
         </div>
 
         <div className="flex items-center justify-between px-4 py-3 bg-white rounded-bento shadow-card text-xs text-text-muted font-medium">
@@ -310,6 +331,60 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                   </div>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {reviewSheet && (
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
+            <motion.div
+              className="flex max-h-[80vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-white shadow-2xl"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={sheetTransition}
+            >
+              <div className="flex justify-center pt-3 pb-2 shrink-0">
+                <div className="h-1 w-12 rounded-full bg-slate-300" />
+              </div>
+              <div className="px-5 pb-3 shrink-0">
+                <h3 className="text-base font-semibold text-slate-800">{t('master.reviews_title')}</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 pb-8 space-y-4">
+                {reviewsLoading && (
+                  <div className="space-y-3">
+                    {[0, 1, 2].map((i) => <div key={i} className="h-20 bg-slate-50 rounded-xl animate-pulse" />)}
+                  </div>
+                )}
+                {!reviewsLoading && reviews.length === 0 && (
+                  <p className="text-center py-8 text-sm text-slate-400">{t('master.no_reviews')}</p>
+                )}
+                {!reviewsLoading && reviews.map((r) => {
+                  const stars = Array.from({ length: 5 }, (_, i) => i < r.rating ? '★' : '☆');
+                  return (
+                    <div key={r.id} className="bg-slate-50 rounded-xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                            {r.client?.full_name?.charAt(0) ?? r.client?.username?.charAt(0) ?? '?'}
+                          </div>
+                          <span className="text-sm font-semibold text-slate-800">{r.client?.full_name ?? r.client?.username ?? t('master.anonymous')}</span>
+                        </div>
+                        <span className="text-[11px] text-slate-400">{new Date(r.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
+                      </div>
+                      <div className="text-amber-500 text-sm">{stars.join(' ')}</div>
+                      {r.comment && <p className="text-sm text-slate-600 leading-relaxed">{r.comment}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="shrink-0 px-5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] pt-4 border-t border-slate-100">
+                <button onClick={() => setReviewSheet(false)} className="w-full py-3 rounded-xl text-sm font-semibold text-slate-500 bg-slate-50 active:bg-slate-100 transition-colors">
+                  {t('master.close')}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

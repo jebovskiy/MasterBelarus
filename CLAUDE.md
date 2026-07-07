@@ -624,3 +624,34 @@ MasterHome, Profile, WalletScreen показывали фейковые данн
 
 #### Коммит
 - `c22460a` — fix: replace all hardcoded master stats with live API data
+
+---
+## STATE — 2026-07-07 22:00
+
+### Session 22: Master inProgress count fix + completed orders archive + price color + layout fix
+
+#### Проблемы
+1. **inProgress = 0** — `masters.ts` фильтровал `orders.master_id = profileId`, но в таблице `orders` нет колонки `master_id`
+2. **Нет архива выполненных** — мастер не видел свои выполненные заказы
+3. **Цена цветом акцента** — `text-primary` (аметист) вместо чёрного
+4. **Чёрный экран снизу** — при скролле контент уезжал под `fixed` таббар, overscroll показывал пустую область
+
+#### Изменения
+1. **`masters.ts`** — inProgress/completed считаются через `bids` → `order_ids` (subquery), а не через несуществующую `orders.master_id`. (`cd02d8e`)
+2. **`orders.ts`** — новый `GET /orders/completed` (аналогично `/in-progress`). (`e0dde2d`)
+3. **`MasterHome.tsx`** — табы "Поиск"/"Архив" под статистикой, переключение загружает выполненные заказы. (`e0dde2d`)
+4. **i18n** — ключи `search_tab`, `completed_tab`, `completed_heading`, `no_completed`, `done` в ru/en/be. (`e0dde2d`)
+5. **`MasterHome.tsx`** — цена `text-primary` → `text-slate-800`. (`5a19c39`)
+6. **`App.tsx`** — layout переписан: `fixed inset-0 flex flex-col` / content `flex-1 overflow-y-auto` / BottomTabBar `shrink-0`. Вместо `min-h-screen pb-[64px]` с `fixed` таббаром. (`7dd377f`)
+7. **`BottomTabBar.tsx`** — `fixed bottom-0` → `shrink-0` (часть flex-колонки). (`7dd377f`)
+8. **`index.css`** — `html { background-color: #f4f4f6 }`. (`7dd377f`)
+
+#### Verification
+- `npm run typecheck -w api` — PASS
+- `npm run typecheck -w web` — PASS
+
+#### Коммиты
+- `cd02d8e` — fix: use accepted bids subquery for master stats (no master_id column in orders)
+- `e0dde2d` — feat: completed orders archive with tab toggle in MasterHome
+- `5a19c39` — fix: unify price color to text-slate-800 across all views
+- `7dd377f` — fix: app shell layout — fixed inset-0 flex-col with scrollable content area

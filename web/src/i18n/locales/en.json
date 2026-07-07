@@ -194,7 +194,11 @@
     "completed_tab": "Archive",
     "completed_heading": "Completed orders",
     "no_completed": "No completed orders yet",
-    "done": "Done"
+    "done": "Done",
+    "reviews_title": "Reviews",
+    "no_reviews": "No reviews yet",
+    "anonymous": "Client",
+    "close": "Close"
   },
   "chat": {
     "title": "Chats",
