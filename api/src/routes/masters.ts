@@ -7,6 +7,64 @@ export const mastersRouter = Router();
 mastersRouter.use(jwtRequired);
 
 /**
+ * GET /masters/me — текущий мастер: баланс + статистика
+ */
+mastersRouter.get('/me', async (req: JwtRequest, res) => {
+  const profileId = req.jwtPayload?.profile_id;
+  if (!profileId) return res.status(401).json({ error: 'unauthorized' });
+
+  try {
+    const db = getSupabaseAdmin();
+
+    const { data: balance, error: balErr } = await db
+      .from('master_balances')
+      .select('response_credits, total_spent')
+      .eq('master_id', profileId)
+      .maybeSingle();
+
+    if (balErr) throw balErr;
+
+    const { count: completedCount, error: compErr } = await db
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('master_id', profileId)
+      .eq('status', 'completed');
+
+    if (compErr) throw compErr;
+
+    const { count: inProgressCount, error: ipErr } = await db
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('master_id', profileId)
+      .eq('status', 'in_progress');
+
+    if (ipErr) throw ipErr;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count: todayBids, error: tbErr } = await db
+      .from('bids')
+      .select('*', { count: 'exact', head: true })
+      .eq('master_id', profileId)
+      .gte('created_at', todayStart.toISOString());
+
+    if (tbErr) throw tbErr;
+
+    return res.json({
+      balance: balance ? (balance as { response_credits: number; total_spent: number }).response_credits : 0,
+      stats: {
+        completed: completedCount ?? 0,
+        inProgress: inProgressCount ?? 0,
+        todayBids: todayBids ?? 0,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    return res.status(500).json({ error: msg });
+  }
+});
+
+/**
  * GET /masters/:masterId/profile — публичный профиль мастера с агрегатами.
  * Доступ: любой авторизованный пользователь.
  */

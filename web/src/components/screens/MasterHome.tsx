@@ -39,9 +39,8 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const profile = useAuthStore((s) => s.profile);
   const [orders, setOrders] = useState<NearbyOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [balance] = useState<number>(15);
-  const [rating] = useState<{ value: number; count: number }>({ value: 4.9, count: 87 });
-  const [stats] = useState({ completed: 12, inProgress: 2, todayBids: 7 });
+  const [balance, setBalance] = useState<number>(profile?.response_credits ?? 0);
+  const [stats, setStats] = useState({ completed: 0, inProgress: 0, todayBids: 0 });
   const [filterCity, setFilterCity] = useState<CityValue | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState('');
@@ -60,9 +59,16 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
         radius: '5000',
       });
       if (filterCity) params.set('city', filterCity.city);
-      const result = await apiGet<NearbyOrder[]>(`/orders/nearby?${params}`);
-      if ('data' in result && Array.isArray(result.data)) {
-        setOrders(result.data);
+      const [ordersResult, meResult] = await Promise.all([
+        apiGet<NearbyOrder[]>(`/orders/nearby?${params}`),
+        apiGet<{ balance: number; stats: { completed: number; inProgress: number; todayBids: number } }>('/masters/me'),
+      ]);
+      if ('data' in ordersResult && Array.isArray(ordersResult.data)) {
+        setOrders(ordersResult.data);
+      }
+      if ('data' in meResult && meResult.data) {
+        setBalance(meResult.data.balance);
+        setStats(meResult.data.stats);
       }
     } catch (e) {
       console.warn('[master] nearby failed', e);
@@ -143,8 +149,8 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           </div>
           <div className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between">
             <p className="text-sm font-semibold text-text-muted">{t('master.rating')}</p>
-            <p className="text-2xl font-extrabold text-text-main mt-1">{rating ? `${rating.value} ★` : '—'}</p>
-            <p className="text-xs text-text-muted">{rating ? `${rating.count} ${t('master.ratings_count')}` : ''}</p>
+            <p className="text-2xl font-extrabold text-text-main mt-1">{profile?.avg_rating ? `${profile.avg_rating.toFixed(1)} ★` : '—'}</p>
+            <p className="text-xs text-text-muted">{profile?.review_count ? `${profile.review_count} ${t('master.ratings_count')}` : ''}</p>
           </div>
         </div>
 

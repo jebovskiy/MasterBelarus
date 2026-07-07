@@ -18,6 +18,7 @@ export type UserProfile = {
   categories: string[];
   avg_rating: number | null;
   review_count: number;
+  response_credits: number;
 };
 
 type AuthState = {

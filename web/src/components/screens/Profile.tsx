@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useHaptic } from '@/hooks/useHaptic';
 import { Avatar } from '@/components/shared/Avatar';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
-import { apiPatch, apiPost, isErrorResult } from '@/lib/api';
+import { apiGet, apiPatch, apiPost, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import { getTelegramInitData } from '@/lib/telegram';
 import { sheetTransition } from '@/lib/transitions';
@@ -14,12 +14,6 @@ import { sheetTransition } from '@/lib/transitions';
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 const SPECIALTIES = ['Сантехника', 'Электрика', 'Мелкий ремонт'];
-
-const MOCK_MASTER = {
-  about: 'Работаю сантехником и электриком более 8 лет. Выезжаю по Минску и области. Гарантия на все виды работ.',
-  completed: 142,
-  active: 3,
-};
 
 function maskPhone(phone?: string | null): string {
   if (!phone) return '+375 (XX) XXX-XX-XX';
@@ -151,6 +145,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
   const [savingMaster, setSavingMaster] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  const [masterStats, setMasterStats] = useState<{ completed: number; inProgress: number } | null>(null);
 
   useEffect(() => {
     const initData = getTelegramInitData();
@@ -159,6 +154,15 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
       .then((r) => { if (r.ok) setIsAdminUser(true); })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isMasterRole) return;
+    apiGet<{ stats: { completed: number; inProgress: number } }>('/masters/me').then((res) => {
+      if ('data' in res && res.data) {
+        setMasterStats(res.data.stats);
+      }
+    }).catch(() => {});
+  }, [isMasterRole]);
 
   const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all';
   const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1.5';
@@ -332,11 +336,11 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{t('profile.stats')}</span>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#f4f4f6] rounded-xl p-4 text-center">
-                <span className="block text-2xl font-bold text-slate-800">{MOCK_MASTER.completed}</span>
+                <span className="block text-2xl font-bold text-slate-800">{masterStats?.completed ?? '—'}</span>
                 <span className="text-[11px] text-slate-500">{t('profile.completed')}</span>
               </div>
               <div className="bg-[#f4f4f6] rounded-xl p-4 text-center">
-                <span className="block text-2xl font-bold text-slate-800">{MOCK_MASTER.active}</span>
+                <span className="block text-2xl font-bold text-slate-800">{masterStats?.inProgress ?? '—'}</span>
                 <span className="text-[11px] text-slate-500">{t('profile.in_work')}</span>
               </div>
             </div>
@@ -356,8 +360,7 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
               <h2 className="text-lg font-bold text-slate-800">{name}</h2>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-amber-500 text-xs">★</span>
-                <span className="text-slate-600 text-xs font-semibold">5.0</span>
-                <span className="text-slate-400 text-xs">• {t('profile.reliable_client')}</span>
+                <span className="text-slate-600 text-xs font-semibold">{profile?.avg_rating?.toFixed(1) ?? '5.0'}</span>
               </div>
               <p className="text-xs text-slate-500 mt-1 font-mono">{maskPhone(profile?.phone)}</p>
             </div>

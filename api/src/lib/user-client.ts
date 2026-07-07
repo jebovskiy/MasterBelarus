@@ -28,6 +28,8 @@ export type DBProfile = {
   description: string | null;
   city: string | null;
   radius_km: number | null;
+  avg_rating: number | null;
+  review_count: number;
   auth_user_id: string | null;
   created_at: string;
 };

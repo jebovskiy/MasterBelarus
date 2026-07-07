@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToastStore } from '@/components/shared/Toast';
+import { useAuthStore } from '@/stores/auth';
+import { apiGet } from '@/lib/api';
 
 type Props = { onBack: () => void };
 
 const QUICK_AMOUNTS = [10, 20, 50, 100, 200, 500];
 
 export default function WalletScreen({ onBack }: Props) {
-  const [balance] = useState(15);
+  const profile = useAuthStore((s) => s.profile);
+  const [balance, setBalance] = useState(profile?.response_credits ?? 0);
+
+  useEffect(() => {
+    apiGet<{ balance: number }>('/masters/me').then((res) => {
+      if ('data' in res && res.data) {
+        setBalance(res.data.balance);
+      }
+    }).catch(() => {});
+  }, []);
   const [amount, setAmount] = useState<number | ''>('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'erip'>('card');
   const [step, setStep] = useState<'form' | 'success'>('form');

@@ -59,7 +59,7 @@ authRouter.post('/telegram', async (req, res) => {
     // Upsert profile by telegram_id.
     const { data: existing, error: selectErr } = await db
       .from('profiles')
-      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, created_at')
+      .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, avg_rating, review_count, created_at')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
@@ -79,7 +79,7 @@ authRouter.post('/telegram', async (req, res) => {
           is_npd: false,
           avatar_url: photoUrl,
         })
-        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, created_at')
+        .select('id, telegram_id, username, full_name, role, is_npd, avatar_url, is_master, current_role, master_status, phone, description, city, radius_km, avg_rating, review_count, created_at')
         .single();
       if (insertErr) throw insertErr;
       profile = inserted as DBProfile;
@@ -91,6 +91,10 @@ authRouter.post('/telegram', async (req, res) => {
     // Fetch master categories
     const { data: cats } = await db.from('master_categories').select('category').eq('master_id', profile.id);
     const categories: string[] = (cats ?? []).map((r: { category: string }) => r.category);
+
+    // Fetch balance
+    const { data: balanceRow } = await db.from('master_balances').select('response_credits').eq('master_id', profile.id).maybeSingle();
+    const responseCredits = balanceRow ? (balanceRow as { response_credits: number }).response_credits : 0;
 
     // Create/link Supabase Auth user
     let authUserId = profile.auth_user_id;
@@ -133,7 +137,7 @@ authRouter.post('/telegram', async (req, res) => {
     logger.info({ telegram_id: telegramId }, 'auth/telegram ok');
 
     return res.json({
-      profile: { ...profile, categories },
+      profile: { ...profile, categories, response_credits: responseCredits },
       jwt: jwtToken,
       publicWebUrl: env.PUBLIC_WEB_URL,
     });
