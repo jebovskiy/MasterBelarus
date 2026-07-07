@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUserClient } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 
 export const mastersRouter = Router();
@@ -14,7 +14,7 @@ mastersRouter.get('/:masterId/profile', async (req: JwtRequest, res) => {
   const masterId = req.params.masterId;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: profile, error: profileErr } = await db
       .from('profiles')

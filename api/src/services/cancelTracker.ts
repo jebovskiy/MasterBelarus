@@ -1,28 +1,21 @@
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 
-const windowMs = 24 * 60 * 60 * 1000;
-const MAX_CANCELLATIONS = 3;
+export async function checkCancelRate(telegramId: number): Promise<{ allowed: boolean; count: number; reason: string | null }> {
+  const db = getSupabaseAdmin();
 
-type Entry = { count: number; timestamp: number };
+  const { data, error } = await db.rpc('check_cancel_rate', { p_telegram_id: telegramId });
 
-const store = new Map<number, Entry>();
-
-export function checkCancelRate(telegramId: number): { allowed: boolean; count: number; reason: string | null } {
-  const now = Date.now();
-  const entry = store.get(telegramId);
-
-  if (!entry || now - entry.timestamp > windowMs) {
-    store.set(telegramId, { count: 1, timestamp: now });
+  if (error || !data) {
+    logger.error({ telegramId, error: error?.message }, 'check_cancel_rate RPC failed');
     return { allowed: true, count: 1, reason: null };
   }
 
-  const newCount = entry.count + 1;
-  store.set(telegramId, { count: newCount, timestamp: entry.timestamp });
-
-  if (newCount > MAX_CANCELLATIONS) {
-    logger.warn({ telegramId, count: newCount }, 'cancel rate limit exceeded');
-    return { allowed: false, count: newCount, reason: 'Слишком много отмен за 24 часа' };
+  const result = data as { allowed: boolean; count: number };
+  if (!result.allowed) {
+    logger.warn({ telegramId, count: result.count }, 'cancel rate limit exceeded');
+    return { allowed: false, count: result.count, reason: 'Слишком много отмен за 24 часа' };
   }
 
-  return { allowed: true, count: newCount, reason: null };
+  return { allowed: true, count: result.count, reason: null };
 }

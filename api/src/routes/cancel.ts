@@ -1,16 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { telegramIdOrIp } from '../lib/express-helpers.js';
 
 const cancelLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
+  keyGenerator: (req) => telegramIdOrIp(req),
   message: { error: 'too many cancellations, try later' },
 });
 import { checkCancelRate } from '../services/cancelTracker.js';
@@ -42,7 +43,7 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
   const telegramId = req.jwtPayload!.telegram_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const dbAdmin = getSupabaseAdmin();
 
     const { data: profile } = await db
@@ -61,12 +62,12 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
 
     if (orderErr || !order) return res.status(404).json({ error: 'order not found' });
 
-    const o = order as {
+    const o: {
       client_id: string;
       status: string;
       category: string;
       created_at: string;
-    };
+    } = order;
 
     if (o.status === 'cancelled') return res.status(400).json({ error: 'already cancelled' });
 
@@ -79,7 +80,7 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
         return res.status(400).json({ error: 'invalid reason' });
       }
 
-      const rate = checkCancelRate(telegramId);
+      const rate = await checkCancelRate(telegramId);
       if (!rate.allowed) {
         await dbAdmin.from('profiles').update({ suspicious: true }).eq('id', profileId);
         await dbAdmin.from('complaints').insert({
@@ -99,8 +100,8 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
           .select('master_id')
           .eq('order_id', orderId);
 
-        if (bids?.length) {
-          const masterIds = (bids as { master_id: string }[]).map((b) => b.master_id);
+      if (bids?.length) {
+        const masterIds = (bids ?? []).map((b: { master_id: string }) => b.master_id);
 
           const { data: masters } = await dbAdmin
             .from('profiles')
@@ -116,14 +117,14 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
           const profMap = new Map((masters ?? []).map((m: { id: string; telegram_id: number; full_name: string; username: string | null }) => [m.id, m]));
 
           await Promise.allSettled(
-            (bids as { master_id: string }[]).map(async (bid) => {
-              const cur = (balMap.get(bid.master_id) as number | undefined) ?? 0;
+            (bids ?? []).map(async (bid: { master_id: string }) => {
+              const cur = balMap.get(bid.master_id) ?? 0;
               await dbAdmin.from('master_balances').upsert(
                 { master_id: bid.master_id, response_credits: cur + 1 },
                 { onConflict: 'master_id' },
               );
 
-              const mp = profMap.get(bid.master_id) as { telegram_id: number; full_name: string | null; username: string | null } | undefined;
+              const mp: { id: string; telegram_id: number; full_name: string; username: string | null } | undefined = profMap.get(bid.master_id);
               if (mp) {
                 void sendRefundNotification(mp.telegram_id, mp.full_name ?? mp.username ?? 'Мастер', orderId);
               }
@@ -162,11 +163,13 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
       const reasonObj = MASTER_REASONS.find(r => r.id === cancellation_reason_id);
       const reasonLabel = reasonObj?.label ?? 'Другое';
 
-      const { data: clientProfile } = await dbAdmin
+      const { data: cp, error: cpErr } = await dbAdmin
         .from('profiles')
         .select('telegram_id')
         .eq('id', o.client_id)
-        .single() as unknown as { data: { telegram_id: number } | null };
+        .single();
+      if (cpErr) throw cpErr;
+      const clientProfile: { telegram_id: number } | null = cp;
 
       if (clientProfile) {
         void sendMasterCancelledToClient(clientProfile.telegram_id, orderId, reasonLabel);
@@ -221,7 +224,7 @@ cancelRouter.post('/:id/reactivate', async (req: JwtRequest, res) => {
 
     if (orderErr || !order) return res.status(404).json({ error: 'order not found' });
 
-    const o = order as { client_id: string; status: string; cancelled_by: string };
+    const o: { client_id: string; status: string; cancelled_by: string } = order;
 
     if (profileId !== o.client_id) return res.status(403).json({ error: 'not your order' });
     if (o.status !== 'cancelled') return res.status(400).json({ error: 'order is not cancelled' });

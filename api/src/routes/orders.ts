@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { telegramIdOrIp } from '../lib/express-helpers.js';
 import { isValidCity } from '../data/belarus-cities.js';
 import { captureEvent } from '../lib/analytics.js';
 
@@ -12,7 +13,7 @@ const orderLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
+  keyGenerator: (req) => telegramIdOrIp(req),
   message: { error: 'too many orders, try later' },
 });
 
@@ -62,7 +63,7 @@ ordersRouter.post('/', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const { data: order, error } = await db
       .from('orders')
       .insert({
@@ -101,7 +102,7 @@ ordersRouter.post('/', async (req: JwtRequest, res) => {
  */
 ordersRouter.get('/my', async (req: JwtRequest, res) => {
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const profileId = req.jwtPayload!.profile_id;
     const limit = Math.min(Number(req.query.limit ?? 20), 100);
 
@@ -141,7 +142,7 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
     const { data: masterCats } = await dbAdmin
       .from('master_categories')
       .select('category')
-      .eq('profile_id', profileId);
+      .eq('master_id', profileId);
 
     const masterCategories = (masterCats ?? []).map((c: { category: string }) => c.category);
 
@@ -157,9 +158,10 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
     if (error) throw error;
 
     // If master has categories, filter orders to only show matching ones
-    let orders = data ?? [];
+    interface NearbyOrder { category: string; }
+    let orders: NearbyOrder[] = data ?? [];
     if (masterCategories.length > 0) {
-      orders = (orders as Record<string, unknown>[]).filter((o) => masterCategories.includes(o.category as string));
+      orders = orders.filter((o) => masterCategories.includes(o.category));
     }
 
     return res.json(orders);
@@ -177,7 +179,7 @@ ordersRouter.get('/nearby', async (req: JwtRequest, res) => {
  */
 ordersRouter.get('/chats', async (req: JwtRequest, res) => {
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const profileId = req.jwtPayload!.profile_id;
 
     // Заказы пользователя (как клиент + как принятый мастер)
@@ -273,7 +275,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
       }
     }
 
-    // Получаем состояние прочитанности (admin client — нет RLS на таблице)
+    // Получаем состояние прочитанности (admin client bypasses RLS intentionally)
     const { data: readStates } = await getSupabaseAdmin()
       .from('chat_read_state')
       .select('order_id, last_read_at')
@@ -347,7 +349,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
  */
 ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const profileId = req.jwtPayload!.profile_id;
 
     const { data: myBids } = await db
@@ -382,7 +384,7 @@ ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
  */
 ordersRouter.get('/:id', async (req: JwtRequest, res) => {
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
     const id = req.params.id;
 
     const { data: order, error } = await db.from('orders').select('*').eq('id', id).single();

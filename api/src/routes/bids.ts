@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { telegramIdOrIp } from '../lib/express-helpers.js';
 import { sendBidNotification, sendMasterAcceptedNotification } from '../services/notifications.js';
 import { captureEvent } from '../lib/analytics.js';
 
@@ -12,7 +13,7 @@ const bidLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
+  keyGenerator: (req) => telegramIdOrIp(req),
   message: { error: 'too many bids, try later' },
 });
 
@@ -37,7 +38,7 @@ bidsRouter.post('/:orderId/bids', async (req: JwtRequest, res) => {
 
   try {
     const dbAdmin = getSupabaseAdmin();
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: profile, error: profileErr } = await db
       .from('profiles')
@@ -129,7 +130,7 @@ bidsRouter.get('/:orderId/bids', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -176,7 +177,7 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -247,6 +248,7 @@ bidsRouter.post('/:orderId/accept-bid/:bidId', async (req: JwtRequest, res) => {
         (masterProfile as { telegram_id: number }).telegram_id,
         (order as { category: string }).category,
         (bid as { proposed_price: number | null }).proposed_price,
+        orderId!,
       ).catch((notifyErr) => {
         logger.warn({ notifyErr }, 'master notification failed');
       });

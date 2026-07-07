@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { getUserClient, getSupabaseAdmin } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
 import { sendChatMessageNotification } from '../services/notifications.js';
@@ -21,7 +21,7 @@ messagesRouter.get('/:orderId/messages', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -100,7 +100,7 @@ messagesRouter.post('/:orderId/messages', async (req: JwtRequest, res) => {
   }
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: order, error: orderErr } = await db
       .from('orders')

@@ -57,6 +57,7 @@ export async function sendMasterAcceptedNotification(
   telegramId: number,
   category: string,
   proposedPrice: number | null,
+  orderId: string,
 ): Promise<void> {
   if (!bot) {
     logger.info({ telegramId }, '[NOTIFY] stub: no bot wired');
@@ -75,7 +76,7 @@ export async function sendMasterAcceptedNotification(
         inline_keyboard: [[
           {
             text: 'Открыть чат',
-            web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${category}` },
+            web_app: { url: `${env.PUBLIC_WEB_URL}?startapp=order_${orderId}` },
           },
         ]],
       },

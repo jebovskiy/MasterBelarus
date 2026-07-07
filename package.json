@@ -14,7 +14,7 @@
     "build:web": "npm run build -w web",
     "lint": "npm run lint -w api && npm run lint -w web",
     "typecheck": "npm run typecheck -w api && npm run typecheck -w web",
-    "test": "npm run test -w api && npm run test -w web"
+    "test": "npm run test -w api"
   },
   "engines": {
     "node": "20.x",

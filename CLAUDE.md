@@ -7,7 +7,7 @@
 
 ## Стек
 - Frontend: React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui + @telegram-apps/sdk + Zustand + framer-motion
-- Backend: Node.js + Express + TypeScript + telegraf + BullMQ (Redis) + socket.io
+- Backend: Node.js + Express + TypeScript + telegraf
 - DB: Supabase (PostgreSQL + PostGIS + Realtime + Storage + Auth)
 - Infra: VPS Hetzner CX22 / Docker Compose / Nginx + Let's Encrypt
 - Monitoring: Sentry, PostHog (analytics)
@@ -57,7 +57,7 @@ PostGIS-функции:
 2. **Модель монетизации** — плата за отклик (0.5-1 BYN), пополнение через ЕРИП позже. Старт: 20 бесплатных откликов.
 3. **Supabase Free Tier** для MVP, миграция на Pro при >500 MAU.
 4. **Telegraf webhook** вместо polling для уведомлений.
-5. **Redis для BullMQ** — чтобы не упираться в rate-limit Telegram (30 msg/sec).
+5. **Telegraf webhook** достаточно для rate-limit Telegram (30 msg/sec). BullMQ убран до появления очередей.
 6. **Cold start через ручной outreach** — 30-50 мастеров до публичного запуска.
 7. **Локальный запуск** — один ЖК (Минск-Мир / Новая Боровая) как стартовая площадка.
 8. **НПД-статус** — чекбокс в профиле мастера, без верификации на MVP.
@@ -517,3 +517,58 @@ SettingsScreen сохранял язык/тему/уведомления в loca
 
 #### Коммиты
 - `435bd71` — fix: chat RLS — use admin client for read_state, white bubbles, migration policies
+
+---
+## STATE — 2026-07-07 10:00
+
+### Session 19: Production readiness audit — all fixes applied
+
+#### Проблемы (из аудита)
+- `getUserClient()` не удалён → все роуты использовали `getSupabaseAdmin()` напрямую
+- `master_categories` query использовал `profile_id` вместо `master_id`
+- `deduct_response` RPC создавал phantom 19 credits вместо lazy init 20
+- `sendMasterAcceptedNotification` не принимал `orderId`
+- `become-master` не вставлял категории в `master_categories`
+- Dead packages: `bullmq`, `ioredis`, `socket.io` (api); `@sentry/vite-plugin` (web)
+- Dead `AdminPanel.tsx` (web)
+- Zombie rate-limit в reviews.ts
+- `role: 'master'` не ставился при approve (везде был `is_master`)
+- seed.sql — stale trigger references
+- `cancelTracker.ts` — in-memory Map (терялся при рестарте)
+- `PATCH /auth/profile` — delete+insert категорий не атомарный
+- `as` type casts (14 экземпляров)
+
+#### Изменения
+1. **`getUserClient()` удалён** — `api/src/lib/user-client.ts` экспортирует только `getSupabaseAdmin()`. Все 8 файлов-потребителей обновлены.
+2. **`master_categories` query fix** — `orders.ts:141` `.eq('profile_id', ...)` → `.eq('master_id', ...)`
+3. **`deduct_response` RPC** — новая миграция `migrations/23`: lazy init с 20 на первый отклик, атомарный deduct, возвращает FALSE при недостатке. Триггер `trg_profiles_after_approve` для авто-создания записи в `master_balances`.
+4. **`sendMasterAcceptedNotification`** — добавлен параметр `orderId`, URL использует реальный `orderId`
+5. **`become-master`** — теперь вставляет категории в `master_categories`
+6. **Dead deps удалены** — `bullmq`, `ioredis`, `socket.io` из api/package.json; `@sentry/vite-plugin` из web/package.json
+7. **`AdminPanel.tsx`** удалён
+8. **Rate-limit zombie** удалён из `reviews.ts`
+9. **`role: 'master'` согласован** — approve в auth.ts, admin.ts, bot/index.ts теперь ставят `role: 'master'`
+10. **seed.sql** — stale DISABLE/ENABLE TRIGGER statements удалены
+11. **`cancelTracker.ts` → DB-backed** — миграция `migrations/24`: таблица `cancel_rates` + RPC `check_cancel_rate`. Сервис переписан на async с вызовом RPC. Код в 2 раза короче, без потери данных при рестарте.
+12. **Атомарное обновление категорий** — миграция `migrations/25`: RPC `update_master_categories`. `auth.ts:365-373` переписан на вызов RPC вместо delete+insert.
+13. **`as` casts** — 14 → 7:
+    - `admin.ts` — убран `(req as Request & {admin?: string})`, используется `AdminRequest` type
+    - `orders.ts` — inline interface `NearbyOrder` вместо `(orders as Record<string, unknown>[])`
+    - `cancel.ts` — убраны 7 `as` casts: типовая аннотация + разбивка `as unknown as` на два шага
+    - `orders.ts`, `bids.ts`, `cancel.ts`, `complaints.ts`, `reviews.ts` — rate-limiter `keyGenerator` вынесен в `lib/express-helpers.ts` (1 cast вместо 5)
+    - Оставшиеся 7: `jwt.verify` (lib API), `JSON.parse` (lib API), `Proxy {} as AppEnv` (необходимо), `auth.ts:68,85` (Supabase без generated types)
+
+#### Verification
+- `npm run typecheck -w api` — PASS (0 errors)
+- `npm run typecheck -w web` — PASS (0 errors)
+- `npm run lint -w api` — PASS (0 errors, 0 warnings)
+- `npm run test -w api` — 8/8 PASS
+
+#### Коммиты
+- `migrations/23` — fix deduct_response RPC + approval trigger
+- `api/.../lib/user-client.ts` — remove getUserClient
+- `api/.../routes/*.ts` — use getSupabaseAdmin directly
+- `migrations/24` — cancel_rates table + RPC
+- `migrations/25` — update_master_categories RPC
+- `api/.../lib/express-helpers.ts` — centralized rate-limiter key function
+- Various fix commits across both workspaces

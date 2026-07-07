@@ -1,3 +1,5 @@
+// Mirror of api/src/types/cancel.ts — keep in sync.
+// OrderDetail.tsx uses i18n keys instead of these labels.
 export const CLIENT_REASONS = [
   { id: 1, label: 'Создал по ошибке / Тестирую' },
   { id: 2, label: 'Мастер не выходит на связь' },

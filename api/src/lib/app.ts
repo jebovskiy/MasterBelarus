@@ -37,8 +37,7 @@ export function createApp(): Express {
   app.use(compression());
   app.use(express.json({ limit: '128kb' }));
 
-  const pinoMw = pinoHttp as unknown as (opts: Record<string, unknown>) => express.RequestHandler;
-  app.use(pinoMw({ logger, transport: undefined, customLogLevel }));
+  app.use((pinoHttp as unknown as (opts: Record<string, unknown>) => express.RequestHandler)({ logger, transport: undefined, customLogLevel }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'masterby-api', t: Date.now() });

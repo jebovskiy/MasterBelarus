@@ -1,17 +1,18 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { getUserClient } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { notifyComplaintToModerator } from '../services/notifications.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { telegramIdOrIp } from '../lib/express-helpers.js';
 
 const complaintLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
+  keyGenerator: (req) => telegramIdOrIp(req),
   message: { error: 'too many complaints, try tomorrow' },
 });
 
@@ -38,7 +39,7 @@ complaintsRouter.post('/', async (req: JwtRequest, res) => {
   const telegramId = req.jwtPayload!.telegram_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: profile } = await db
       .from('profiles')

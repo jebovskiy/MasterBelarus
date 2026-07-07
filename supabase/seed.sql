@@ -1,9 +1,6 @@
 -- Seed: МастерБай — 10 мастеров, 5 клиентов, заказы, отклики, отзывы
 -- Все координаты — реальные районы Минска
 
--- Отключаем триггер для чистого insert (триггер на profiles, не master_balances)
-ALTER TABLE public.profiles DISABLE TRIGGER trg_profiles_after_insert;
-
 -- Очистка (порядок важен из-за foreign keys)
 TRUNCATE TABLE public.reviews             CASCADE;
 TRUNCATE TABLE public.bids                CASCADE;
@@ -163,9 +160,6 @@ JOIN public.profiles c ON c.telegram_id = vals.client_tg
 WHERE o.client_id = c.id
   AND o.category = vals.cat
   AND o.status = 'completed';
-
--- Включаем триггер обратно
-ALTER TABLE public.profiles ENABLE TRIGGER trg_profiles_after_insert;
 
 -- ============================================================
 -- VERIFICATION

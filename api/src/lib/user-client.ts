@@ -2,10 +2,6 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
 
-export function getUserClient(_jwt: string): SupabaseClient {
-  return getSupabaseAdmin();
-}
-
 let adminClient: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {

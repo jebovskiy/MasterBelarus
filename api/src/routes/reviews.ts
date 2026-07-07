@@ -1,16 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
-import { getUserClient } from '../lib/user-client.js';
+import { getSupabaseAdmin } from '../lib/user-client.js';
 import { logger } from '../lib/logger.js';
 import { jwtRequired, type JwtRequest } from '../middleware/jwt.js';
+import { telegramIdOrIp } from '../lib/express-helpers.js';
 
 const reviewLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => String((req as JwtRequest).jwtPayload?.telegram_id ?? req.ip),
+  keyGenerator: (req) => telegramIdOrIp(req),
   message: { error: 'too many reviews, try later' },
 });
 
@@ -38,7 +39,7 @@ reviewsRouter.post('/:orderId/review', async (req: JwtRequest, res) => {
   const profileId = req.jwtPayload!.profile_id;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: order, error: orderErr } = await db
       .from('orders')
@@ -115,7 +116,7 @@ reviewsRouter.get('/:orderId/review', async (req: JwtRequest, res) => {
   const { orderId } = req.params;
 
   try {
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: review, error: revErr } = await db
       .from('reviews')

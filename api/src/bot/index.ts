@@ -227,7 +227,7 @@ export function createBot(env: AppEnv): Telegraf<Context> {
 
       await db
         .from('profiles')
-        .update({ is_master: true, master_status: 'approved', current_role: 'master' })
+        .update({ is_master: true, master_status: 'approved', current_role: 'master', role: 'master' })
         .eq('telegram_id', telegramId);
 
       await ctx.editMessageReplyMarkup({ inline_keyboard: [] });

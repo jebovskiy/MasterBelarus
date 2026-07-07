@@ -1,3 +1,6 @@
+// Source of truth for cancel reason IDs.
+// Web mirror: web/src/data/cancel-reasons.ts (hardcoded labels)
+// OrderDetail.tsx uses i18n keys instead of these labels.
 export const CLIENT_REASONS = [
   { id: 1, label: 'Создал по ошибке / Тестирую' },
   { id: 2, label: 'Мастер не выходит на связь' },

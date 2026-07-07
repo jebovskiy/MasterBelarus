@@ -5,7 +5,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { z } from 'zod';
-import { getSupabaseAdmin, getUserClient, type DBProfile } from '../lib/user-client.js';
+import { getSupabaseAdmin, type DBProfile } from '../lib/user-client.js';
 import { fullNameOf, validateTelegramWebAppData } from '../services/telegram.js';
 import { env } from '../config/env.js';
 import { logger } from '../lib/logger.js';
@@ -207,7 +207,7 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
     const profileId = req.jwtPayload!.profile_id;
     const telegramId = req.jwtPayload!.telegram_id;
     const dbAdmin = getSupabaseAdmin();
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: existing } = await db
       .from('profiles')
@@ -229,6 +229,10 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
       })
       .eq('id', profileId);
     if (updateErr) throw updateErr;
+
+    await getSupabaseAdmin().from('master_categories').insert(
+      { master_id: profileId, category: parsed.data.category },
+    ).then(() => {});
 
     // Notify moderator chat
     const { getBot } = await import('../services/botRegistry.js');
@@ -277,7 +281,7 @@ authRouter.post('/become-master', jwtRequired, async (req: JwtRequest, res) => {
 authRouter.post('/switch-role', jwtRequired, async (req: JwtRequest, res) => {
   try {
     const profileId = req.jwtPayload!.profile_id;
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data: existing } = await db
       .from('profiles')
@@ -308,7 +312,7 @@ authRouter.post('/switch-role', jwtRequired, async (req: JwtRequest, res) => {
 authRouter.get('/master-status', jwtRequired, async (req: JwtRequest, res) => {
   try {
     const profileId = req.jwtPayload!.profile_id;
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { data } = await db
       .from('profiles')
@@ -343,7 +347,7 @@ authRouter.patch('/profile', jwtRequired, async (req: JwtRequest, res) => {
 
   try {
     const profileId = req.jwtPayload!.profile_id;
-    const db = getUserClient(req.jwtToken!);
+    const db = getSupabaseAdmin();
 
     const { categories, ...profileFields } = parsed.data;
     const updates: Record<string, unknown> = {};
@@ -358,14 +362,12 @@ authRouter.patch('/profile', jwtRequired, async (req: JwtRequest, res) => {
       if (updateErr) throw updateErr;
     }
 
-    if (categories) {
-      await db.from('master_categories').delete().eq('master_id', profileId);
-      if (categories.length > 0) {
-        const { error: catErr } = await db.from('master_categories').insert(
-          categories.map((cat) => ({ master_id: profileId, category: cat })),
-        );
-        if (catErr) throw catErr;
-      }
+    if (categories !== undefined) {
+      const { error: catErr } = await db.rpc('update_master_categories', {
+        p_master_id: profileId,
+        p_categories: categories,
+      });
+      if (catErr) throw catErr;
     }
 
     const { data: updated } = await db.from('profiles').select('*').eq('id', profileId).single();

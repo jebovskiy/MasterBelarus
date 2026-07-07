@@ -1,4 +1,4 @@
-import { Router, type Request } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import type { AdminRequest } from '../middleware/admin.js';
@@ -30,17 +30,17 @@ adminRouter.get('/self', (_req, res) => {
 /**
  * POST /admin/masters/approve/:telegramId — одобрить заявку мастера
  */
-adminRouter.post('/masters/approve/:telegramId', async (req, res) => {
+adminRouter.post('/masters/approve/:telegramId', async (req: AdminRequest, res) => {
   const telegramId = Number(req.params.telegramId);
   if (!telegramId) return res.status(400).json({ error: 'invalid telegramId' });
   try {
     const db = getSupabaseAdmin();
     const { error } = await db
       .from('profiles')
-      .update({ is_master: true, master_status: 'approved', current_role: 'master' })
+      .update({ is_master: true, master_status: 'approved', current_role: 'master', role: 'master' })
       .eq('telegram_id', telegramId);
     if (error) throw error;
-    logger.info({ admin: (req as Request & { admin?: string }).admin, telegramId }, 'admin: master approved');
+    logger.info({ admin: req.admin, telegramId }, 'admin: master approved');
 
     await notifyMasterApproved(telegramId);
 
@@ -54,7 +54,7 @@ adminRouter.post('/masters/approve/:telegramId', async (req, res) => {
 /**
  * POST /admin/masters/reject/:telegramId — отклонить заявку мастера
  */
-adminRouter.post('/masters/reject/:telegramId', async (req, res) => {
+adminRouter.post('/masters/reject/:telegramId', async (req: AdminRequest, res) => {
   const telegramId = Number(req.params.telegramId);
   if (!telegramId) return res.status(400).json({ error: 'invalid telegramId' });
   try {
@@ -64,7 +64,7 @@ adminRouter.post('/masters/reject/:telegramId', async (req, res) => {
       .update({ master_status: 'rejected' })
       .eq('telegram_id', telegramId);
     if (error) throw error;
-    logger.info({ admin: (req as Request & { admin?: string }).admin, telegramId }, 'admin: master rejected');
+    logger.info({ admin: req.admin, telegramId }, 'admin: master rejected');
 
     const { getBot } = await import('../services/botRegistry.js');
     const bot = getBot();
