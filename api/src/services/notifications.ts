@@ -178,18 +178,21 @@ export async function sendOrderCancelledToMasters(
   reasonLabel: string,
 ): Promise<void> {
   if (!bot) return;
+  const b = bot;
   const text =
     `📢 Заказ №${orderId.slice(0, 8)} ["${category}"] был отменен заказчиком.\n` +
     `Причина: ${reasonLabel}\n\nНе ждите ответа.`;
 
-  for (const tgId of mastersTgIds) {
-    try {
-      await bot.telegram.sendMessage(tgId, text);
-      logger.info({ telegramId: tgId }, 'cancel notification sent to master');
-    } catch (err) {
-      logger.warn({ telegramId: tgId, err }, 'cancel notify master failed');
-    }
-  }
+  await Promise.allSettled(
+    mastersTgIds.map(async (tgId) => {
+      try {
+        await b.telegram.sendMessage(tgId, text);
+        logger.info({ telegramId: tgId }, 'cancel notification sent to master');
+      } catch (err) {
+        logger.warn({ telegramId: tgId, err }, 'cancel notify master failed');
+      }
+    }),
+  );
 }
 
 export async function sendMasterCancelledToClient(

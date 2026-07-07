@@ -116,20 +116,22 @@ cancelRouter.post('/:id/cancel', async (req: JwtRequest, res) => {
           const balMap = new Map((balances ?? []).map((b: { master_id: string; response_credits: number }) => [b.master_id, b.response_credits]));
           const profMap = new Map((masters ?? []).map((m: { id: string; telegram_id: number; full_name: string; username: string | null }) => [m.id, m]));
 
-          await Promise.allSettled(
-            (bids ?? []).map(async (bid: { master_id: string }) => {
-              const cur = balMap.get(bid.master_id) ?? 0;
-              await dbAdmin.from('master_balances').upsert(
-                { master_id: bid.master_id, response_credits: cur + 1 },
-                { onConflict: 'master_id' },
-              );
+          // Batch upsert — 1 query instead of N
+          const creditUpdates = (bids ?? []).map((bid: { master_id: string }) => ({
+            master_id: bid.master_id,
+            response_credits: (balMap.get(bid.master_id) ?? 0) + 1,
+          }));
+          if (creditUpdates.length > 0) {
+            await dbAdmin.from('master_balances').upsert(creditUpdates, { onConflict: 'master_id' });
+          }
 
-              const mp: { id: string; telegram_id: number; full_name: string; username: string | null } | undefined = profMap.get(bid.master_id);
-              if (mp) {
-                void sendRefundNotification(mp.telegram_id, mp.full_name ?? mp.username ?? 'Мастер', orderId);
-              }
-            })
-          );
+          // Notifications still async, parallel
+          for (const bid of (bids ?? []) as { master_id: string }[]) {
+            const mp = profMap.get(bid.master_id);
+            if (mp) {
+              void sendRefundNotification(mp.telegram_id, mp.full_name ?? mp.username ?? 'Мастер', orderId);
+            }
+          }
         }
       }
 

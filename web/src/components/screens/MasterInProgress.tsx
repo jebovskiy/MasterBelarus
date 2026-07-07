@@ -4,6 +4,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
 import { MASTER_REASONS } from '@/data/cancel-reasons';
+import { sheetTransition } from '@/lib/transitions';
 
 type InProgressOrder = {
   id: string;
@@ -107,13 +108,13 @@ export function MasterInProgress({ onOpenOrder, onOpenChat }: { onOpenOrder?: (i
 
       <AnimatePresence>
         {cancelTarget && (
-          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
             <motion.div
               className="relative flex max-h-[70vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-slate-50 shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+              transition={sheetTransition}
             >
               <div className="flex flex-col items-center py-3 border-b border-slate-100 bg-white rounded-t-[24px] shrink-0">
                 <div className="h-1 w-12 rounded-full bg-slate-300 mb-2" />

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BELARUS_CITIES } from '@/data/belarus-cities';
 import { useHaptic } from '@/hooks/useHaptic';
+import { sheetTransition } from '@/lib/transitions';
 
 export type CityValue = {
   city: string;
@@ -13,8 +14,6 @@ type Props = {
   value: CityValue | null;
   onChange: (v: CityValue) => void;
 };
-
-const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
 export default function CitySelector({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);

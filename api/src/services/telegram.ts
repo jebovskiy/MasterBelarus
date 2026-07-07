@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+let _cachedSecretKey: Buffer | null = null;
+
 /**
  * Validates the `initData` string sent from the Mini App frontend against
  * the bot token using HMAC-SHA256. Returns the parsed user object on success.
@@ -50,10 +52,13 @@ export function validateTelegramWebAppData(
   entries.sort();
   const dataCheckString = entries.join('\n');
 
-  const secretKey = crypto
-    .createHmac('sha256', 'WebAppData')
-    .update(botToken)
-    .digest();
+  if (!_cachedSecretKey) {
+    _cachedSecretKey = crypto
+      .createHmac('sha256', 'WebAppData')
+      .update(botToken)
+      .digest();
+  }
+  const secretKey = _cachedSecretKey;
   const computed = crypto
     .createHmac('sha256', secretKey)
     .update(dataCheckString)

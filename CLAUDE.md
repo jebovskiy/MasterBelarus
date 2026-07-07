@@ -19,9 +19,6 @@ MasterBelarus/
 ├── web/                  # React + Vite Mini App
 ├── api/                  # Node.js + Express + telegraf
 ├── docs/
-│   ├── decisions.md      # ADRs
-│   ├── ARCHITECTURE.md
-│   ├── API.md
 │   └── visual-spec.md    # дизайн-токены
 ├── memory/               # долговременный контекст для агентов
 ├── docker-compose.yml

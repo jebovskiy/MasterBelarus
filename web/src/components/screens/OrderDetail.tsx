@@ -5,6 +5,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import { useAuthStore } from '@/stores/auth';
+import { sheetTransition } from '@/lib/transitions';
 
 type OrderRow = {
   id: string;
@@ -46,7 +47,6 @@ const inputCls = 'w-full bg-[#f4f4f6] text-slate-800 placeholder-slate-400 round
 
 const swipeConfidenceThreshold = 80;
 const swipeVelocityThreshold = 400;
-const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
 
 type Props = { orderId: string | null; onBack: () => void; onOpenChat?: (orderId: string) => void };
 

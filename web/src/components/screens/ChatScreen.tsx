@@ -82,7 +82,7 @@ export default function ChatScreen({ onBack, onOpenOrder, initialOrderId }: Prop
   useEffect(() => {
     if (activeOrderId) {
       void loadMessages(activeOrderId);
-      const interval = setInterval(() => void loadMessages(activeOrderId, true), 3000);
+      const interval = setInterval(() => { if (!document.hidden) void loadMessages(activeOrderId, true); }, 3000);
       return () => clearInterval(interval);
     }
   }, [activeOrderId, loadMessages]);

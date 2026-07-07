@@ -8,6 +8,7 @@ import { apiPost, apiGet, isErrorResult } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import { useTranslation } from 'react-i18next';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
+import { sheetTransition } from '@/lib/transitions';
 
 type NearbyOrder = {
   id: string;
@@ -181,9 +182,9 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
           </div>
           {loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
           {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">{t('master.no_orders_nearby')}</div>}
-          <motion.div layout className="space-y-3">
+          <div className="space-y-3">
             {orders.map((order, idx) => (
-              <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 40, 500) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
+              <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.04, 0.5) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
                   <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
@@ -200,19 +201,19 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
                 </div>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </div>
 
       <AnimatePresence>
         {selectedId && (
-          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-[60] flex flex-col justify-end bg-slate-900/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={sheetTransition}>
             <motion.div
               className="flex max-h-[80vh] w-full max-w-[430px] mx-auto flex-col rounded-t-[24px] bg-white shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+              transition={sheetTransition}
             >
               <div className="flex justify-center pt-3 pb-2 shrink-0">
                 <div className="h-1 w-12 rounded-full bg-slate-300" />

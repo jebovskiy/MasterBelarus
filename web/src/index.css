@@ -15,6 +15,13 @@
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
+/* Performance: disable backdrop-blur on low-end/battery-save devices */
+@media (prefers-reduced-transparency: reduce) {
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+  }
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;

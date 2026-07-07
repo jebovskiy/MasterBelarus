@@ -6,6 +6,7 @@ import { apiPost } from '@/lib/api';
 import { useToastStore } from '@/components/shared/Toast';
 import CitySelector, { type CityValue } from '@/components/shared/CitySelector';
 import { getCityCoords } from '@/data/belarus-cities';
+import { sheetTransition } from '@/lib/transitions';
 
 type Props = { open: boolean; onClose: () => void; presetCategory?: string | null };
 
@@ -24,7 +25,7 @@ const labelCls = 'text-xs font-semibold text-slate-500 uppercase tracking-wider 
 const swipeConfidenceThreshold = 80;
 const swipeVelocityThreshold = 400;
 
-const sheetTransition = { duration: 0.25, ease: [0.32, 0.72, 0, 1] };
+
 
 export default function CreateOrderSheet({ open, onClose, presetCategory }: Props) {
   const { t } = useTranslation();

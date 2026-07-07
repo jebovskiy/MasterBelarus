@@ -21,7 +21,8 @@ export function useStartAppHandler() {
       const confirmed = window.confirm('🔄 Вернуть отменённый заказ в поиск?\n\nЗаказ снова увидят мастера, и вы сможете выбрать нового исполнителя.');
       if (!confirmed) return;
 
-      apiPost(`/orders/${orderId}/reactivate`, {}).then((res) => {
+      const ac = new AbortController();
+      apiPost(`/orders/${orderId}/reactivate`, {}, { signal: ac.signal }).then((res) => {
         if ('error' in res) {
           notification('error');
           showToast('Ошибка при восстановлении заказа', 'error');
@@ -30,6 +31,8 @@ export function useStartAppHandler() {
         notification('success');
         showToast('✅ Заказ снова открыт! Мастера могут откликаться.', 'success');
       });
+
+      return () => ac.abort();
     }
   }, [showToast, notification]);
 }
