@@ -24,10 +24,21 @@ mastersRouter.get('/me', async (req: JwtRequest, res) => {
 
     if (balErr) throw balErr;
 
+    // Find order_ids where master has accepted bid (orders table has no master_id column)
+    const { data: myBidRows, error: bidErr } = await db
+      .from('bids')
+      .select('order_id')
+      .eq('master_id', profileId)
+      .eq('status', 'accepted');
+
+    if (bidErr) throw bidErr;
+
+    const myOrderIds = (myBidRows ?? []).map((r) => (r as { order_id: string }).order_id);
+
     const { count: completedCount, error: compErr } = await db
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .eq('master_id', profileId)
+      .in('id', myOrderIds.length > 0 ? myOrderIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('status', 'completed');
 
     if (compErr) throw compErr;
@@ -35,7 +46,7 @@ mastersRouter.get('/me', async (req: JwtRequest, res) => {
     const { count: inProgressCount, error: ipErr } = await db
       .from('orders')
       .select('*', { count: 'exact', head: true })
-      .eq('master_id', profileId)
+      .in('id', myOrderIds.length > 0 ? myOrderIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('status', 'in_progress');
 
     if (ipErr) throw ipErr;
