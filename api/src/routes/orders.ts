@@ -380,6 +380,41 @@ ordersRouter.get('/in-progress', async (req: JwtRequest, res) => {
 });
 
 /**
+ * GET /orders/completed — выполненные заказы текущего мастера
+ */
+ordersRouter.get('/completed', async (req: JwtRequest, res) => {
+  try {
+    const db = getSupabaseAdmin();
+    const profileId = req.jwtPayload!.profile_id;
+
+    const { data: myBids } = await db
+      .from('bids')
+      .select('order_id')
+      .eq('master_id', profileId);
+
+    const orderIds = (myBids ?? []).map((b: { order_id: string }) => b.order_id);
+    if (orderIds.length === 0) return res.json({ orders: [] });
+
+    const limit = Math.min(Number(req.query.limit ?? 50), 200);
+
+    const { data: orders, error } = await db
+      .from('orders')
+      .select('*')
+      .in('id', orderIds)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return res.json({ orders: orders ?? [] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'unknown';
+    logger.warn({ msg }, 'orders/completed failed');
+    return res.status(500).json({ error: 'completed failed', detail: msg });
+  }
+});
+
+/**
  * GET /orders/:id — детали заказа (доступно всем аутентифицированным)
  */
 ordersRouter.get('/:id', async (req: JwtRequest, res) => {

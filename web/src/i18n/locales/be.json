@@ -189,7 +189,12 @@
     "in_progress_heading": "Заказы ў працы",
     "no_in_progress": "Няма заказаў у працы",
     "cancel": "Адмяніць",
-    "changed_mind": "Передумаў"
+    "changed_mind": "Передумаў",
+    "search_tab": "Пошук",
+    "completed_tab": "Архіў",
+    "completed_heading": "Выкананыя заказы",
+    "no_completed": "Няма выкананых заказаў",
+    "done": "Гатова"
   },
   "chat": {
     "title": "Чаты",

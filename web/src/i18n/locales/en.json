@@ -189,7 +189,12 @@
     "in_progress_heading": "Orders in progress",
     "no_in_progress": "No orders in progress",
     "cancel": "Cancel",
-    "changed_mind": "Changed my mind"
+    "changed_mind": "Changed my mind",
+    "search_tab": "Search",
+    "completed_tab": "Archive",
+    "completed_heading": "Completed orders",
+    "no_completed": "No completed orders yet",
+    "done": "Done"
   },
   "chat": {
     "title": "Chats",

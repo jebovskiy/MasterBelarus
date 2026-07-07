@@ -46,6 +46,9 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
   const [bidPrice, setBidPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [bidOrderIds, setBidOrderIds] = useState<Set<string>>(new Set());
+  const [tab, setTab] = useState<'nearby' | 'completed'>('nearby');
+  const [completedOrders, setCompletedOrders] = useState<NearbyOrder[]>([]);
+  const [completedLoading, setCompletedLoading] = useState(false);
   const { impact, notification } = useHaptic();
   const { location } = useLocation();
   const showToast = useToastStore((s) => s.showToast);
@@ -85,6 +88,19 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
     document.addEventListener('visibilitychange', onVis);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
   }, [load]);
+
+  const loadCompleted = useCallback(async () => {
+    setCompletedLoading(true);
+    const result = await apiGet<{ orders: NearbyOrder[] }>('/orders/completed');
+    if ('data' in result && result.data) {
+      setCompletedOrders(result.data.orders ?? []);
+    }
+    setCompletedLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'completed') void loadCompleted();
+  }, [tab, loadCompleted]);
 
   const openOrder = (order: NearbyOrder) => {
     setSelectedId(order.id);
@@ -182,32 +198,77 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
         </button>
 
         <div>
-          <div className="flex items-center justify-between px-1 mb-2">
-            <h2 className="text-lg font-bold text-text-main">{t('master.orders_nearby_title')}</h2>
-            <button onClick={load} className="text-sm font-semibold text-primary">{t('master.refresh')}</button>
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => setTab('nearby')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'nearby' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm'}`}
+            >
+              {t('master.search_tab')}
+            </button>
+            <button
+              onClick={() => setTab('completed')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === 'completed' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-600 shadow-sm'}`}
+            >
+              {t('master.completed_tab')} ({stats.completed})
+            </button>
           </div>
-          {loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
-          {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">{t('master.no_orders_nearby')}</div>}
-          <div className="space-y-3">
-            {orders.map((order, idx) => (
-              <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.04, 0.5) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
-                  <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
-                </div>
-                <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
-                <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
-                  {bidOrderIds.has(order.id) ? (
-                    <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">{t('master.you_responded')}</span>
-                  ) : (
-                    <span className="px-3 h-8 rounded-xl bg-slate-900 text-white text-sm font-semibold flex items-center">{t('master.respond')}</span>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+
+          {tab === 'nearby' && (
+            <>
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h2 className="text-lg font-bold text-text-main">{t('master.orders_nearby_title')}</h2>
+                <button onClick={load} className="text-sm font-semibold text-primary">{t('master.refresh')}</button>
+              </div>
+              {loading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-32 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
+              {!loading && orders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">{t('master.no_orders_nearby')}</div>}
+              <div className="space-y-3">
+                {orders.map((order, idx) => (
+                  <motion.div key={order.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.04, 0.5) }} onClick={() => openOrder(order)} className="bg-white p-4 rounded-bento shadow-card hover:scale-[1.02] active:scale-[0.99] transition-transform cursor-pointer">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="px-2 py-0.5 rounded-full bg-primary-tint text-primary text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
+                      <div className="text-xs text-text-muted">📍 {Math.round((order.distance_m ?? 0) / 10) * 10}{t('master.meters')}</div>
+                    </div>
+                    <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
+                    <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
+                      {bidOrderIds.has(order.id) ? (
+                        <span className="px-3 h-8 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-semibold flex items-center">{t('master.you_responded')}</span>
+                      ) : (
+                        <span className="px-3 h-8 rounded-xl bg-slate-900 text-white text-sm font-semibold flex items-center">{t('master.respond')}</span>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {tab === 'completed' && (
+            <>
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h2 className="text-lg font-bold text-text-main">{t('master.completed_heading')}</h2>
+                <button onClick={loadCompleted} className="text-sm font-semibold text-primary">{t('master.refresh')}</button>
+              </div>
+              {completedLoading && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-28 rounded-bento bg-white shadow-card animate-pulse" />)}</div>}
+              {!completedLoading && completedOrders.length === 0 && <div className="text-center py-10 text-text-muted text-sm">{t('master.no_completed')}</div>}
+              <div className="space-y-3">
+                {completedOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-4 rounded-bento shadow-card opacity-70">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">{t(`home.categories.${order.category}`)}</span>
+                      <span className="text-[11px] text-slate-400">✅ {t('master.done')}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-text-main line-clamp-2">{order.description}</p>
+                    <p className="text-xs text-text-muted mt-1 truncate">📍 {order.address_text}</p>
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                      <p className="text-base font-extrabold text-primary">{order.is_negotiable ? t('master.negotiable') : `${order.price ?? 0} BYN`}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
