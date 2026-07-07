@@ -179,14 +179,16 @@ export function MasterHome({ onNavigate }: { onNavigate?: (screen: string) => vo
               impact('light');
               setReviewSheet(true);
               setReviewsLoading(true);
-              const res = await apiGet<ReviewItem[]>('/reviews/mine');
-              if ('data' in res && Array.isArray(res.data)) setReviews(res.data);
+              const res = await apiGet<ReviewItem[]>('/masters/me/reviews');
+              if ('data' in res && Array.isArray(res.data)) {
+                setReviews(res.data);
+              }
               setReviewsLoading(false);
             }}
             className="bg-white p-4 rounded-bento shadow-card flex flex-col justify-between text-left"
           >
             <p className="text-sm font-semibold text-text-muted">{t('master.rating')}</p>
-            <p className="text-2xl font-extrabold text-text-main mt-1">{profile?.avg_rating ? `${profile.avg_rating.toFixed(1)} ★` : '—'}</p>
+            <p className="text-2xl font-extrabold text-text-main mt-1">{profile?.review_count && profile?.avg_rating ? `${profile.avg_rating.toFixed(1)} ★` : '—'}</p>
             <p className="text-xs text-text-muted">{profile?.review_count ? `${profile.review_count} ${t('master.ratings_count')}` : ''}</p>
           </button>
         </div>

@@ -655,3 +655,23 @@ MasterHome, Profile, WalletScreen показывали фейковые данн
 - `e0dde2d` — feat: completed orders archive with tab toggle in MasterHome
 - `5a19c39` — fix: unify price color to text-slate-800 across all views
 - `7dd377f` — fix: app shell layout — fixed inset-0 flex-col with scrollable content area
+
+---
+## STATE — 2026-07-07 22:30
+
+### Session 23: Reviews sheet for master (tap rating card)
+
+#### Проблема
+Мастер видел только цифру рейтинга и количество отзывов, но не мог посмотреть сами отзывы — кто оставил, оценку, комментарий.
+
+#### Изменения
+1. **`reviews.ts`** — новый `GET /reviews/mine`: все отзывы о текущем мастере (с информацией о клиенте: full_name, username, avatar_url). Собирает client_ids, делает второй запрос в profiles, маппит. (`93e5999`)
+2. **`MasterHome.tsx`** — карточка рейтинга стала кнопкой: тап → фетч `/reviews/mine` → bottom sheet со списком отзывов. Каждый отзыв: аватар (инициал) + имя клиента, звезды (★/☆), комментарий, дата. Пустое состояние: "Пока нет отзывов". (`93e5999`)
+3. **i18n** — `reviews_title`, `no_reviews`, `anonymous`, `close` в ru/en/be. (`93e5999`)
+
+#### Verification
+- `npm run typecheck -w api` — PASS
+- `npm run typecheck -w web` — PASS
+
+#### Коммит
+- `93e5999` — feat: master can view reviews with client info by tapping rating card
