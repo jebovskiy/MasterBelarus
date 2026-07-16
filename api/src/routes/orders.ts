@@ -215,12 +215,62 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
     });
     if (allOrders.length === 0) return res.json({ conversations: [] });
 
-    // Последние сообщения
+    // Фильтрация: скрытые чаты + заблокированные пользователи
     const orderIds = allOrders.map((o) => o.id);
+
+    // 1. Скрытые чаты
+    const { data: hiddenRows } = await db
+      .from('hidden_chats')
+      .select('order_id')
+      .eq('profile_id', profileId)
+      .in('order_id', orderIds);
+    const hiddenSet = new Set((hiddenRows ?? []).map((r: { order_id: string }) => r.order_id));
+
+    // 2. Заблокированные пользователи — собираем ID собеседников
+    const otherIdsSet = new Set<string>();
+    const orderToOther = new Map<string, string>();
+    for (const o of allOrders) {
+      if (o.client_id === profileId) {
+        // master needed — позже определим
+      } else {
+        otherIdsSet.add(o.client_id);
+        orderToOther.set(o.id, o.client_id);
+      }
+    }
+    // Для заказов клиента — найдём accepted master
+    const clientOrderIds = allOrders.filter((o) => o.client_id === profileId).map((o) => o.id);
+    if (clientOrderIds.length > 0) {
+      const { data: accBids } = await db.from('bids').select('order_id, master_id')
+        .in('order_id', clientOrderIds).eq('status', 'accepted');
+      for (const b of (accBids ?? []) as { order_id: string; master_id: string }[]) {
+        otherIdsSet.add(b.master_id);
+        orderToOther.set(b.order_id, b.master_id);
+      }
+    }
+    const otherIds = [...otherIdsSet];
+    const blockedIds = new Set<string>();
+    if (otherIds.length > 0) {
+      const { data: blocks } = await db.from('blocked_users').select('blocker_id, blocked_id')
+        .or(`and(blocker_id.eq.${profileId},blocked_id.in.(${otherIds.join(',')})),and(blocker_id.in.(${otherIds.join(',')}),blocked_id.eq.${profileId})`);
+      for (const b of (blocks ?? []) as { blocker_id: string; blocked_id: string }[]) {
+        blockedIds.add(b.blocker_id === profileId ? b.blocked_id : b.blocker_id);
+      }
+    }
+
+    // Применяем фильтры
+    const filteredOrders = allOrders.filter((o) => {
+      if (hiddenSet.has(o.id)) return false;
+      const otherId = orderToOther.get(o.id);
+      if (otherId && blockedIds.has(otherId)) return false;
+      return true;
+    });
+    if (filteredOrders.length === 0) return res.json({ conversations: [] });
+
+    const filteredOrderIds = filteredOrders.map((o) => o.id);
     const { data: latestMessages } = await db
       .from('messages')
       .select('order_id, text, created_at')
-      .in('order_id', orderIds)
+      .in('order_id', filteredOrderIds)
       .order('created_at', { ascending: false });
 
     const latestMap = new Map<string, { text: string; created_at: string }>();
@@ -231,7 +281,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
     // Собираем ID собеседников: для заказов-клиента → accepted master, для заказов-мастера → client
     const clientIds = new Set<string>();
     const masterNeeded = new Set<string>();
-    for (const o of allOrders) {
+    for (const o of filteredOrders) {
       if (o.client_id === profileId) {
         masterNeeded.add(o.id);
       } else {
@@ -279,7 +329,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
     const { data: readStates } = await getSupabaseAdmin()
       .from('chat_read_state')
       .select('order_id, last_read_at')
-      .in('order_id', orderIds)
+      .in('order_id', filteredOrderIds)
       .eq('profile_id', profileId);
 
     const readMap = new Map((readStates ?? []).map((r: { order_id: string; last_read_at: string }) => [r.order_id, r.last_read_at]));
@@ -288,7 +338,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
     const { data: allUnread } = await db
       .from('messages')
       .select('order_id')
-      .in('order_id', orderIds)
+      .in('order_id', filteredOrderIds)
       .neq('sender_id', profileId);
 
     const totalByOrder = new Map<string, number>();
@@ -298,7 +348,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
 
     // Отфильтровываем те, что после last_read
     const unreadCounts = new Map<string, number>();
-    for (const oid of orderIds) {
+    for (const oid of filteredOrderIds) {
       const lastRead = readMap.get(oid);
       if (!lastRead) {
         unreadCounts.set(oid, totalByOrder.get(oid) ?? 0);
@@ -315,7 +365,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
     }
 
     // Собираем результат
-    const conversations = allOrders.map((o) => {
+    const conversations = filteredOrders.map((o) => {
       const msg = latestMap.get(o.id);
       const isClient = o.client_id === profileId;
       const otherName = isClient
@@ -329,6 +379,7 @@ ordersRouter.get('/chats', async (req: JwtRequest, res) => {
         price: o.price,
         status: o.status,
         other_participant_name: otherName,
+        other_participant_id: orderToOther.get(o.id) ?? null,
         last_message: msg?.text ?? '',
         last_message_at: msg?.created_at ?? new Date(0).toISOString(),
         unread: unreadCounts.get(o.id) ?? 0,

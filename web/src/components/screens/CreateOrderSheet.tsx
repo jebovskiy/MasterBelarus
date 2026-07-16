@@ -73,7 +73,7 @@ export default function CreateOrderSheet({ open, onClose, presetCategory }: Prop
 
     const coords = getCityCoords(cityValue.city);
 
-    let images: string[] = [];
+    const images: string[] = [];
 
     if (photoFiles.length > 0) {
       for (let i = 0; i < photoFiles.length; i++) {

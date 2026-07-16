@@ -209,7 +209,18 @@
     "view_order": "Order",
     "no_messages": "No messages yet. Write something!",
     "input_placeholder": "Message...",
-    "chat_btn": "Chat"
+    "chat_btn": "Chat",
+    "block": "Block user",
+    "unblock": "Unblock user",
+    "hide": "Hide chat",
+    "blocked_banner": "User is blocked",
+    "blocked_input": "You blocked this user",
+    "confirm_block": "Block user?",
+    "confirm_block_desc": "You won't receive messages from this user.",
+    "confirm_unblock": "Unblock user?",
+    "confirm_unblock_desc": "This user will be able to message you again.",
+    "confirm_hide": "Hide chat?",
+    "confirm_hide_desc": "Chat will be hidden from the list. It will reappear on a new message."
   },
   "common": {
     "back": "← Back",

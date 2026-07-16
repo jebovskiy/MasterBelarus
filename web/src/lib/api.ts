@@ -78,3 +78,12 @@ export async function apiUpload<T>(path: string, file: File, fieldName = 'avatar
   });
   return handle<T>(res);
 }
+
+export async function apiDelete<T>(path: string, opts?: ApiOptions): Promise<ApiResult<T>> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+    signal: opts?.signal,
+  });
+  return handle<T>(res);
+}

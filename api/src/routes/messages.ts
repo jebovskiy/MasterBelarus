@@ -41,6 +41,23 @@ messagesRouter.get('/:orderId/messages', async (req: JwtRequest, res) => {
     const isParticipant = (order as { client_id: string }).client_id === profileId || !!myBid;
     if (!isParticipant) return res.status(403).json({ error: 'forbidden' });
 
+    // Check if blocked
+    const oGet = order as { client_id: string };
+    const isClientGet = oGet.client_id === profileId;
+    let otherIdBlock: string | null = null;
+    if (isClientGet) {
+      const { data: ab } = await db.from('bids').select('master_id').eq('order_id', orderId).eq('status', 'accepted').maybeSingle();
+      otherIdBlock = (ab as { master_id: string } | null)?.master_id ?? null;
+    } else {
+      otherIdBlock = oGet.client_id;
+    }
+    if (otherIdBlock) {
+      const { data: blockRow } = await db.from('blocked_users').select('id')
+        .or(`and(blocker_id.eq.${profileId},blocked_id.eq.${otherIdBlock}),and(blocker_id.eq.${otherIdBlock},blocked_id.eq.${profileId})`)
+        .maybeSingle();
+      if (blockRow) return res.status(403).json({ error: 'user is blocked' });
+    }
+
     const { data: messages, error } = await db
       .from('messages')
       .select('*')
@@ -119,6 +136,23 @@ messagesRouter.post('/:orderId/messages', async (req: JwtRequest, res) => {
 
     const isParticipant = (order as { client_id: string }).client_id === profileId || !!myBid;
     if (!isParticipant) return res.status(403).json({ error: 'forbidden' });
+
+    // Check if blocked
+    const o = order as { client_id: string };
+    const isSenderClient = o.client_id === profileId;
+    let otherProfileId: string | null = null;
+    if (isSenderClient) {
+      const { data: acceptedBid } = await db.from('bids').select('master_id').eq('order_id', orderId).eq('status', 'accepted').maybeSingle();
+      otherProfileId = (acceptedBid as { master_id: string } | null)?.master_id ?? null;
+    } else {
+      otherProfileId = o.client_id;
+    }
+    if (otherProfileId) {
+      const { data: blockRow } = await db.from('blocked_users').select('id')
+        .or(`and(blocker_id.eq.${profileId},blocked_id.eq.${otherProfileId}),and(blocker_id.eq.${otherProfileId},blocked_id.eq.${profileId})`)
+        .maybeSingle();
+      if (blockRow) return res.status(403).json({ error: 'user is blocked' });
+    }
 
     const { data: message, error } = await db
       .from('messages')

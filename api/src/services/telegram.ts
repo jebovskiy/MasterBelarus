@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 let _cachedSecretKey: Buffer | null = null;
+let _cachedToken: string | null = null;
 
 /**
  * Validates the `initData` string sent from the Mini App frontend against
@@ -52,11 +53,12 @@ export function validateTelegramWebAppData(
   entries.sort();
   const dataCheckString = entries.join('\n');
 
-  if (!_cachedSecretKey) {
+  if (!_cachedSecretKey || _cachedToken !== botToken) {
     _cachedSecretKey = crypto
       .createHmac('sha256', 'WebAppData')
       .update(botToken)
       .digest();
+    _cachedToken = botToken;
   }
   const secretKey = _cachedSecretKey;
   const computed = crypto
