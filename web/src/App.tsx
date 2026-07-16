@@ -22,8 +22,9 @@ const WalletScreen = lazy(() => import('@/components/screens/WalletScreen'));
 const OrderHistoryScreen = lazy(() => import('@/components/screens/OrderHistoryScreen'));
 const AdminPanelView = lazy(() => import('@/components/screens/AdminPanelView'));
 const ChatScreen = lazy(() => import('@/components/screens/ChatScreen'));
+const BlockedUsersScreen = lazy(() => import('@/components/screens/BlockedUsersScreen'));
 
-type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin';
+type Overlay = 'settings' | 'edit_profile' | 'wallet' | 'order_history' | 'admin' | 'blocked_users';
 
 function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: () => void }) {
   if (!overlay) return null;
@@ -35,6 +36,7 @@ function AppOverlay({ overlay, onClose }: { overlay: Overlay | null; onClose: ()
         {overlay === 'wallet' && <WalletScreen onBack={onClose} />}
         {overlay === 'order_history' && <OrderHistoryScreen onBack={onClose} />}
         {overlay === 'admin' && <AdminPanelView onClose={onClose} />}
+        {overlay === 'blocked_users' && <BlockedUsersScreen onBack={onClose} />}
       </Suspense>
     </motion.div>
   );

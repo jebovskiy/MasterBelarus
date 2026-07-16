@@ -404,6 +404,11 @@ export default function Profile({ onBack, onNavigate }: { onBack?: () => void; o
         </div>
       )}
 
+      <button onClick={() => onNavigate?.('blocked_users')} className="w-full bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3 active:scale-[0.98] transition-transform">
+        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-base">🛡️</div>
+        <span className="text-sm font-semibold text-slate-800">{t('blocks.title')}</span>
+      </button>
+
       <button onClick={() => { impact('medium'); clearAuth(); }} className="w-full bg-transparent text-rose-500/60 font-medium text-xs py-2 text-center block mt-4 hover:text-rose-600 transition-colors">
         Выйти из аккаунта
       </button>

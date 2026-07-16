@@ -259,5 +259,12 @@
   "auth": {
     "error_title": "Authorization error",
     "open_in_telegram": "Please open the app inside Telegram"
+  },
+  "blocks": {
+    "title": "Blocked users",
+    "empty": "No blocked users",
+    "unblock": "Remove",
+    "blocked_at": "Blocked",
+    "unblocked_toast": "User unblocked"
   }
 }
